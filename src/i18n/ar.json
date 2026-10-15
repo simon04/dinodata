@@ -72,5 +72,9 @@
   "pasted-terms": "تغييرات في التسميات/وصلات المواقع: $1",
   "paste-no-removal": "لا تُلصق عمليات الإزالة",
   "save": "احفظ",
-  "value-invalid": "قيمة غير صالحة. المتوقع: $1"
+  "value-invalid": "قيمة غير صالحة. المتوقع: $1",
+  "footer-by": "بواسطة",
+  "footer-source": "الشيفرة المصدرية على GitHub",
+  "footer-license": "الرخصة: $1",
+  "footer-data": "البيانات من ويكي بيانات (CC0)"
 }

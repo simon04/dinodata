@@ -71,5 +71,9 @@
   "pasted-terms": "$1 {{PLURAL:$1|Bezeichnungs-/Sitelink-Änderung|Bezeichnungs-/Sitelink-Änderungen}}",
   "paste-no-removal": "Entfernungen werden nicht eingefügt",
   "save": "Speichern",
-  "value-invalid": "Ungültiger Wert. Erwartet: $1"
+  "value-invalid": "Ungültiger Wert. Erwartet: $1",
+  "footer-by": "von",
+  "footer-source": "Quellcode auf GitHub",
+  "footer-license": "Lizenz: $1",
+  "footer-data": "Daten von Wikidata (CC0)"
 }

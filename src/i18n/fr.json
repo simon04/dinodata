@@ -72,5 +72,9 @@
   "pasted-terms": "$1 {{PLURAL:$1|modification|modifications}} de libellés/liens",
   "paste-no-removal": "les suppressions ne sont pas collées",
   "save": "Enregistrer",
-  "value-invalid": "Valeur invalide. Attendu : $1"
+  "value-invalid": "Valeur invalide. Attendu : $1",
+  "footer-by": "par",
+  "footer-source": "Code source sur GitHub",
+  "footer-license": "Licence : $1",
+  "footer-data": "Données de Wikidata (CC0)"
 }

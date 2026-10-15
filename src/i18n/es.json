@@ -72,5 +72,9 @@
   "pasted-terms": "$1 {{PLURAL:$1|cambio|cambios}} de etiquetas/enlaces",
   "paste-no-removal": "las eliminaciones no se pegan",
   "save": "Guardar",
-  "value-invalid": "Valor no válido. Se esperaba: $1"
+  "value-invalid": "Valor no válido. Se esperaba: $1",
+  "footer-by": "por",
+  "footer-source": "Código fuente en GitHub",
+  "footer-license": "Licencia: $1",
+  "footer-data": "Datos de Wikidata (CC0)"
 }

@@ -72,5 +72,9 @@
   "pasted-terms": "$1 项标签/网站链接更改",
   "paste-no-removal": "删除操作不会被粘贴",
   "save": "保存",
-  "value-invalid": "值无效。应为：$1"
+  "value-invalid": "值无效。应为：$1",
+  "footer-by": "作者：",
+  "footer-source": "GitHub 上的源代码",
+  "footer-license": "许可证：$1",
+  "footer-data": "数据来自维基数据（CC0）"
 }
