@@ -29,6 +29,7 @@
 import { ref } from "vue";
 import { CdxSelect } from "@wikimedia/codex";
 import { useEventListener, useLocalStorage } from "@vueuse/core";
+import { loadProperties } from "./properties";
 import EntitySearch from "./components/EntitySearch.vue";
 import EntityView from "./components/EntityView.vue";
 
@@ -36,6 +37,7 @@ const languages = ["en", "de", "fr", "es", "it", "nl", "pl", "ja", "zh"].map(
   (value) => ({ value, label: value }),
 );
 const language = useLocalStorage("dinodata.language", "en");
+loadProperties(language);
 
 const parseHash = () => location.hash.match(/^#([LPQ]\d+)$/)?.[1];
 const id = ref(parseHash());

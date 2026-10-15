@@ -4,7 +4,7 @@
     v-model:input-value="inputValue"
     :menu-items="menuItems"
     :start-icon="cdxIconSearch"
-    placeholder="Search DinoData"
+    :placeholder="placeholder ?? 'Search DinoData'"
     @input="onInput"
     @update:selected="onSelected"
   >
@@ -19,8 +19,12 @@ import { cdxIconSearch } from "@wikimedia/codex-icons";
 import { useDebounceFn } from "@vueuse/core";
 import { searchEntities } from "../wikidata";
 
-const props = defineProps<{ language: string }>();
-const emit = defineEmits<{ select: [id: string] }>();
+const props = defineProps<{
+  language: string;
+  placeholder?: string;
+  type?: "item" | "property";
+}>();
+const emit = defineEmits<{ select: [id: string, label: string] }>();
 
 const selected = ref<string | null>(null);
 const inputValue = ref("");
@@ -31,7 +35,7 @@ const onInput = useDebounceFn(async (value: string) => {
     menuItems.value = [];
     return;
   }
-  const results = await searchEntities(value, props.language);
+  const results = await searchEntities(value, props.language, props.type);
   if (value !== inputValue.value) return;
   menuItems.value = results.map((r) => ({
     value: r.id,
@@ -43,7 +47,8 @@ const onInput = useDebounceFn(async (value: string) => {
 
 function onSelected(id: string | null) {
   if (!id) return;
-  emit("select", id);
+  const item = menuItems.value.find((i) => i.value === id);
+  emit("select", id, item?.label ?? id);
   inputValue.value = "";
   selected.value = null;
   menuItems.value = [];

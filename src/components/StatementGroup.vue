@@ -10,7 +10,13 @@
         v-for="claim in claims"
         :key="claim.id"
         class="dd-value"
-        :class="`dd-rank-${claim.rank}`"
+        :class="[
+          `dd-rank-${claim.rank}`,
+          {
+            'dd-pending': pending.has(claim.id),
+            'dd-removed': removed.has(claim.id),
+          },
+        ]"
       >
         <div class="dd-mainsnak">
           <cdx-icon
@@ -40,6 +46,29 @@
             :labels="labels"
             :formatter-urls="formatterUrls"
           />
+          <cdx-button
+            v-if="pending.has(claim.id) || removed.has(claim.id)"
+            class="dd-action"
+            weight="quiet"
+            size="small"
+            aria-label="Undo"
+            title="Undo"
+            @click="emit('undo', claim)"
+          >
+            <cdx-icon :icon="cdxIconUndo" size="small" />
+          </cdx-button>
+          <cdx-button
+            v-else
+            class="dd-action dd-hover"
+            weight="quiet"
+            action="destructive"
+            size="small"
+            aria-label="Remove"
+            title="Remove"
+            @click="emit('remove', claim)"
+          >
+            <cdx-icon :icon="cdxIconTrash" size="small" />
+          </cdx-button>
         </div>
         <div
           v-for="(snaks, qualifier) in claim.qualifiers"
@@ -93,18 +122,43 @@
           </div>
         </details>
       </div>
+      <AddStatement
+        v-if="adding && byId[property]"
+        class="dd-add-value"
+        :language="language"
+        :fixed-property="byId[property]"
+        @add="(snak, label) => emit('add', snak, label)"
+        @close="adding = false"
+      />
+      <cdx-button
+        v-else-if="byId[property]"
+        class="dd-add-button"
+        weight="quiet"
+        action="progressive"
+        size="small"
+        @click="adding = true"
+      >
+        <cdx-icon :icon="cdxIconAdd" size="small" />
+        add value
+      </cdx-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { CdxIcon } from "@wikimedia/codex";
+import { ref } from "vue";
+import { CdxButton, CdxIcon } from "@wikimedia/codex";
 import {
+  cdxIconAdd,
   cdxIconDownTriangle,
   cdxIconReference,
+  cdxIconTrash,
+  cdxIconUndo,
   cdxIconUpTriangle,
 } from "@wikimedia/codex-icons";
-import type { Claim } from "../wikidata";
+import { useProperties } from "../properties";
+import type { Claim, Snak } from "../wikidata";
+import AddStatement from "./AddStatement.vue";
 import SnakValue from "./SnakValue.vue";
 
 defineProps<{
@@ -112,7 +166,18 @@ defineProps<{
   claims: Claim[];
   labels: Record<string, string>;
   formatterUrls: Record<string, string>;
+  language: string;
+  pending: Set<string>;
+  removed: Set<string>;
 }>();
+const emit = defineEmits<{
+  add: [snak: Snak, label?: string];
+  remove: [claim: Claim];
+  undo: [claim: Claim];
+}>();
+
+const { byId } = useProperties();
+const adding = ref(false);
 
 function thumb(file: string) {
   return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=160`;
@@ -145,6 +210,31 @@ function thumb(file: string) {
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+.dd-pending {
+  background: var(--background-color-success-subtle);
+}
+.dd-removed {
+  background: var(--background-color-error-subtle);
+}
+.dd-removed .dd-mainsnak > :not(.dd-action) {
+  text-decoration: line-through;
+}
+.dd-action {
+  margin-left: auto;
+}
+.dd-hover {
+  opacity: 0;
+}
+.dd-value:hover .dd-hover,
+.dd-hover:focus {
+  opacity: 1;
+}
+.dd-add-button {
+  margin: 0.25rem 0.5rem;
+}
+.dd-add-value {
+  margin: 0.5rem;
 }
 .dd-rank-deprecated .dd-mainsnak {
   text-decoration: line-through;

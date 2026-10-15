@@ -41,13 +41,34 @@
 
     <cdx-tabs v-model:active="tab">
       <cdx-tab name="statements" :label="`Statements (${statements.length})`">
+        <AddStatement
+          v-if="adding"
+          :language="language"
+          @add="addStatement"
+          @close="adding = false"
+        />
+        <cdx-button
+          v-else
+          action="progressive"
+          class="dd-add-statement-button"
+          @click="adding = true"
+        >
+          <cdx-icon :icon="cdxIconAdd" />
+          Add statement
+        </cdx-button>
         <StatementGroup
           v-for="property in statements"
           :key="property"
           :property="property"
-          :claims="entity.claims[property]"
-          :labels="labels"
+          :claims="claimsOf(property)"
+          :labels="allLabels"
           :formatter-urls="formatterUrls"
+          :language="language"
+          :pending="pending"
+          :removed="removed"
+          @add="addStatement"
+          @remove="removeStatement"
+          @undo="undo"
         />
       </cdx-tab>
       <cdx-tab
@@ -58,9 +79,15 @@
           v-for="property in identifiers"
           :key="property"
           :property="property"
-          :claims="entity.claims[property]"
-          :labels="labels"
+          :claims="claimsOf(property)"
+          :labels="allLabels"
           :formatter-urls="formatterUrls"
+          :language="language"
+          :pending="pending"
+          :removed="removed"
+          @add="addStatement"
+          @remove="removeStatement"
+          @undo="undo"
         />
       </cdx-tab>
       <cdx-tab name="terms" :label="`Languages (${terms.length})`">
@@ -104,6 +131,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import {
+  CdxButton,
   CdxIcon,
   CdxInfoChip,
   CdxMessage,
@@ -112,9 +140,17 @@ import {
   CdxTable,
   CdxTabs,
 } from "@wikimedia/codex";
-import { cdxIconLinkExternal } from "@wikimedia/codex-icons";
-import { getEntities, label, type Entity, type Snak } from "../wikidata";
+import { cdxIconAdd, cdxIconLinkExternal } from "@wikimedia/codex-icons";
+import {
+  getEntities,
+  label,
+  type Claim,
+  type Entity,
+  type Snak,
+} from "../wikidata";
 import type { Edit } from "../quickstatements";
+import { propertyLabel, useProperties } from "../properties";
+import AddStatement from "./AddStatement.vue";
 import StatementGroup from "./StatementGroup.vue";
 import QuickStatementsPanel from "./QuickStatementsPanel.vue";
 
@@ -127,19 +163,85 @@ const edits = ref<Edit[]>([]);
 const loading = ref(false);
 const error = ref<string>();
 const tab = ref("statements");
+const adding = ref(false);
+const { byId } = useProperties();
+
+type StatementEdit = Extract<Edit, { type: "statement" }>;
+const statementEdits = computed(() =>
+  edits.value.filter((e): e is StatementEdit => e.type === "statement"),
+);
+const pending = computed(
+  () =>
+    new Set(
+      statementEdits.value.filter((e) => !e.remove).map((e) => e.claimId),
+    ),
+);
+const removed = computed(
+  () =>
+    new Set(statementEdits.value.filter((e) => e.remove).map((e) => e.claimId)),
+);
+
+function claimsOf(property: string): Claim[] {
+  return [
+    ...(entity.value?.claims[property] ?? []),
+    ...statementEdits.value
+      .filter((e) => !e.remove && e.snak.property === property)
+      .map((e) => ({
+        id: e.claimId,
+        rank: "normal" as const,
+        mainsnak: e.snak,
+      })),
+  ];
+}
+
+let counter = 0;
+function addStatement(snak: Snak, valueLabel?: string) {
+  const id = (snak.datavalue?.value as { id?: string })?.id;
+  if (id && valueLabel) labels.value[id] = valueLabel;
+  edits.value.push({ type: "statement", claimId: `new-${++counter}`, snak });
+}
+
+function removeStatement(claim: Claim) {
+  edits.value.push({
+    type: "statement",
+    claimId: claim.id,
+    remove: true,
+    snak: claim.mainsnak,
+  });
+}
+
+function undo(claim: Claim) {
+  edits.value = edits.value.filter(
+    (e) => e.type !== "statement" || e.claimId !== claim.id,
+  );
+}
+
+/** Fetched labels, completed with locally preloaded property labels. */
+const allLabels = computed(() => {
+  const result = { ...labels.value };
+  for (const property of [...statements.value, ...identifiers.value]) {
+    result[property] ??=
+      propertyLabel(byId.value[property], props.language) ?? property;
+  }
+  return result;
+});
 
 const aliases = computed(
   () => entity.value?.aliases[props.language]?.map((a) => a.value) ?? [],
 );
 
 const isIdentifier = (property: string) =>
-  entity.value?.claims[property][0]?.mainsnak.datatype === "external-id";
+  claimsOf(property)[0]?.mainsnak.datatype === "external-id";
+const properties = computed(() => [
+  ...new Set([
+    ...Object.keys(entity.value?.claims ?? {}),
+    ...statementEdits.value.map((e) => e.snak.property),
+  ]),
+]);
 const statements = computed(() =>
-  Object.keys(entity.value?.claims ?? {}).filter((p) => !isIdentifier(p)),
+  properties.value.filter((p) => !isIdentifier(p)),
 );
-const identifiers = computed(() =>
-  Object.keys(entity.value?.claims ?? {}).filter(isIdentifier),
-);
+const identifiers = computed(() => properties.value.filter(isIdentifier));
 
 const image = computed(() => {
   const file = entity.value?.claims.P18?.[0]?.mainsnak.datavalue?.value;
@@ -299,6 +401,9 @@ watch(
 .dd-links {
   display: flex;
   gap: 1rem;
+}
+.dd-add-statement-button {
+  margin-bottom: 0.75rem;
 }
 .dd-entity :deep(.cdx-tab) {
   padding-top: 1rem;

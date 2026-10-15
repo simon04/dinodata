@@ -7,6 +7,8 @@ export type Edit =
   | {
       type: "statement";
       remove?: boolean;
+      /** existing claim (removals) or generated ID (additions), for the UI */
+      claimId: string;
       snak: Snak;
       qualifiers?: Snak[];
       references?: Snak[];
