@@ -38,9 +38,9 @@ export function parseValue(
     case "time": {
       // 1955, 1955-05, 1955-05-15, or QuickStatements +1955-05-15T00:00:00Z/11
       const qs = v.match(
-        /^([+-]?)(\d{1,16})-(\d\d)-(\d\d)T00:00:00Z\/(\d{1,2})$/,
+        /^([+-]?)(\d{1,16})-(\d\d)-(\d\d)T00:00:00Z\/(\d{1,2})(\/J)?$/,
       );
-      const m = qs ?? v.match(/^(-?)(\d{1,4})(?:-(\d\d))?(?:-(\d\d))?$/);
+      const m = qs ?? v.match(/^(-?)(\d{1,16})(?:-(\d\d))?(?:-(\d\d))?$/);
       if (!m) return undefined;
       const [, sign, year, month, day] = m;
       const precision = qs ? Number(qs[5]) : day ? 11 : month ? 10 : 9;
@@ -54,7 +54,8 @@ export function parseValue(
           timezone: 0,
           before: 0,
           after: 0,
-          calendarmodel: "http://www.wikidata.org/entity/Q1985727",
+          // Gregorian, or Julian with QuickStatements /J
+          calendarmodel: `http://www.wikidata.org/entity/${qs?.[6] ? "Q1985786" : "Q1985727"}`,
         },
       };
     }

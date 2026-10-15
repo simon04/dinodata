@@ -1,20 +1,22 @@
 <template>
-  <span v-if="snak.snaktype === 'novalue'" class="dd-special">
-    {{ t("snak-novalue") }}
-  </span>
-  <span v-else-if="snak.snaktype === 'somevalue'" class="dd-special">
-    {{ t("snak-somevalue") }}
-  </span>
-  <template v-else-if="entityId">
-    <a :href="`#${entityId}`" :title="entityId">
-      {{ labels[entityId] ?? entityId }}
+  <span>
+    <span v-if="snak.snaktype === 'novalue'" class="dd-special">
+      {{ t("snak-novalue") }}
+    </span>
+    <span v-else-if="snak.snaktype === 'somevalue'" class="dd-special">
+      {{ t("snak-somevalue") }}
+    </span>
+    <template v-else-if="entityId">
+      <a :href="`#${entityId}`" :title="entityId">
+        {{ labels[entityId] ?? entityId }}
+      </a>
+      <EntityId :id="entityId" />
+    </template>
+    <a v-else-if="href" :href="href" target="_blank" rel="external noopener">
+      {{ text }}
     </a>
-    <EntityId :id="entityId" />
-  </template>
-  <a v-else-if="href" :href="href" target="_blank" rel="external noopener">
-    {{ text }}
-  </a>
-  <span v-else>{{ text }}</span>
+    <span v-else>{{ text }}</span>
+  </span>
 </template>
 
 <script setup lang="ts">

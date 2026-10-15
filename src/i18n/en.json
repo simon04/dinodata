@@ -74,5 +74,7 @@
   "paste-denied": "Clipboard access denied – press Ctrl+V instead.",
   "paste-invalid": "Skipped $1 invalid {{PLURAL:$1|line|lines}}: $2",
   "pasted-terms": "$1 {{PLURAL:$1|label/sitelink change|label/sitelink changes}}",
-  "paste-no-removal": "removals are not pasted"
+  "paste-no-removal": "removals are not pasted",
+  "save": "Save",
+  "value-invalid": "Invalid value. Expected: $1"
 }

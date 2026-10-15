@@ -17,6 +17,7 @@ export function claimToEdit(claim: Claim, claimId: string): StatementEdit {
     type: "statement",
     claimId,
     snak: claim.mainsnak,
+    rank: claim.rank,
     qualifiers: Object.values(claim.qualifiers ?? {}).flat(),
     references: claim.references?.map((r) => Object.values(r.snaks).flat()),
   };
@@ -158,6 +159,17 @@ export function parseStatements(
     const qualifiers: Snak[] = [];
     const reference: Snak[] = [];
     let error: string | undefined;
+    let rank: Claim["rank"] = "normal";
+    const RANKS: Record<string, Claim["rank"]> = {
+      "R+": "preferred",
+      RPREFERRED: "preferred",
+      R0: "normal",
+      RNORMAL: "normal",
+      "R-": "deprecated",
+      RDEPRECATED: "deprecated",
+    };
+    while (RANKS[rest[0]?.toUpperCase()])
+      rank = RANKS[rest.shift()!.toUpperCase()];
     for (let i = 0; i + 1 < rest.length; i += 2) {
       const [p, v] = [rest[i].toUpperCase(), rest[i + 1]];
       const target = p.startsWith("S") ? reference : qualifiers;
@@ -185,7 +197,7 @@ export function parseStatements(
     if (!claim) {
       claim = {
         id: "",
-        rank: "normal",
+        rank,
         mainsnak,
         qualifiers: qualifiers.length ? group(qualifiers) : undefined,
       };

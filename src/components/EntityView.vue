@@ -247,7 +247,7 @@ function claimsOf(property: string): Claim[] {
       .filter((e) => !e.remove && !e.replace && e.snak.property === property)
       .map((e) => ({
         id: e.claimId,
-        rank: "normal" as const,
+        rank: e.rank ?? "normal",
         mainsnak: e.snak,
         qualifiers: e.qualifiers?.length ? groupSnaks(e.qualifiers) : undefined,
         references: e.references?.map((r) => ({ snaks: groupSnaks(r) })),

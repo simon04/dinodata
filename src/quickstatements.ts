@@ -15,6 +15,7 @@ export type Edit =
        * so it is removed by ID and re-added with qualifiers and references
        */
       replace?: boolean;
+      rank?: "preferred" | "normal" | "deprecated";
       /** existing claim (removals) or generated ID (additions), for the UI */
       claimId: string;
       snak: Snak;
@@ -37,7 +38,8 @@ export function snakValue(snak: Snak): string {
     case "monolingualtext":
       return `${v.language}:${quote(v.text)}`;
     case "time":
-      return `${v.time}/${v.precision}`;
+      // /J: Julian calendar
+      return `${v.time}/${v.precision}${v.calendarmodel?.endsWith("/Q1985786") ? "/J" : ""}`;
     case "quantity": {
       const unit = v.unit?.match(/Q\d+$/)?.[0];
       return unit ? `${v.amount}U${unit.slice(1)}` : v.amount;
@@ -69,6 +71,9 @@ export function toQuickStatements(id: string, edits: Edit[]): string {
             `${edit.remove ? "-" : ""}${id}`,
             edit.snak.property,
             snakValue(edit.snak),
+            ...(edit.rank && edit.rank !== "normal" && !edit.remove
+              ? [edit.rank === "preferred" ? "R+" : "R-"]
+              : []),
             ...(edit.qualifiers ?? []).flatMap((q) => [
               q.property,
               snakValue(q),

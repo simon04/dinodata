@@ -10,28 +10,33 @@
     @select="onEntity"
   />
   <div v-else class="dd-value-input">
-    <cdx-text-input
-      ref="input"
-      v-model="text"
-      :placeholder="placeholder"
-      :status="text && !snak ? 'error' : 'default'"
-      @keydown.enter="submit"
-    />
-    <cdx-text-input
-      v-if="datatype === 'monolingualtext'"
-      v-model="textLanguage"
-      class="dd-lang"
-      :aria-label="t('value-language-code')"
-      @keydown.enter="submit"
-    />
-    <cdx-button
-      action="progressive"
-      weight="primary"
-      :disabled="!snak"
-      @click="submit"
-    >
-      {{ t("add") }}
-    </cdx-button>
+    <div class="dd-value-row">
+      <cdx-text-input
+        ref="input"
+        v-model="text"
+        :placeholder="placeholder"
+        :status="invalid ? 'error' : 'default'"
+        @keydown.enter="submit"
+      />
+      <cdx-text-input
+        v-if="datatype === 'monolingualtext'"
+        v-model="textLanguage"
+        class="dd-lang"
+        :aria-label="t('value-language-code')"
+        @keydown.enter="submit"
+      />
+      <cdx-button
+        action="progressive"
+        weight="primary"
+        :disabled="!snak"
+        @click="submit"
+      >
+        {{ original ? t("save") : t("add") }}
+      </cdx-button>
+    </div>
+    <div v-if="invalid" class="dd-invalid">
+      {{ t("value-invalid", placeholder) }}
+    </div>
   </div>
 </template>
 
@@ -90,6 +95,12 @@ function datavalue(): Snak["datavalue"] {
   // editing a quantity keeps its unit unless a new one is given (…U123)
   if (value?.type === "quantity" && unit && !/U\d+$/.test(text.value))
     (value.value as { unit: string }).unit = unit;
+  // editing a date keeps its calendar model (e.g. Julian)
+  const calendar = (
+    props.original?.datavalue?.value as { calendarmodel?: string }
+  )?.calendarmodel;
+  if (value?.type === "time" && calendar)
+    (value.value as { calendarmodel: string }).calendarmodel = calendar;
   return value;
 }
 
@@ -104,6 +115,9 @@ const snak = computed<Snak | undefined>(() => {
       }
     : undefined;
 });
+
+/** Show the expected format once the input is clearly not valid. */
+const invalid = computed(() => !!text.value.trim() && !snak.value);
 
 function submit() {
   if (!snak.value) return;
@@ -136,12 +150,17 @@ defineExpose({ focus });
 </script>
 
 <style scoped>
-.dd-value-input {
+.dd-value-row {
   display: flex;
   gap: 0.5rem;
 }
-.dd-value-input > :first-child {
+.dd-value-row > :first-child {
   flex: 1;
+}
+.dd-invalid {
+  margin-top: 0.25rem;
+  font-size: 0.875em;
+  color: var(--color-error);
 }
 .dd-lang {
   width: 5rem;
