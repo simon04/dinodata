@@ -80,11 +80,13 @@
             :formatter-urls="formatterUrls"
             :language="language"
             :pending="pending"
+            :changed="changed"
             :removed="removed"
             @add="addStatement"
             @remove="removeStatement"
             @undo="undo"
             @copy="copy"
+            @change="changeStatement"
           />
         </div>
       </cdx-tab>
@@ -116,11 +118,13 @@
             :formatter-urls="formatterUrls"
             :language="language"
             :pending="pending"
+            :changed="changed"
             :removed="removed"
             @add="addStatement"
             @remove="removeStatement"
             @undo="undo"
             @copy="copy"
+            @change="changeStatement"
           />
         </div>
       </cdx-tab>
@@ -211,7 +215,15 @@ const statementEdits = computed(() =>
 const pending = computed(
   () =>
     new Set(
-      statementEdits.value.filter((e) => !e.remove).map((e) => e.claimId),
+      statementEdits.value
+        .filter((e) => !e.remove && !e.replace)
+        .map((e) => e.claimId),
+    ),
+);
+const changed = computed(
+  () =>
+    new Set(
+      statementEdits.value.filter((e) => e.replace).map((e) => e.claimId),
     ),
 );
 const removed = computed(
@@ -220,10 +232,19 @@ const removed = computed(
 );
 
 function claimsOf(property: string): Claim[] {
+  const replaced = new Map(
+    statementEdits.value
+      .filter((e) => e.replace)
+      .map((e) => [e.claimId, e.snak]),
+  );
   return [
-    ...(entity.value?.claims[property] ?? []),
+    ...(entity.value?.claims[property] ?? []).map((claim) =>
+      replaced.has(claim.id)
+        ? { ...claim, mainsnak: replaced.get(claim.id)! }
+        : claim,
+    ),
     ...statementEdits.value
-      .filter((e) => !e.remove && e.snak.property === property)
+      .filter((e) => !e.remove && !e.replace && e.snak.property === property)
       .map((e) => ({
         id: e.claimId,
         rank: "normal" as const,
@@ -328,7 +349,35 @@ function addStatement(snak: Snak, valueLabel?: string) {
   edits.value.push({ type: "statement", claimId: `new-${++counter}`, snak });
 }
 
+/** Change the main value; qualifiers and references are kept. */
+function changeStatement(claim: Claim, snak: Snak, valueLabel?: string) {
+  const id = (snak.datavalue?.value as { id?: string })?.id;
+  if (id && valueLabel) labels.value[id] = valueLabel;
+  const pendingEdit = statementEdits.value.find(
+    (e) => e.claimId === claim.id && !e.remove && !e.replace,
+  );
+  if (pendingEdit) {
+    pendingEdit.snak = snak;
+    return;
+  }
+  const original = entity.value?.claims[claim.mainsnak.property]?.find(
+    (c) => c.id === claim.id,
+  );
+  edits.value = edits.value.filter(
+    (e) => e.type !== "statement" || e.claimId !== claim.id,
+  );
+  if (!original || snakValue(original.mainsnak) === snakValue(snak)) return;
+  edits.value.push({
+    ...claimToEdit({ ...original, mainsnak: snak }, claim.id),
+    replace: true,
+  });
+}
+
 function removeStatement(claim: Claim) {
+  // removing a changed statement removes the original
+  edits.value = edits.value.filter(
+    (e) => e.type !== "statement" || e.claimId !== claim.id,
+  );
   edits.value.push({
     type: "statement",
     claimId: claim.id,

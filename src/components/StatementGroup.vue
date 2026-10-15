@@ -62,6 +62,7 @@
           `dd-rank-${claim.rank}`,
           {
             'dd-pending': pending.has(claim.id),
+            'dd-changed': changed.has(claim.id),
             'dd-removed': removed.has(claim.id),
           },
         ]"
@@ -89,11 +90,37 @@
             loading="lazy"
             alt=""
           />
+          <div v-if="editing === claim.id" class="dd-edit">
+            <ValueInput
+              :property="property"
+              :datatype="
+                claim.mainsnak.datatype ?? propertyInfo?.datatype ?? 'string'
+              "
+              :language="language"
+              :original="claim.mainsnak"
+              @submit="
+                (snak, label) => {
+                  emit('change', claim, snak, label);
+                  editing = undefined;
+                }
+              "
+              @keydown.esc="editing = undefined"
+            />
+            <cdx-button
+              weight="quiet"
+              :aria-label="t('cancel')"
+              @click="editing = undefined"
+            >
+              <cdx-icon :icon="cdxIconClose" />
+            </cdx-button>
+          </div>
           <SnakValue
+            v-else
             class="dd-snak"
             :snak="claim.mainsnak"
             :labels="labels"
             :formatter-urls="formatterUrls"
+            @dblclick="startEdit(claim)"
           />
           <details v-if="claim.references?.length" class="dd-references">
             <summary :title="t('references', claim.references.length)">
@@ -148,7 +175,18 @@
             </template>
           </span>
         </div>
-        <span class="dd-actions">
+        <span v-if="editing !== claim.id" class="dd-actions">
+          <cdx-button
+            v-if="!removed.has(claim.id)"
+            class="dd-hover"
+            weight="quiet"
+            size="small"
+            :aria-label="t('edit')"
+            :title="t('edit')"
+            @click="startEdit(claim)"
+          >
+            <cdx-icon :icon="cdxIconEdit" size="small" />
+          </cdx-button>
           <cdx-button
             class="dd-hover"
             weight="quiet"
@@ -160,7 +198,11 @@
             <cdx-icon :icon="cdxIconCopy" size="small" />
           </cdx-button>
           <cdx-button
-            v-if="pending.has(claim.id) || removed.has(claim.id)"
+            v-if="
+              pending.has(claim.id) ||
+              changed.has(claim.id) ||
+              removed.has(claim.id)
+            "
             weight="quiet"
             size="small"
             :aria-label="t('undo')"
@@ -201,9 +243,11 @@ import { computed, ref } from "vue";
 import { CdxButton, CdxIcon } from "@wikimedia/codex";
 import {
   cdxIconAdd,
+  cdxIconClose,
   cdxIconCollapse,
   cdxIconCopy,
   cdxIconDownTriangle,
+  cdxIconEdit,
   cdxIconExpand,
   cdxIconReference,
   cdxIconTrash,
@@ -215,6 +259,7 @@ import type { Claim, Snak } from "../wikidata";
 import AddStatement from "./AddStatement.vue";
 import EntityId from "./EntityId.vue";
 import SnakValue from "./SnakValue.vue";
+import ValueInput from "./ValueInput.vue";
 
 const props = defineProps<{
   property: string;
@@ -223,6 +268,7 @@ const props = defineProps<{
   formatterUrls: Record<string, string>;
   language: string;
   pending: Set<string>;
+  changed: Set<string>;
   removed: Set<string>;
 }>();
 const emit = defineEmits<{
@@ -230,10 +276,18 @@ const emit = defineEmits<{
   remove: [claim: Claim];
   undo: [claim: Claim];
   copy: [claims: Claim[]];
+  change: [claim: Claim, snak: Snak, label?: string];
 }>();
 
 const { byId } = useProperties();
 const adding = ref(false);
+const editing = ref<string>();
+
+function startEdit(claim: Claim) {
+  if (props.removed.has(claim.id) || claim.mainsnak.snaktype !== "value")
+    return;
+  editing.value = claim.id;
+}
 
 /** From the cache, or derived from existing statements while it loads. */
 const propertyInfo = computed<Property | undefined>(() => {
@@ -370,6 +424,17 @@ function thumb(file: string) {
 .dd-removed {
   background: var(--background-color-error-subtle);
 }
+.dd-changed {
+  background: var(--background-color-warning-subtle);
+}
+.dd-edit {
+  display: flex;
+  flex: 1;
+  gap: 0.25rem;
+}
+.dd-edit > :first-child {
+  flex: 1;
+}
 .dd-removed .dd-mainsnak {
   text-decoration: line-through;
 }
@@ -382,6 +447,7 @@ function thumb(file: string) {
   background: var(--background-color-base);
 }
 .dd-pending .dd-actions,
+.dd-changed .dd-actions,
 .dd-removed .dd-actions {
   background: none;
 }

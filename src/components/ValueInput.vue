@@ -41,17 +41,22 @@ import { computed, onMounted, ref, useTemplateRef } from "vue";
 import { CdxButton, CdxTextInput } from "@wikimedia/codex";
 import type { Snak } from "../wikidata";
 import EntitySearch from "./EntitySearch.vue";
-import { parseValue } from "../values";
+import { formatInput, parseValue } from "../values";
 
 const props = defineProps<{
   property: string;
   datatype: string;
   language: string;
+  /** value being edited: prefills the input, keeps the unit of quantities */
+  original?: Snak;
 }>();
 const emit = defineEmits<{ submit: [snak: Snak, label?: string] }>();
 
-const text = ref("");
-const textLanguage = ref(props.language);
+const text = ref(formatInput(props.original?.datavalue));
+const textLanguage = ref(
+  (props.original?.datavalue?.value as { language?: string })?.language ??
+    props.language,
+);
 const input = useTemplateRef<{ $el: HTMLElement }>("input");
 
 const entityType = computed(() =>
@@ -80,7 +85,12 @@ const placeholder = computed(() => {
 
 function datavalue(): Snak["datavalue"] {
   if (props.datatype === "monolingualtext" && !textLanguage.value) return;
-  return parseValue(props.datatype, text.value, textLanguage.value);
+  const value = parseValue(props.datatype, text.value, textLanguage.value);
+  const unit = (props.original?.datavalue?.value as { unit?: string })?.unit;
+  // editing a quantity keeps its unit unless a new one is given (…U123)
+  if (value?.type === "quantity" && unit && !/U\d+$/.test(text.value))
+    (value.value as { unit: string }).unit = unit;
+  return value;
 }
 
 const snak = computed<Snak | undefined>(() => {

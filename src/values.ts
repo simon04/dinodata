@@ -109,3 +109,32 @@ export const FORMAT_EXAMPLES: Record<string, string> = {
   monolingualtext: 'en:"text"',
   url: "https://…",
 };
+
+/** Inverse of {@link parseValue}: text to prefill an input when editing. */
+export function formatInput(datavalue: Snak["datavalue"]): string {
+  if (!datavalue) return "";
+  const v = datavalue.value as Record<string, string>;
+  switch (datavalue.type) {
+    case "string":
+      return String(datavalue.value);
+    case "wikibase-entityid":
+      return v.id;
+    case "monolingualtext":
+      return v.text;
+    case "quantity":
+      return v.amount.replace(/^\+/, "");
+    case "globecoordinate":
+      return `${v.latitude}, ${v.longitude}`;
+    case "time": {
+      const m = v.time.match(/^([+-])(\d+)-(\d\d)-(\d\d)/);
+      if (!m) return v.time;
+      const year = `${m[1] === "-" ? "-" : ""}${m[2]}`;
+      const precision = Number(v.precision);
+      if (precision >= 11) return `${year}-${m[3]}-${m[4]}`;
+      if (precision === 10) return `${year}-${m[3]}`;
+      if (precision === 9) return year;
+      return `${v.time}/${v.precision}`;
+    }
+  }
+  return JSON.stringify(datavalue.value);
+}

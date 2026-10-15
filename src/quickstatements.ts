@@ -10,6 +10,11 @@ export type Edit =
   | {
       type: "statement";
       remove?: boolean;
+      /**
+       * change an existing statement: QuickStatements cannot modify values,
+       * so it is removed by ID and re-added with qualifiers and references
+       */
+      replace?: boolean;
       /** existing claim (removals) or generated ID (additions), for the UI */
       claimId: string;
       snak: Snak;
@@ -59,6 +64,7 @@ export function toQuickStatements(id: string, edits: Edit[]): string {
           // existing statements are removed precisely by their ID
           if (edit.remove && !edit.claimId.startsWith("new-"))
             return `-STATEMENT|${edit.claimId}`;
+          const removal = edit.replace ? [`-STATEMENT|${edit.claimId}`] : [];
           const statement = [
             `${edit.remove ? "-" : ""}${id}`,
             edit.snak.property,
@@ -70,8 +76,9 @@ export function toQuickStatements(id: string, edits: Edit[]): string {
           ];
           // one line per reference, QuickStatements merges the statements
           const references = edit.references?.length ? edit.references : [[]];
-          return references
-            .map((reference) =>
+          return [
+            ...removal,
+            ...references.map((reference) =>
               [
                 ...statement,
                 ...reference.flatMap((r) => [
@@ -79,8 +86,8 @@ export function toQuickStatements(id: string, edits: Edit[]): string {
                   snakValue(r),
                 ]),
               ].join("|"),
-            )
-            .join("\n");
+            ),
+          ].join("\n");
       }
     })
     .join("\n");
