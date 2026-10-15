@@ -80,6 +80,8 @@ function go(entityId: string) {
 <style>
 @import "@wikimedia/codex/dist/codex.style-bidi.css";
 @import "@wikimedia/codex-design-tokens/theme-wikimedia-ui.css";
+@import "@wikimedia/codex-design-tokens/theme-wikimedia-ui-mode-dark.css"
+  (prefers-color-scheme: dark);
 
 :root {
   /* native font stacks, as in Bootstrap 5 (https://getbootstrap.com/docs/5.3/content/reboot/#native-font-stack) */
@@ -90,6 +92,14 @@ function go(entityId: string) {
   --font-family-monospace:
     SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
     monospace;
+}
+:root {
+  color-scheme: light dark;
+}
+html,
+body {
+  background-color: var(--background-color-base);
+  color: var(--color-base);
 }
 html,
 body,
