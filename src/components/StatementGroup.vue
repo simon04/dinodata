@@ -276,7 +276,6 @@ function thumb(file: string) {
 .dd-values {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-  overflow: hidden;
 }
 .dd-value {
   position: relative;

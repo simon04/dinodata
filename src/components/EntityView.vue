@@ -396,7 +396,6 @@ watch(
   border: 1px solid var(--border-color-subtle);
   border-bottom: none;
   border-radius: var(--border-radius-base);
-  overflow: hidden;
 }
 .dd-entity :deep(.cdx-tab) {
   padding-top: 1rem;
