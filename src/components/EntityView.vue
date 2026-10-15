@@ -142,6 +142,7 @@ import {
 import { cdxIconAdd, cdxIconLinkExternal } from "@wikimedia/codex-icons";
 import {
   getEntities,
+  getLabels,
   label,
   type Claim,
   type Entity,
@@ -158,7 +159,8 @@ const props = defineProps<{ id: string; language: string }>();
 
 const entity = ref<Entity>();
 const labels = ref<Record<string, string>>({});
-const formatterUrls = ref<Record<string, string>>({});
+/** properties used in statements, qualifiers and references */
+const propertyIds = ref<string[]>([]);
 const edits = ref<Edit[]>([]);
 const loading = ref(false);
 const error = ref<string>();
@@ -216,10 +218,19 @@ function undo(claim: Claim) {
   );
 }
 
+const formatterUrls = computed(() =>
+  Object.fromEntries(
+    properties.value.flatMap((p) => {
+      const url = byId.value[p]?.formatterUrl;
+      return url ? [[p, url]] : [];
+    }),
+  ),
+);
+
 /** Fetched labels, completed with locally preloaded property labels. */
 const allLabels = computed(() => {
   const result = { ...labels.value };
-  for (const property of [...statements.value, ...identifiers.value]) {
+  for (const property of [...propertyIds.value, ...properties.value]) {
     result[property] ??=
       propertyLabel(byId.value[property], props.language) ?? property;
   }
@@ -336,31 +347,17 @@ watch(
       const entities = await getEntities([props.id]);
       const e = entities[props.id];
       if (!e || "missing" in e) throw new Error(`${props.id} not found`);
-      const ids = referencedIds(e);
-      const [items, properties] = await Promise.all([
-        getEntities(
-          ids.filter((i) => !i.startsWith("P")),
-          "labels",
-        ),
-        getEntities(
-          ids.filter((i) => i.startsWith("P")),
-          "labels|claims",
-        ),
-      ]);
-      const referenced = { ...items, ...properties };
-      labels.value = Object.fromEntries(
-        Object.entries(referenced).map(([i, r]) => [
-          i,
-          label(r, props.language) ?? i,
-        ]),
-      );
-      formatterUrls.value = Object.fromEntries(
-        Object.entries(properties).flatMap(([i, p]) => {
-          const url = p.claims?.P1630?.[0]?.mainsnak.datavalue?.value;
-          return url ? [[i, String(url)]] : [];
-        }),
-      );
+      // properties come from the local cache, only fetch item labels
+      const referenced = referencedIds(e);
+      propertyIds.value = referenced.filter((i) => i.startsWith("P"));
+      labels.value = {};
       entity.value = e;
+      loading.value = false;
+      await getLabels(
+        referenced.filter((i) => !i.startsWith("P")),
+        props.language,
+        (batch) => Object.assign(labels.value, batch),
+      );
     } catch (e) {
       error.value = String(e);
     } finally {

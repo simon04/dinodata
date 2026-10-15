@@ -7,10 +7,12 @@ export interface Property {
   labels: Record<string, string>;
   descriptions: Record<string, string>;
   aliases: Record<string, string[]>;
+  /** formatter URL (P1630) with $1 placeholder */
+  formatterUrl?: string;
 }
 
 const SPARQL = "https://query.wikidata.org/sparql";
-const CACHE = "dinodata-properties-v2";
+const CACHE = "dinodata-properties-v3";
 const MAX_AGE = 24 * 60 * 60 * 1000;
 
 // wikiba.se ontology type → Wikibase API datatype
@@ -37,7 +39,7 @@ const DATATYPES: Record<string, string> = {
 
 function query(languages: string[]): string {
   const values = languages.map((l) => JSON.stringify(l)).join(", ");
-  return `SELECT ?p ?type ?k ?t WHERE {
+  return `SELECT ?p ?type ?k ?t ?f WHERE {
   ?p wikibase:propertyType ?type .
   OPTIONAL {
     { ?p rdfs:label ?t BIND("l" AS ?k) }
@@ -45,6 +47,7 @@ function query(languages: string[]): string {
     UNION { ?p schema:description ?t BIND("d" AS ?k) }
     FILTER(LANG(?t) IN (${values}))
   }
+  OPTIONAL { ?p wdt:P1630 ?f }
 }`;
 }
 
@@ -57,7 +60,7 @@ const unescape = (s: string) =>
 function parse(tsv: string): Property[] {
   const map = new Map<string, Property>();
   for (const line of tsv.split("\n").slice(1)) {
-    const [p, type, k, t] = line.split("\t");
+    const [p, type, k, t, f] = line.split("\t");
     if (!type) continue;
     const id = p.slice(p.lastIndexOf("/") + 1, -1);
     let property = map.get(id);
@@ -72,6 +75,8 @@ function parse(tsv: string): Property[] {
       };
       map.set(id, property);
     }
+    if (f && !property.formatterUrl)
+      property.formatterUrl = unescape(f.slice(1, -1));
     const m = t?.match(/^"(.*)"@([\w-]+)$/);
     if (!m) continue;
     const text = unescape(m[1]);
