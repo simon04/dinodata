@@ -3,11 +3,7 @@
     <div class="vector-header mw-header dd-header">
       <a href="#" class="dd-logo">🦕 DinoData</a>
       <EntitySearch class="dd-search" :language="language" @select="go" />
-      <cdx-select
-        v-model:selected="language"
-        :menu-items="languages"
-        aria-label="Language"
-      />
+      <LanguageSelector v-model="language" />
     </div>
   </div>
 
@@ -26,17 +22,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { CdxSelect } from "@wikimedia/codex";
+import { ref, watchEffect } from "vue";
 import { useEventListener, useLocalStorage } from "@vueuse/core";
 import { loadProperties } from "./properties";
+import LanguageSelector from "./components/LanguageSelector.vue";
 import EntitySearch from "./components/EntitySearch.vue";
 import EntityView from "./components/EntityView.vue";
 
-const languages = ["en", "de", "fr", "es", "it", "nl", "pl", "ja", "zh"].map(
-  (value) => ({ value, label: value }),
+const language = useLocalStorage(
+  "dinodata.language",
+  navigator.language.split("-")[0].toLowerCase() || "en",
 );
-const language = useLocalStorage("dinodata.language", "en");
+watchEffect(() => (document.documentElement.lang = language.value));
 loadProperties(language);
 
 const parseHash = () => location.hash.match(/^#([LPQ]\d+)$/)?.[1];
