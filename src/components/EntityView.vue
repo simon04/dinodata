@@ -129,7 +129,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onUnmounted, ref, watch, watchEffect } from "vue";
 import {
   CdxButton,
   CdxIcon,
@@ -166,6 +166,14 @@ const edits = ref<Edit[]>([]);
 const loading = ref(false);
 const error = ref<string>();
 const tab = ref("statements");
+
+watchEffect(() => {
+  const e = entity.value;
+  document.title = e
+    ? [e.id, label(e, props.language), "DinoData"].filter(Boolean).join(" · ")
+    : `${props.id} · DinoData`;
+});
+onUnmounted(() => (document.title = "DinoData"));
 const adding = ref(false);
 const { byId } = useProperties();
 
