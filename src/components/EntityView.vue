@@ -1,5 +1,5 @@
 <template>
-  <cdx-progress-bar v-if="loading" aria-label="Loading" />
+  <EntitySkeleton v-if="loading" />
   <cdx-message v-else-if="error" type="error">{{ error }}</cdx-message>
   <article v-else-if="entity" class="dd-entity">
     <header class="dd-entity-header">
@@ -135,7 +135,6 @@ import {
   CdxIcon,
   CdxInfoChip,
   CdxMessage,
-  CdxProgressBar,
   CdxTab,
   CdxTable,
   CdxTabs,
@@ -151,6 +150,7 @@ import {
 import type { Edit } from "../quickstatements";
 import { propertyLabel, useProperties } from "../properties";
 import AddStatement from "./AddStatement.vue";
+import EntitySkeleton from "./EntitySkeleton.vue";
 import StatementGroup from "./StatementGroup.vue";
 import QuickStatementsPanel from "./QuickStatementsPanel.vue";
 
