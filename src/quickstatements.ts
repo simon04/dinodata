@@ -2,7 +2,10 @@ import type { Snak } from "./wikidata";
 
 // https://meta.wikimedia.org/wiki/QuickStatements_3.0/Documentation/User_guide
 export type Edit =
-  | { type: "label" | "description" | "alias"; language: string; value: string }
+  /** empty value removes the label/description */
+  | { type: "label" | "description"; language: string; value: string }
+  | { type: "alias"; language: string; value: string; remove?: boolean }
+  /** empty title removes the sitelink */
   | { type: "sitelink"; site: string; title: string }
   | {
       type: "statement";
@@ -48,10 +51,13 @@ export function toQuickStatements(id: string, edits: Edit[]): string {
         case "description":
           return `${id}|D${edit.language}|${quote(edit.value)}`;
         case "alias":
-          return `${id}|A${edit.language}|${quote(edit.value)}`;
+          return `${edit.remove ? "-" : ""}${id}|A${edit.language}|${quote(edit.value)}`;
         case "sitelink":
           return `${id}|S${edit.site}|${quote(edit.title)}`;
         case "statement":
+          // existing statements are removed precisely by their ID
+          if (edit.remove && !edit.claimId.startsWith("new-"))
+            return `-STATEMENT|${edit.claimId}`;
           return [
             `${edit.remove ? "-" : ""}${id}`,
             edit.snak.property,

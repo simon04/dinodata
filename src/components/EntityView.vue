@@ -75,6 +75,20 @@
         name="identifiers"
         :label="t('tab-identifiers', identifiers.length)"
       >
+        <AddStatement
+          v-if="addingIdentifier"
+          :language="language"
+          @add="addStatement"
+          @close="addingIdentifier = false"
+        />
+        <cdx-button
+          v-else
+          action="progressive"
+          @click="addingIdentifier = true"
+        >
+          <cdx-icon :icon="cdxIconAdd" />
+          {{ t("add-statement") }}
+        </cdx-button>
         <div class="dd-statements dd-identifiers">
           <StatementGroup
             v-for="property in identifiers"
@@ -93,36 +107,14 @@
         </div>
       </cdx-tab>
       <cdx-tab name="terms" :label="t('tab-languages', terms.length)">
-        <cdx-table
-          :caption="t('terms-caption')"
-          :columns="[
-            { id: 'language', label: t('terms-language') },
-            { id: 'label', label: t('terms-label') },
-            { id: 'description', label: t('terms-description') },
-            { id: 'aliases', label: t('terms-aliases') },
-          ]"
-          :data="terms"
+        <TermsTable
+          v-model:edits="edits"
+          :entity="entity"
+          :language="language"
         />
       </cdx-tab>
       <cdx-tab name="sitelinks" :label="t('tab-sitelinks', sitelinks.length)">
-        <cdx-table
-          :caption="t('sitelinks-caption')"
-          :columns="[
-            { id: 'site', label: t('sitelinks-site') },
-            { id: 'title', label: t('sitelinks-title') },
-          ]"
-          :data="sitelinks"
-        >
-          <template #item-title="{ item, row }">
-            <a
-              :href="siteUrl(row.site, item)"
-              target="_blank"
-              rel="external noopener"
-            >
-              {{ item }}
-            </a>
-          </template>
-        </cdx-table>
+        <SitelinksTable v-model:edits="edits" :entity="entity" />
       </cdx-tab>
     </cdx-tabs>
 
@@ -139,7 +131,6 @@ import {
   CdxInfoChip,
   CdxMessage,
   CdxTab,
-  CdxTable,
   CdxTabs,
 } from "@wikimedia/codex";
 import { cdxIconAdd, cdxIconLinkExternal } from "@wikimedia/codex-icons";
@@ -157,6 +148,8 @@ import { propertyLabel, useProperties } from "../properties";
 import AddStatement from "./AddStatement.vue";
 import EntityId from "./EntityId.vue";
 import EntitySkeleton from "./EntitySkeleton.vue";
+import SitelinksTable from "./SitelinksTable.vue";
+import TermsTable from "./TermsTable.vue";
 import StatementGroup from "./StatementGroup.vue";
 import QuickStatementsPanel from "./QuickStatementsPanel.vue";
 
@@ -179,6 +172,7 @@ watchEffect(() => {
 });
 onUnmounted(() => (document.title = "DinoData"));
 const adding = ref(false);
+const addingIdentifier = ref(false);
 const { byId } = useProperties();
 
 type StatementEdit = Extract<Edit, { type: "statement" }>;
@@ -276,55 +270,18 @@ const image = computed(() => {
 
 const terms = computed(() => {
   const e = entity.value;
-  if (!e) return [];
-  const languages = new Set([
-    ...Object.keys(e.labels),
-    ...Object.keys(e.descriptions),
-    ...Object.keys(e.aliases),
-  ]);
-  return [...languages]
-    .sort((a, b) =>
-      a === props.language ? -1 : b === props.language ? 1 : a.localeCompare(b),
-    )
-    .map((language) => ({
-      language,
-      label: e.labels[language]?.value ?? "",
-      description: e.descriptions[language]?.value ?? "",
-      aliases: e.aliases[language]?.map((a) => a.value).join(" · ") ?? "",
-    }));
+  return e
+    ? [
+        ...new Set([
+          ...Object.keys(e.labels),
+          ...Object.keys(e.descriptions),
+          ...Object.keys(e.aliases),
+        ]),
+      ]
+    : [];
 });
 
-const sitelinks = computed(() =>
-  Object.values(entity.value?.sitelinks ?? {})
-    .map(({ site, title }) => ({ site, title }))
-    .sort((a, b) => a.site.localeCompare(b.site)),
-);
-
-function siteUrl(site: string, title: string): string {
-  const project: Record<string, string> = {
-    wiki: "wikipedia",
-    wikivoyage: "wikivoyage",
-    wikiquote: "wikiquote",
-    wikisource: "wikisource",
-    wikinews: "wikinews",
-    wikibooks: "wikibooks",
-    wikiversity: "wikiversity",
-    wiktionary: "wiktionary",
-  };
-  const special: Record<string, string> = {
-    commonswiki: "commons.wikimedia.org",
-    specieswiki: "species.wikimedia.org",
-    metawiki: "meta.wikimedia.org",
-    wikidatawiki: "www.wikidata.org",
-  };
-  const m = site.match(
-    /^(.+?)(wiki|wikivoyage|wikiquote|wikisource|wikinews|wikibooks|wikiversity|wiktionary)$/,
-  );
-  const host =
-    special[site] ??
-    (m ? `${m[1].replace(/_/g, "-")}.${project[m[2]]}.org` : site);
-  return `https://${host}/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`;
-}
+const sitelinks = computed(() => Object.keys(entity.value?.sitelinks ?? {}));
 
 function referencedIds(e: Entity): string[] {
   const ids = new Set<string>();

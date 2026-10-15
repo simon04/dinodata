@@ -114,6 +114,33 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.dd-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.75rem;
+}
+.dd-table caption {
+  text-align: start;
+  font-weight: bold;
+  padding: 0.25rem 0;
+}
+.dd-table th,
+.dd-table td {
+  border-bottom: 1px solid var(--border-color-subtle);
+  padding: 0.25rem 0.5rem;
+  text-align: start;
+  vertical-align: top;
+}
+.dd-table th {
+  background: var(--background-color-neutral-subtle);
+}
+.dd-table .dd-changed {
+  background: var(--background-color-success-subtle);
+}
+.dd-table tr.dd-removed {
+  background: var(--background-color-error-subtle);
+}
+
 .dd-header {
   display: flex;
   align-items: center;
