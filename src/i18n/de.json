@@ -62,10 +62,12 @@
   "time-bce": "$1 v. Chr.",
   "copy-statement": "Aussage kopieren",
   "copy-statements": "Alle $1 {{PLURAL:$1|Aussage|Aussagen}} kopieren",
-  "copied-statements": "$1 {{PLURAL:$1|Aussage|Aussagen}} kopiert – mit Strg+V bei einem beliebigen Datenobjekt einfügen",
+  "copied-statements": "$1 {{PLURAL:$1|Aussage|Aussagen}} als QuickStatements kopiert – mit Strg+V bei einem beliebigen Datenobjekt einfügen",
   "paste-statements": "Aussagen einfügen",
   "pasted": "$1 {{PLURAL:$1|Aussage|Aussagen}} eingefügt, $2 bereits vorhanden",
-  "paste-empty": "Die Zwischenablage enthält keine Aussagen. Unterstützt: kopierte Aussagen, Wikidata-JSON oder Zeilen wie P31=Q5.",
+  "paste-empty": "Die Zwischenablage enthält keine Aussagen. Unterstützt: QuickStatements-Zeilen (Q1|P31|Q5), Zeilen wie P31=Q5 oder Wikidata-JSON.",
   "paste-denied": "Zugriff auf die Zwischenablage verweigert – drücke stattdessen Strg+V.",
-  "paste-invalid": "$1 ungültige {{PLURAL:$1|Zeile|Zeilen}} übersprungen: $2"
+  "paste-invalid": "$1 ungültige {{PLURAL:$1|Zeile|Zeilen}} übersprungen: $2",
+  "pasted-terms": "$1 {{PLURAL:$1|Bezeichnungs-/Sitelink-Änderung|Bezeichnungs-/Sitelink-Änderungen}}",
+  "paste-no-removal": "Entfernungen werden nicht eingefügt"
 }

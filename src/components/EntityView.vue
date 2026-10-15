@@ -166,7 +166,12 @@ import {
 } from "../wikidata";
 import { snakValue, type Edit } from "../quickstatements";
 import { consumeReloadBypass } from "../cache";
-import { copyClaims, parseClaims, parsePropertyValues } from "../clipboard";
+import {
+  claimToEdit,
+  copyClaims,
+  parseEntityJson,
+  parseStatements,
+} from "../clipboard";
 import { until, useEventListener } from "@vueuse/core";
 import { propertyLabel, useProperties } from "../properties";
 import AddStatement from "./AddStatement.vue";
@@ -240,60 +245,58 @@ const message = ref<string>();
 const messageType = ref<"notice" | "warning">("notice");
 
 /**
- * Paste statements (DinoData/Wikidata JSON or `Pxxx=value` lines), skipping
- * values the item already has.
+ * Paste QuickStatements or `Pxxx=value` lines (or Wikidata entity JSON),
+ * skipping values the item already has.
  */
 async function pasteClaims(text: string | undefined): Promise<void> {
   if (!text) return;
-  if (!parseClaims(text) && PROPERTY_VALUE.test(text) && !propertiesLoaded()) {
-    // validating Pxxx=value lines needs the property datatypes
+  const entityClaims = parseEntityJson(text);
+  if (!entityClaims && !propertiesLoaded()) {
+    // validating values needs the property datatypes
     message.value = t("property-loading");
     messageType.value = "notice";
     await until(propertiesLoaded).toBe(true);
   }
-  const data =
-    parseClaims(text) ?? parsePropertyValues(text, byId.value, props.language);
-  if (!data) {
+  const data = entityClaims
+    ? { claims: entityClaims, terms: [], invalid: [] }
+    : parseStatements(text, byId.value, props.language);
+  if (!data || (!data.claims.length && !data.terms.length)) {
     message.value = t("paste-empty");
     messageType.value = "warning";
     return;
   }
-  if ("labels" in data) Object.assign(labels.value, data.labels);
   // compare values in their normalized QuickStatements form
   const key = (snak: Snak) => `${snak.property}|${snakValue(snak)}`;
   const existing = new Set(
     properties.value.flatMap((p) => claimsOf(p).map((c) => key(c.mainsnak))),
   );
   let count = 0;
-  const newIds: string[] = [];
   for (const claim of data.claims) {
     if (existing.has(key(claim.mainsnak))) continue;
     existing.add(key(claim.mainsnak));
-    edits.value.push({
-      type: "statement",
-      claimId: `new-${++counter}`,
-      snak: claim.mainsnak,
-      qualifiers: Object.values(claim.qualifiers ?? {}).flat(),
-      references: claim.references?.map((r) => Object.values(r.snaks).flat()),
-    });
-    const id = (claim.mainsnak.datavalue?.value as { id?: string })?.id;
-    if (id && !labels.value[id]) newIds.push(id);
+    edits.value.push(claimToEdit(claim, `new-${++counter}`));
     count++;
   }
-  getLabels(newIds, props.language, (batch) =>
+  edits.value.push(...data.terms);
+  // labels for pasted values, qualifiers and references
+  const ids = referencedIds({
+    claims: { _: data.claims },
+  } as unknown as Entity).filter(
+    (id) => !id.startsWith("P") && !labels.value[id],
+  );
+  getLabels(ids, props.language, (batch) =>
     Object.assign(labels.value, batch),
   ).catch(console.warn);
-  const invalid = "invalid" in data ? data.invalid : [];
   message.value = [
     t("pasted", count, data.claims.length - count),
-    ...(invalid.length
-      ? [t("paste-invalid", invalid.length, invalid.join("; "))]
+    ...(data.terms.length ? [t("pasted-terms", data.terms.length)] : []),
+    ...(data.invalid.length
+      ? [t("paste-invalid", data.invalid.length, data.invalid.join("; "))]
       : []),
   ].join(" · ");
-  messageType.value = invalid.length ? "warning" : "notice";
+  messageType.value = data.invalid.length ? "warning" : "notice";
 }
 
-const PROPERTY_VALUE = /^\s*P\d+\s*=/im;
 const propertiesLoaded = () => Object.keys(byId.value).length > 0;
 
 async function pasteFromButton() {
@@ -314,7 +317,7 @@ useEventListener(document, "paste", (event: ClipboardEvent) => {
 });
 
 async function copy(claims: Claim[]) {
-  await copyClaims(claims, props.id, allLabels.value);
+  await copyClaims(claims, props.id);
   message.value = t("copied-statements", claims.length);
   messageType.value = "notice";
 }

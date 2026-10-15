@@ -1,59 +1,209 @@
+import { t } from "./i18n";
+import { toQuickStatements, type Edit } from "./quickstatements";
 import { FORMAT_EXAMPLES, parseValue } from "./values";
 import type { Claim, Snak } from "./wikidata";
 
 /**
- * Statements on the clipboard as plain-text JSON, so copy/paste works across
- * tabs and browsers. Also accepts Wikidata entity JSON and claim arrays.
+ * Copy/paste uses QuickStatements 3.0 lines — the same human-readable format
+ * as the final export — as plain text, so it works across tabs and browsers.
+ * https://meta.wikimedia.org/wiki/QuickStatements_3.0/Documentation/User_guide
  */
-export interface ClipboardStatements {
-  dinodata: 1;
-  source?: string;
-  claims: Claim[];
-  /** labels of referenced entities, so the paste target can show them */
-  labels?: Record<string, string>;
-}
 
-function snaksOf(claim: Claim): Snak[] {
-  return [
-    claim.mainsnak,
-    ...Object.values(claim.qualifiers ?? {}).flat(),
-    ...(claim.references ?? []).flatMap((r) => Object.values(r.snaks).flat()),
-  ];
-}
+type StatementEdit = Extract<Edit, { type: "statement" }>;
+type TermEdit = Exclude<Edit, StatementEdit>;
 
-export async function copyClaims(
-  claims: Claim[],
-  source: string,
-  labels: Record<string, string>,
-): Promise<void> {
-  const ids = new Set(
-    claims.flatMap(snaksOf).flatMap((snak) => {
-      const id = (snak.datavalue?.value as { id?: string } | undefined)?.id;
-      return id ? [snak.property, id] : [snak.property];
-    }),
-  );
-  const data: ClipboardStatements = {
-    dinodata: 1,
-    source,
-    // strip IDs and hashes: pasted statements are new statements
-    claims: claims.map(({ rank, mainsnak, qualifiers, references }) => ({
-      id: "",
-      rank,
-      mainsnak,
-      qualifiers,
-      references: references?.map(({ snaks }) => ({ snaks })),
-    })),
-    labels: Object.fromEntries(
-      [...ids].flatMap((id) => (labels[id] ? [[id, labels[id]]] : [])),
-    ),
+export function claimToEdit(claim: Claim, claimId: string): StatementEdit {
+  return {
+    type: "statement",
+    claimId,
+    snak: claim.mainsnak,
+    qualifiers: Object.values(claim.qualifiers ?? {}).flat(),
+    references: claim.references?.map((r) => Object.values(r.snaks).flat()),
   };
-  await navigator.clipboard.writeText(JSON.stringify(data, null, 1));
 }
 
-export function parseClaims(
+export async function copyClaims(claims: Claim[], source: string) {
+  const text = toQuickStatements(
+    source,
+    claims.map((c) => claimToEdit(c, "")),
+  );
+  await navigator.clipboard.writeText(text);
+}
+
+/** Split a QuickStatements line on `|` or tabs, but not inside quotes. */
+function fields(line: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === "\\" && quoted) {
+      current += c + (line[++i] ?? "");
+    } else if (c === '"') {
+      quoted = !quoted;
+      current += c;
+    } else if ((c === "|" || c === "\t") && !quoted) {
+      result.push(current.trim());
+      current = "";
+    } else {
+      current += c;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+const unquote = (s: string) => s.match(/^"(.*)"$/)?.[1].replace(/\\(.)/g, "$1");
+
+type Properties = Record<string, { datatype: string }>;
+
+function parseSnak(
+  property: string,
+  value: string,
+  properties: Properties,
+  language: string,
+): Snak | string {
+  const datatype = properties[property]?.datatype;
+  if (!datatype) return `${property}?`;
+  if (value === "somevalue" || value === "novalue")
+    return { snaktype: value, property, datatype };
+  const datavalue = parseValue(datatype, value, language);
+  if (!datavalue) return `${property}=${FORMAT_EXAMPLES[datatype] ?? "…"}`;
+  return { snaktype: "value", property, datatype, datavalue };
+}
+
+export interface Pasted {
+  claims: Claim[];
+  terms: TermEdit[];
+  /** invalid lines, each with a hint */
+  invalid: string[];
+}
+
+/**
+ * Parse QuickStatements lines (the subject is ignored: statements go to the
+ * current item) and `Pxxx=value` lines. Statements repeated with different
+ * references are merged. Returns undefined if no line looks like either.
+ */
+export function parseStatements(
   text: string,
-): Pick<ClipboardStatements, "claims" | "labels"> | undefined {
-  let json: unknown;
+  properties: Properties,
+  language: string,
+): Pasted | undefined {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const qsLine = /^-?(Q\d+|L\d+|P\d+|LAST)\s*[|\t]/i;
+  const pvLine = /^P\d+\s*=/i;
+  if (!lines.some((l) => qsLine.test(l) || pvLine.test(l))) return undefined;
+
+  const result: Pasted = { claims: [], terms: [], invalid: [] };
+  const byKey = new Map<string, Claim>();
+  for (const line of lines) {
+    const fail = (hint?: string) =>
+      result.invalid.push(hint ? `${line} (${hint})` : line);
+
+    // Pxxx=value
+    const pv = line.match(/^(P\d+)\s*=\s*(.+)$/i);
+    // QuickStatements: SUBJECT|P|value|P|value…|S|value…
+    const qs = qsLine.test(line) ? fields(line) : undefined;
+    if (!pv && !qs) {
+      fail();
+      continue;
+    }
+    if (line.startsWith("-")) {
+      fail(t("paste-no-removal"));
+      continue;
+    }
+    if (qs) {
+      const [, command, value] = qs;
+      const term = command?.match(/^([LDAS])(.+)$/);
+      if (term) {
+        const texts = qs.slice(2).map(unquote);
+        if (texts.some((t) => t === undefined)) fail('"…"');
+        else if (term[1] === "S")
+          result.terms.push({
+            type: "sitelink",
+            site: term[2],
+            title: texts[0]!,
+          });
+        else
+          for (const t of term[1] === "A" ? texts : texts.slice(0, 1))
+            result.terms.push({
+              type: { L: "label", D: "description", A: "alias" }[term[1]] as
+                | "label"
+                | "description"
+                | "alias",
+              language: term[2],
+              value: t!,
+            });
+        continue;
+      }
+      if (!/^P\d+$/i.test(command ?? "") || value === undefined) {
+        fail();
+        continue;
+      }
+    }
+    const [property, value, ...rest] = pv ? [pv[1], pv[2]] : qs!.slice(1);
+    const mainsnak = parseSnak(
+      property.toUpperCase(),
+      value,
+      properties,
+      language,
+    );
+    if (typeof mainsnak === "string") {
+      fail(mainsnak);
+      continue;
+    }
+    const qualifiers: Snak[] = [];
+    const reference: Snak[] = [];
+    let error: string | undefined;
+    for (let i = 0; i + 1 < rest.length; i += 2) {
+      const [p, v] = [rest[i].toUpperCase(), rest[i + 1]];
+      const target = p.startsWith("S") ? reference : qualifiers;
+      const snak = parseSnak(p.replace(/^S/, "P"), v, properties, language);
+      if (typeof snak === "string") error = snak;
+      else target.push(snak);
+    }
+    if (error || rest.length % 2) {
+      fail(error);
+      continue;
+    }
+    const group = (snaks: Snak[]) => {
+      const record: Record<string, Snak[]> = {};
+      for (const s of snaks) (record[s.property] ??= []).push(s);
+      return record;
+    };
+    // same statement on several lines: one line per reference
+    const key = toQuickStatements("", [
+      claimToEdit(
+        { id: "", rank: "normal", mainsnak, qualifiers: group(qualifiers) },
+        "",
+      ),
+    ]);
+    let claim = byKey.get(key);
+    if (!claim) {
+      claim = {
+        id: "",
+        rank: "normal",
+        mainsnak,
+        qualifiers: qualifiers.length ? group(qualifiers) : undefined,
+      };
+      byKey.set(key, claim);
+      result.claims.push(claim);
+    }
+    if (reference.length)
+      (claim.references ??= []).push({ snaks: group(reference) });
+  }
+  return result;
+}
+
+/** Wikidata entity JSON (e.g. Special:EntityData), as a convenience. */
+export function parseEntityJson(text: string): Claim[] | undefined {
+  let json: {
+    claims?: unknown;
+    entities?: Record<string, { claims?: unknown }>;
+  };
   try {
     json = JSON.parse(text);
   } catch {
@@ -64,58 +214,11 @@ export function parseClaims(
     c !== null &&
     typeof (c as Claim).mainsnak?.property === "string";
   const claimsOf = (x: unknown): Claim[] =>
-    Array.isArray(x)
-      ? x.filter(isClaim)
-      : typeof x === "object" && x !== null
-        ? Object.values(x).flat().filter(isClaim)
-        : [];
-  const data = json as Partial<ClipboardStatements> & {
-    entities?: Record<string, { claims?: unknown }>;
-  };
-  // DinoData clipboard, Wikidata entity JSON, wbgetentities response, or claims
-  const claims = Array.isArray(json)
-    ? claimsOf(json)
-    : data.entities
-      ? Object.values(data.entities).flatMap((e) => claimsOf(e.claims))
-      : claimsOf(data.claims);
-  return claims.length ? { claims, labels: data.labels } : undefined;
-}
-
-/**
- * Parse lines like `P31=Q5`, `P569 = 1952-03-11` or `P1082=8572895`,
- * validating each value against the property's datatype.
- * Returns undefined if the text is not in this format at all.
- */
-export function parsePropertyValues(
-  text: string,
-  properties: Record<string, { datatype: string }>,
-  language: string,
-): { claims: Claim[]; invalid: string[] } | undefined {
-  const lines = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-  const pattern = /^(P\d+)\s*=\s*(.+)$/i;
-  if (!lines.some((line) => pattern.test(line))) return undefined;
-  const claims: Claim[] = [];
-  const invalid: string[] = [];
-  for (const line of lines) {
-    const m = line.match(pattern);
-    const property = m?.[1].toUpperCase();
-    const datatype = property && properties[property]?.datatype;
-    const datavalue = datatype
-      ? parseValue(datatype, m?.[2] ?? "", language)
-      : undefined;
-    if (!property || !datatype || !datavalue) {
-      const example = datatype && FORMAT_EXAMPLES[datatype];
-      invalid.push(example ? `${line} (${property}=${example})` : line);
-      continue;
-    }
-    claims.push({
-      id: "",
-      rank: "normal",
-      mainsnak: { snaktype: "value", property, datatype, datavalue },
-    });
-  }
-  return { claims, invalid };
+    typeof x === "object" && x !== null
+      ? Object.values(x).flat().filter(isClaim)
+      : [];
+  const claims = json.entities
+    ? Object.values(json.entities).flatMap((e) => claimsOf(e.claims))
+    : claimsOf(json.claims);
+  return claims.length ? claims : undefined;
 }

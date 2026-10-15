@@ -12,7 +12,9 @@ export function parseValue(
 ): Snak["datavalue"] {
   const v = input.trim();
   if (!v) return undefined;
-  const unquoted = v.match(/^"(.*)"$/)?.[1] ?? v;
+  const unescape = (s: string) => s.replace(/\\(.)/g, "$1");
+  const quoted = v.match(/^"(.*)"$/)?.[1];
+  const unquoted = quoted === undefined ? v : unescape(quoted);
   switch (datatype) {
     case "wikibase-item":
     case "wikibase-property":
@@ -84,7 +86,7 @@ export function parseValue(
       return {
         type: "monolingualtext",
         value: m
-          ? { text: m[2], language: m[1] }
+          ? { text: unescape(m[2]), language: m[1] }
           : { text: unquoted, language },
       };
     }

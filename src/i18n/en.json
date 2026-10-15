@@ -67,10 +67,12 @@
   "time-bce": "$1 BCE",
   "copy-statement": "Copy statement",
   "copy-statements": "Copy all $1 {{PLURAL:$1|statement|statements}}",
-  "copied-statements": "Copied $1 {{PLURAL:$1|statement|statements}} – paste with Ctrl+V on any item",
+  "copied-statements": "Copied $1 {{PLURAL:$1|statement|statements}} as QuickStatements – paste with Ctrl+V on any item",
   "paste-statements": "Paste statements",
   "pasted": "Pasted $1 {{PLURAL:$1|statement|statements}}, $2 already present",
-  "paste-empty": "The clipboard contains no statements. Supported: copied statements, Wikidata JSON, or lines like P31=Q5.",
+  "paste-empty": "The clipboard contains no statements. Supported: QuickStatements lines (Q1|P31|Q5), lines like P31=Q5, or Wikidata JSON.",
   "paste-denied": "Clipboard access denied – press Ctrl+V instead.",
-  "paste-invalid": "Skipped $1 invalid {{PLURAL:$1|line|lines}}: $2"
+  "paste-invalid": "Skipped $1 invalid {{PLURAL:$1|line|lines}}: $2",
+  "pasted-terms": "$1 {{PLURAL:$1|label/sitelink change|label/sitelink changes}}",
+  "paste-no-removal": "removals are not pasted"
 }
