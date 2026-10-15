@@ -3,11 +3,7 @@
   <span v-else-if="snak.snaktype === 'somevalue'" class="dd-special">
     unknown value
   </span>
-  <a
-    v-else-if="entityId"
-    :href="`#${entityId}`"
-    :title="entityId"
-  >
+  <a v-else-if="entityId" :href="`#${entityId}`" :title="entityId">
     {{ labels[entityId] ?? entityId }}
   </a>
   <a
