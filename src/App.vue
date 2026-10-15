@@ -52,6 +52,39 @@ function go(entityId: string) {
 @import "@wikimedia/codex/dist/codex.style-bidi.css";
 @import "@wikimedia/codex-design-tokens/theme-wikimedia-ui.css";
 
+:root {
+  /* native font stacks, as in Bootstrap 5 (https://getbootstrap.com/docs/5.3/content/reboot/#native-font-stack) */
+  --font-family-base:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans",
+    "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI Symbol", "Noto Color Emoji";
+  --font-family-monospace:
+    SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
+}
+html,
+body,
+h1,
+h2,
+h3,
+input,
+button,
+textarea,
+select {
+  font-family: var(--font-family-base);
+}
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--font-family-monospace);
+  font-size: 0.875em;
+}
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 .dd-header {
   display: flex;
   align-items: center;
