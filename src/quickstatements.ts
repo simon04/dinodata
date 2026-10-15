@@ -14,7 +14,8 @@ export type Edit =
       claimId: string;
       snak: Snak;
       qualifiers?: Snak[];
-      references?: Snak[];
+      /** each reference is a group of snaks */
+      references?: Snak[][];
     };
 
 const quote = (s: string) => `"${s.replace(/"/g, '\\"')}"`;
@@ -58,7 +59,7 @@ export function toQuickStatements(id: string, edits: Edit[]): string {
           // existing statements are removed precisely by their ID
           if (edit.remove && !edit.claimId.startsWith("new-"))
             return `-STATEMENT|${edit.claimId}`;
-          return [
+          const statement = [
             `${edit.remove ? "-" : ""}${id}`,
             edit.snak.property,
             snakValue(edit.snak),
@@ -66,11 +67,20 @@ export function toQuickStatements(id: string, edits: Edit[]): string {
               q.property,
               snakValue(q),
             ]),
-            ...(edit.references ?? []).flatMap((r) => [
-              r.property.replace(/^P/, "S"),
-              snakValue(r),
-            ]),
-          ].join("|");
+          ];
+          // one line per reference, QuickStatements merges the statements
+          const references = edit.references?.length ? edit.references : [[]];
+          return references
+            .map((reference) =>
+              [
+                ...statement,
+                ...reference.flatMap((r) => [
+                  r.property.replace(/^P/, "S"),
+                  snakValue(r),
+                ]),
+              ].join("|"),
+            )
+            .join("\n");
       }
     })
     .join("\n");

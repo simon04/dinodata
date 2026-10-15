@@ -17,6 +17,21 @@
       >
         <cdx-icon :icon="cdxIconAdd" size="small" />
       </cdx-button>
+      <cdx-button
+        class="dd-add-value-button"
+        weight="quiet"
+        size="small"
+        :aria-label="t('copy-statements', claims.length)"
+        :title="t('copy-statements', claims.length)"
+        @click="
+          emit(
+            'copy',
+            claims.filter((c) => !removed.has(c.id)),
+          )
+        "
+      >
+        <cdx-icon :icon="cdxIconCopy" size="small" />
+      </cdx-button>
       <div v-if="hidden > 0 || expanded" class="dd-property-actions">
         <cdx-button
           v-if="hidden > 0"
@@ -133,29 +148,40 @@
             </template>
           </span>
         </div>
-        <cdx-button
-          v-if="pending.has(claim.id) || removed.has(claim.id)"
-          class="dd-action"
-          weight="quiet"
-          size="small"
-          :aria-label="t('undo')"
-          :title="t('undo')"
-          @click="emit('undo', claim)"
-        >
-          <cdx-icon :icon="cdxIconUndo" size="small" />
-        </cdx-button>
-        <cdx-button
-          v-else
-          class="dd-action dd-hover"
-          weight="quiet"
-          action="destructive"
-          size="small"
-          :aria-label="t('remove')"
-          :title="t('remove')"
-          @click="emit('remove', claim)"
-        >
-          <cdx-icon :icon="cdxIconTrash" size="small" />
-        </cdx-button>
+        <span class="dd-actions">
+          <cdx-button
+            class="dd-hover"
+            weight="quiet"
+            size="small"
+            :aria-label="t('copy-statement')"
+            :title="t('copy-statement')"
+            @click="emit('copy', [claim])"
+          >
+            <cdx-icon :icon="cdxIconCopy" size="small" />
+          </cdx-button>
+          <cdx-button
+            v-if="pending.has(claim.id) || removed.has(claim.id)"
+            weight="quiet"
+            size="small"
+            :aria-label="t('undo')"
+            :title="t('undo')"
+            @click="emit('undo', claim)"
+          >
+            <cdx-icon :icon="cdxIconUndo" size="small" />
+          </cdx-button>
+          <cdx-button
+            v-else
+            class="dd-hover"
+            weight="quiet"
+            action="destructive"
+            size="small"
+            :aria-label="t('remove')"
+            :title="t('remove')"
+            @click="emit('remove', claim)"
+          >
+            <cdx-icon :icon="cdxIconTrash" size="small" />
+          </cdx-button>
+        </span>
       </div>
       <AddStatement
         v-if="adding && propertyInfo"
@@ -176,6 +202,7 @@ import { CdxButton, CdxIcon } from "@wikimedia/codex";
 import {
   cdxIconAdd,
   cdxIconCollapse,
+  cdxIconCopy,
   cdxIconDownTriangle,
   cdxIconExpand,
   cdxIconReference,
@@ -202,6 +229,7 @@ const emit = defineEmits<{
   add: [snak: Snak, label?: string];
   remove: [claim: Claim];
   undo: [claim: Claim];
+  copy: [claims: Claim[]];
 }>();
 
 const { byId } = useProperties();
@@ -345,10 +373,17 @@ function thumb(file: string) {
 .dd-removed .dd-mainsnak {
   text-decoration: line-through;
 }
-.dd-action {
+.dd-actions {
   position: absolute;
   top: 0.125rem;
   right: 0.125rem;
+  display: flex;
+  border-radius: var(--border-radius-base);
+  background: var(--background-color-base);
+}
+.dd-pending .dd-actions,
+.dd-removed .dd-actions {
+  background: none;
 }
 .dd-hover {
   opacity: 0;

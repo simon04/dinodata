@@ -39,6 +39,17 @@
       <img v-if="image" class="dd-image" :src="image" alt="" />
     </header>
 
+    <cdx-message
+      v-if="message"
+      :key="message"
+      class="dd-toast"
+      :auto-dismiss="true"
+      :display-time="2500"
+      @auto-dismissed="message = undefined"
+    >
+      {{ message }}
+    </cdx-message>
+
     <cdx-tabs v-model:active="tab">
       <cdx-tab
         name="statements"
@@ -54,6 +65,10 @@
           <cdx-icon :icon="cdxIconAdd" />
           {{ t("add-statement") }}
         </cdx-button>
+        <cdx-button class="dd-paste" @click="pasteFromButton">
+          <cdx-icon :icon="cdxIconPaste" />
+          {{ t("paste-statements") }}
+        </cdx-button>
         <div class="dd-statements">
           <StatementGroup
             v-for="property in statements"
@@ -68,6 +83,7 @@
             @add="addStatement"
             @remove="removeStatement"
             @undo="undo"
+            @copy="copy"
           />
         </div>
       </cdx-tab>
@@ -103,6 +119,7 @@
             @add="addStatement"
             @remove="removeStatement"
             @undo="undo"
+            @copy="copy"
           />
         </div>
       </cdx-tab>
@@ -133,7 +150,11 @@ import {
   CdxTab,
   CdxTabs,
 } from "@wikimedia/codex";
-import { cdxIconAdd, cdxIconLinkExternal } from "@wikimedia/codex-icons";
+import {
+  cdxIconAdd,
+  cdxIconLinkExternal,
+  cdxIconPaste,
+} from "@wikimedia/codex-icons";
 import {
   getEntities,
   getLabels,
@@ -144,6 +165,8 @@ import {
 } from "../wikidata";
 import type { Edit } from "../quickstatements";
 import { consumeReloadBypass } from "../cache";
+import { copyClaims, parseClaims } from "../clipboard";
+import { useEventListener } from "@vueuse/core";
 import { propertyLabel, useProperties } from "../properties";
 import AddStatement from "./AddStatement.vue";
 import EntityId from "./EntityId.vue";
@@ -199,11 +222,73 @@ function claimsOf(property: string): Claim[] {
         id: e.claimId,
         rank: "normal" as const,
         mainsnak: e.snak,
+        qualifiers: e.qualifiers?.length ? groupSnaks(e.qualifiers) : undefined,
+        references: e.references?.map((r) => ({ snaks: groupSnaks(r) })),
       })),
   ];
 }
 
 let counter = 0;
+function groupSnaks(snaks: Snak[]): Record<string, Snak[]> {
+  const result: Record<string, Snak[]> = {};
+  for (const snak of snaks) (result[snak.property] ??= []).push(snak);
+  return result;
+}
+
+const message = ref<string>();
+
+/** Paste statements, skipping values the item already has. */
+function pasteClaims(text: string | undefined): boolean {
+  const data = text ? parseClaims(text) : undefined;
+  if (!data) {
+    message.value = t("paste-empty");
+    return false;
+  }
+  Object.assign(labels.value, data.labels);
+  const key = (snak: Snak) =>
+    `${snak.property}:${snak.snaktype}:${JSON.stringify(snak.datavalue?.value)}`;
+  const existing = new Set(
+    properties.value.flatMap((p) => claimsOf(p).map((c) => key(c.mainsnak))),
+  );
+  let count = 0;
+  for (const claim of data.claims) {
+    if (existing.has(key(claim.mainsnak))) continue;
+    existing.add(key(claim.mainsnak));
+    edits.value.push({
+      type: "statement",
+      claimId: `new-${++counter}`,
+      snak: claim.mainsnak,
+      qualifiers: Object.values(claim.qualifiers ?? {}).flat(),
+      references: claim.references?.map((r) => Object.values(r.snaks).flat()),
+    });
+    count++;
+  }
+  message.value = t("pasted", count, data.claims.length - count);
+  return true;
+}
+
+async function pasteFromButton() {
+  try {
+    pasteClaims(await navigator.clipboard.readText());
+  } catch {
+    // clipboard read denied: Ctrl+V still works via the paste event
+    message.value = t("paste-denied");
+  }
+}
+
+// Ctrl+V anywhere on the page, except in inputs
+useEventListener(document, "paste", (event: ClipboardEvent) => {
+  const target = event.target as HTMLElement;
+  if (target.closest("input, textarea, [contenteditable]")) return;
+  if (pasteClaims(event.clipboardData?.getData("text/plain")))
+    event.preventDefault();
+});
+
+async function copy(claims: Claim[]) {
+  await copyClaims(claims, props.id, allLabels.value);
+  message.value = t("copied-statements", claims.length);
+}
+
 function addStatement(snak: Snak, valueLabel?: string) {
   const id = (snak.datavalue?.value as { id?: string })?.id;
   if (id && valueLabel) labels.value[id] = valueLabel;
@@ -390,6 +475,17 @@ watch(
 }
 .dd-identifiers :deep(.dd-statement-group) {
   break-inside: avoid;
+}
+.dd-paste {
+  margin-left: 0.5rem;
+}
+.dd-toast {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  box-shadow: var(--box-shadow-large);
 }
 .dd-statements {
   margin-top: 0.75rem;
