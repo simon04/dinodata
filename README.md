@@ -22,12 +22,26 @@ The name comes from the dragons of the [Wikimania 2024](<https://commons.wikimed
 
 Edits are collected locally and exported as [QuickStatements 3.0](https://meta.wikimedia.org/wiki/QuickStatements_3.0/Documentation/User_guide) commands to copy; nothing is written to Wikidata directly (yet).
 
-- Add statements (property + value) with keyboard-friendly flow: Enter adds and focuses the next property
-- Add values to existing properties, remove statements (exported as `-STATEMENT|<id>`), undo any change
-- Value inputs per datatype: items/properties (search), strings, external IDs, URLs, Commons files, dates (`1955`, `1955-05`, `1955-05-15`), quantities, coordinates, monolingual text
+- **Add statements** (property + value) with a keyboard-friendly flow: Enter adds and focuses the next property; add values to existing properties with `+`
+- **Change values** of existing statements (pencil or double-click), e.g. a number or a photo. QuickStatements cannot modify values, so this exports `-STATEMENT|<id>` followed by the statement re-added with its qualifiers, references and rank
+- **Remove statements** (`-STATEMENT|<id>`) and undo any change
+- Value inputs per datatype with validation and a hint for the expected format: items/properties (search), strings, external IDs, URLs, Commons files, dates (`1955`, `1955-05`, `1955-05-15`), quantities (unit kept when editing), coordinates, monolingual text
+- Ranks (`R+`/`R-`) and Julian calendar dates (`/J`) preserved in the export
 - Inline editing of labels, descriptions and aliases in all languages; add new languages
 - Edit, add and remove sitelinks
-- Pending additions highlighted green, removals red
+- Pending additions highlighted green, changes yellow, removals red
+
+### Copy & paste
+
+- Copy one statement or all statements of a property (copy icons on hover / in the property column)
+- The clipboard holds human-readable QuickStatements lines — the same format as the export — so copy/paste works across tabs and even different browsers
+- Paste with Ctrl+V anywhere on an item page, or with the “Paste statements” button
+- Pasting accepts:
+  - QuickStatements lines (`Q1|P31|Q5|R+|P580|+2001-00-00T00:00:00Z/9|S854|"…"`); the subject is replaced by the current item, statements repeated with different references are merged
+  - label, description, alias and sitelink lines (`Q1|Lde|"…"`, `Q1|Aen|"…"|"…"`, `Q1|Sdewiki|"…"`)
+  - simple `P31=Q5` lines
+  - Wikidata entity JSON (e.g. from `Special:EntityData/Q42.json`)
+- Every value is validated against the property datatype; invalid lines are skipped with a hint, values already present are skipped
 
 ### Speed
 
@@ -39,7 +53,8 @@ Edits are collected locally and exported as [QuickStatements 3.0](https://meta.w
 ### Languages
 
 - Searchable language selector over all Wikimedia languages, defaulting to the browser language
-- Translatable UI (`src/i18n/*.json`, MediaWiki-style `$1` and `{{PLURAL:…}}`); English and German available
+- UI translated into English, German, Spanish, French, Chinese, Arabic and Russian (`src/i18n/*.json`, MediaWiki-style `$1` and `{{PLURAL:…}}` with CLDR plural forms)
+- Right-to-left layout for Arabic, Hebrew, Persian, Urdu and other RTL languages
 
 ## Development
 
@@ -52,4 +67,4 @@ pnpm dev
 
 ## License
 
-GPL-3.0
+[GPL-3.0](LICENSE) © Simon Legner. Data from Wikidata is available under [CC0](https://www.wikidata.org/wiki/Wikidata:Licensing).
