@@ -149,6 +149,7 @@ import {
   type Snak,
 } from "../wikidata";
 import type { Edit } from "../quickstatements";
+import { consumeReloadBypass } from "../cache";
 import { propertyLabel, useProperties } from "../properties";
 import AddStatement from "./AddStatement.vue";
 import EntityId from "./EntityId.vue";
@@ -353,7 +354,13 @@ watch(
     error.value = undefined;
     if (id !== oldId) edits.value = [];
     try {
-      const entities = await getEntities([props.id]);
+      // browser refresh: bypass the cache for the item first shown
+      const entities = await getEntities(
+        [props.id],
+        undefined,
+        undefined,
+        consumeReloadBypass(),
+      );
       const e = entities[props.id];
       if (!e || "missing" in e) throw new Error(`${props.id} not found`);
       // properties come from the local cache, only fetch item labels

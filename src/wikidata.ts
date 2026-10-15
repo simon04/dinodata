@@ -1,3 +1,5 @@
+import { cachedFetch, sessionCache } from "./cache";
+
 const API = "https://www.wikidata.org/w/api.php";
 
 export interface SearchResult {
@@ -30,7 +32,10 @@ export interface Entity {
   sitelinks?: Record<string, { site: string; title: string }>;
 }
 
-async function api<T>(params: Record<string, string>): Promise<T> {
+async function api<T>(
+  params: Record<string, string>,
+  cache?: { maxAge: number; bypass?: boolean },
+): Promise<T> {
   const url = new URL(API);
   url.search = new URLSearchParams({
     format: "json",
@@ -38,6 +43,10 @@ async function api<T>(params: Record<string, string>): Promise<T> {
     origin: "*",
     ...params,
   }).toString();
+  if (cache)
+    return JSON.parse(
+      await cachedFetch(url.toString(), { cacheName: "api", ...cache }),
+    );
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json();
@@ -59,21 +68,26 @@ export async function searchEntities(
   return json.search;
 }
 
+/** Fetch full entities (cached for an hour unless `bypass`). */
 export async function getEntities(
   ids: string[],
   props = "labels|descriptions|aliases|claims|sitelinks",
   languages?: string[],
+  bypass = false,
 ): Promise<Record<string, Entity>> {
   const batches = [];
   for (let i = 0; i < ids.length; i += 50) batches.push(ids.slice(i, i + 50));
   const results = await Promise.all(
     batches.map((batch) =>
-      api<{ entities: Record<string, Entity> }>({
-        action: "wbgetentities",
-        ids: batch.join("|"),
-        props,
-        ...(languages && { languages: languages.join("|") }),
-      }),
+      api<{ entities: Record<string, Entity> }>(
+        {
+          action: "wbgetentities",
+          ids: batch.join("|"),
+          props,
+          ...(languages && { languages: languages.join("|") }),
+        },
+        { maxAge: 60 * 60 * 1000, bypass },
+      ),
     ),
   );
   return Object.assign({}, ...results.map((r) => r.entities));
@@ -86,24 +100,24 @@ export function label(
   return entity?.labels?.[language]?.value ?? entity?.labels?.en?.value;
 }
 
-const labelCache = new Map<string, string>();
-
 /**
  * Fetch labels in parallel batches, calling `onLabels` as each batch arrives
- * so the UI can fill in progressively. Labels are cached in memory.
+ * so the UI can fill in progressively. Labels are cached in sessionStorage.
  */
 export async function getLabels(
   ids: string[],
   language: string,
   onLabels: (labels: Record<string, string>) => void,
 ): Promise<void> {
-  const key = (id: string) => `${language}:${id}`;
-  const cached = ids.filter((id) => labelCache.has(key(id)));
-  if (cached.length)
-    onLabels(
-      Object.fromEntries(cached.map((id) => [id, labelCache.get(key(id))!])),
-    );
-  const missing = ids.filter((id) => !labelCache.has(key(id)));
+  const key = (id: string) => `label:${language}:${id}`;
+  const cached: Record<string, string> = {};
+  const missing: string[] = [];
+  for (const id of ids) {
+    const l = sessionCache.get(key(id));
+    if (l === null) missing.push(id);
+    else cached[id] = l;
+  }
+  if (missing.length < ids.length) onLabels(cached);
   const languages = [...new Set([language, "en"])].join("|");
   const batches = [];
   for (let i = 0; i < missing.length; i += 50)
@@ -122,7 +136,8 @@ export async function getLabels(
           label(e, language) ?? id,
         ]),
       );
-      for (const [id, l] of Object.entries(labels)) labelCache.set(key(id), l);
+      for (const [id, l] of Object.entries(labels))
+        sessionCache.set(key(id), l);
       onLabels(labels);
     }),
   );

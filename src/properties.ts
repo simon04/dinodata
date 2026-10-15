@@ -1,4 +1,5 @@
 import { ref, watch, type Ref } from "vue";
+import { cachedFetch } from "./cache";
 
 export interface Property {
   id: string;
@@ -12,7 +13,6 @@ export interface Property {
 }
 
 const SPARQL = "https://query.wikidata.org/sparql";
-const CACHE = "dinodata-properties-v3";
 const MAX_AGE = 24 * 60 * 60 * 1000;
 
 // wikiba.se ontology type → Wikibase API datatype
@@ -92,26 +92,13 @@ function parse(tsv: string): Property[] {
 
 async function fetchProperties(languages: string[]): Promise<Property[]> {
   const url = `${SPARQL}?query=${encodeURIComponent(query(languages))}`;
-  const cache = "caches" in window ? await caches.open(CACHE) : undefined;
-  const cached = await cache?.match(url);
-  const fresh = async () => {
-    const res = await fetch(url, {
-      headers: { Accept: "text/tab-separated-values" },
-    });
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    const body = await res.text();
-    await cache?.put(
-      url,
-      new Response(body, { headers: { "x-fetched": String(Date.now()) } }),
-    );
-    return parse(body);
-  };
-  if (cached) {
-    const age = Date.now() - Number(cached.headers.get("x-fetched"));
-    if (age > MAX_AGE) fresh().catch(console.warn); // refresh in background
-    return parse(await cached.text());
-  }
-  return fresh();
+  const body = await cachedFetch(url, {
+    cacheName: "properties-v3",
+    maxAge: MAX_AGE,
+    staleWhileRevalidate: true,
+    init: { headers: { Accept: "text/tab-separated-values" } },
+  });
+  return parse(body);
 }
 
 const properties = ref<Property[]>([]);
