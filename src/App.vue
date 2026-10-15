@@ -4,7 +4,7 @@
       <span class="dd-logo">
         <button
           class="dd-dino"
-          title="Why DinoData?"
+          :title="t('app-why-dinodata')"
           @click="showDialog = true"
         >
           🦕
@@ -18,12 +18,12 @@
 
   <cdx-dialog
     v-model:open="showDialog"
-    title="Wikimania 2024 Hackathon"
+    :title="t('app-dialog-title')"
     :use-close-button="true"
   >
     <a
       href="https://commons.wikimedia.org/wiki/File:Wikimania_2024_Dragons_in_love_illustration_(beige_background).png"
-      title="By Illustrated by Kasia Ostrowska (bazgra_nina) – Wikimedia Foundation – Logos of Wikimania 2024, CC0"
+      :title="t('app-dialog-image-credit')"
       target="_blank"
       rel="external noopener"
     >
@@ -37,8 +37,8 @@
   <main class="mw-page-container">
     <EntityView v-if="id" :id="id" :language="language" />
     <section v-else>
-      <h1>Welcome to DinoData</h1>
-      <p>A friendly face for Wikidata. Search above, or try:</p>
+      <h1>{{ t("app-welcome") }}</h1>
+      <p>{{ t("app-intro") }}</p>
       <ul>
         <li><a href="#Q40">Austria (Q40)</a></li>
         <li><a href="#Q1735">Innsbruck (Q1735)</a></li>
@@ -51,22 +51,17 @@
 </template>
 
 <script setup lang="ts">
-import { provide, ref, watchEffect } from "vue";
-import { useEventListener, useLocalStorage } from "@vueuse/core";
+import { language, t } from "./i18n";
+import { ref, watchEffect } from "vue";
+import { useEventListener } from "@vueuse/core";
 import { CdxDialog } from "@wikimedia/codex";
-import { LANGUAGE } from "./format";
 import { loadProperties } from "./properties";
 import LanguageSelector from "./components/LanguageSelector.vue";
 import EntitySearch from "./components/EntitySearch.vue";
 import EntityView from "./components/EntityView.vue";
 
-const language = useLocalStorage(
-  "dinodata.language",
-  navigator.language.split("-")[0].toLowerCase() || "en",
-);
 watchEffect(() => (document.documentElement.lang = language.value));
 loadProperties(language);
-provide(LANGUAGE, language);
 
 const showDialog = ref(false);
 

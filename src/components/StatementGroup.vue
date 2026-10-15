@@ -11,8 +11,8 @@
         weight="quiet"
         action="progressive"
         size="small"
-        aria-label="Add value"
-        title="Add value"
+        :aria-label="t('add-value')"
+        :title="t('add-value')"
         @click="adding = true"
       >
         <cdx-icon :icon="cdxIconAdd" size="small" />
@@ -25,7 +25,7 @@
           @click="expanded = true"
         >
           <cdx-icon :icon="cdxIconExpand" size="small" />
-          {{ hidden }} more
+          {{ t("more", hidden) }}
         </cdx-button>
         <cdx-button
           v-else-if="expanded"
@@ -34,7 +34,7 @@
           @click="expanded = false"
         >
           <cdx-icon :icon="cdxIconCollapse" size="small" />
-          show less
+          {{ t("show-less") }}
         </cdx-button>
       </div>
     </div>
@@ -56,13 +56,13 @@
             v-if="claim.rank === 'preferred'"
             :icon="cdxIconUpTriangle"
             size="x-small"
-            title="Preferred rank"
+            :title="t('rank-preferred')"
           />
           <cdx-icon
             v-else-if="claim.rank === 'deprecated'"
             :icon="cdxIconDownTriangle"
             size="x-small"
-            title="Deprecated rank"
+            :title="t('rank-deprecated')"
           />
           <img
             v-if="
@@ -81,9 +81,7 @@
             :formatter-urls="formatterUrls"
           />
           <details v-if="claim.references?.length" class="dd-references">
-            <summary
-              :title="`${claim.references.length} ${claim.references.length === 1 ? 'reference' : 'references'}`"
-            >
+            <summary :title="t('references', claim.references.length)">
               <cdx-icon :icon="cdxIconReference" size="x-small" />
               {{ claim.references.length }}
             </summary>
@@ -140,8 +138,8 @@
           class="dd-action"
           weight="quiet"
           size="small"
-          aria-label="Undo"
-          title="Undo"
+          :aria-label="t('undo')"
+          :title="t('undo')"
           @click="emit('undo', claim)"
         >
           <cdx-icon :icon="cdxIconUndo" size="small" />
@@ -152,8 +150,8 @@
           weight="quiet"
           action="destructive"
           size="small"
-          aria-label="Remove"
-          title="Remove"
+          :aria-label="t('remove')"
+          :title="t('remove')"
           @click="emit('remove', claim)"
         >
           <cdx-icon :icon="cdxIconTrash" size="small" />
@@ -172,6 +170,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from "../i18n";
 import { computed, ref } from "vue";
 import { CdxButton, CdxIcon } from "@wikimedia/codex";
 import {

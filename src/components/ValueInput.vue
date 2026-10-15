@@ -4,7 +4,9 @@
     ref="input"
     :language="language"
     :type="entityType"
-    :placeholder="`Search ${entityType}…`"
+    :placeholder="
+      entityType === 'item' ? t('search-item') : t('search-property')
+    "
     @select="onEntity"
   />
   <div v-else class="dd-value-input">
@@ -19,7 +21,7 @@
       v-if="datatype === 'monolingualtext'"
       v-model="textLanguage"
       class="dd-lang"
-      aria-label="Language code"
+      :aria-label="t('value-language-code')"
       @keydown.enter="submit"
     />
     <cdx-button
@@ -28,12 +30,13 @@
       :disabled="!snak"
       @click="submit"
     >
-      Add
+      {{ t("add") }}
     </cdx-button>
   </div>
 </template>
 
 <script setup lang="ts">
+import { t } from "../i18n";
 import { computed, onMounted, ref, useTemplateRef } from "vue";
 import { CdxButton, CdxTextInput } from "@wikimedia/codex";
 import type { Snak } from "../wikidata";
@@ -58,16 +61,21 @@ const entityType = computed(() =>
       : undefined,
 );
 
-const placeholder = computed(
-  () =>
-    ({
-      time: "1955, 1955-05 or 1955-05-15",
-      quantity: "Number, e.g. 42 or 1.5",
-      "globe-coordinate": "Latitude, longitude, e.g. 48.2, 16.37",
-      url: "https://…",
-      commonsMedia: "File name on Commons",
-    })[props.datatype] ?? "Value",
-);
+const placeholder = computed(() => {
+  switch (props.datatype) {
+    case "time":
+      return t("value-placeholder-time");
+    case "quantity":
+      return t("value-placeholder-quantity");
+    case "globe-coordinate":
+      return t("value-placeholder-coordinate");
+    case "url":
+      return t("value-placeholder-url");
+    case "commonsMedia":
+      return t("value-placeholder-commons");
+  }
+  return t("value-placeholder");
+});
 
 function datavalue(): Snak["datavalue"] {
   const v = text.value.trim();

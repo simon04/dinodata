@@ -9,7 +9,9 @@
           <EntityId :id="entity.id" />
         </h1>
         <p class="dd-description">
-          {{ entity.descriptions[language]?.value ?? "No description" }}
+          {{
+            entity.descriptions[language]?.value ?? t("entity-no-description")
+          }}
         </p>
         <p class="dd-aliases">
           <cdx-info-chip v-for="alias in aliases" :key="alias">
@@ -21,7 +23,7 @@
             rel="external noopener"
           >
             <cdx-icon :icon="cdxIconLinkExternal" size="small" />
-            Wikidata
+            {{ t("entity-wikidata") }}
           </a>
           <a
             v-if="entity.sitelinks?.[`${language}wiki`]"
@@ -30,7 +32,7 @@
             rel="external noopener"
           >
             <cdx-icon :icon="cdxIconLinkExternal" size="small" />
-            Wikipedia
+            {{ t("entity-wikipedia") }}
           </a>
         </p>
       </div>
@@ -38,7 +40,10 @@
     </header>
 
     <cdx-tabs v-model:active="tab">
-      <cdx-tab name="statements" :label="`Statements (${statements.length})`">
+      <cdx-tab
+        name="statements"
+        :label="t('tab-statements', statements.length)"
+      >
         <AddStatement
           v-if="adding"
           :language="language"
@@ -47,7 +52,7 @@
         />
         <cdx-button v-else action="progressive" @click="adding = true">
           <cdx-icon :icon="cdxIconAdd" />
-          Add statement
+          {{ t("add-statement") }}
         </cdx-button>
         <div class="dd-statements">
           <StatementGroup
@@ -68,7 +73,7 @@
       </cdx-tab>
       <cdx-tab
         name="identifiers"
-        :label="`Identifiers (${identifiers.length})`"
+        :label="t('tab-identifiers', identifiers.length)"
       >
         <div class="dd-statements dd-identifiers">
           <StatementGroup
@@ -87,24 +92,24 @@
           />
         </div>
       </cdx-tab>
-      <cdx-tab name="terms" :label="`Languages (${terms.length})`">
+      <cdx-tab name="terms" :label="t('tab-languages', terms.length)">
         <cdx-table
-          caption="Labels, descriptions and aliases"
+          :caption="t('terms-caption')"
           :columns="[
-            { id: 'language', label: 'Language' },
-            { id: 'label', label: 'Label' },
-            { id: 'description', label: 'Description' },
-            { id: 'aliases', label: 'Also known as' },
+            { id: 'language', label: t('terms-language') },
+            { id: 'label', label: t('terms-label') },
+            { id: 'description', label: t('terms-description') },
+            { id: 'aliases', label: t('terms-aliases') },
           ]"
           :data="terms"
         />
       </cdx-tab>
-      <cdx-tab name="sitelinks" :label="`Sitelinks (${sitelinks.length})`">
+      <cdx-tab name="sitelinks" :label="t('tab-sitelinks', sitelinks.length)">
         <cdx-table
-          caption="Sitelinks"
+          :caption="t('sitelinks-caption')"
           :columns="[
-            { id: 'site', label: 'Site' },
-            { id: 'title', label: 'Title' },
+            { id: 'site', label: t('sitelinks-site') },
+            { id: 'title', label: t('sitelinks-title') },
           ]"
           :data="sitelinks"
         >
@@ -126,6 +131,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from "../i18n";
 import { computed, onUnmounted, ref, watch, watchEffect } from "vue";
 import {
   CdxButton,

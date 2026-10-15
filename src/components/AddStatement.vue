@@ -17,7 +17,7 @@
     />
     <cdx-button
       weight="quiet"
-      aria-label="Cancel"
+      :aria-label="t('cancel')"
       @click="emit('close')"
       @keydown.esc="emit('close')"
     >
@@ -27,6 +27,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from "../i18n";
 import { computed, ref, useTemplateRef } from "vue";
 import { CdxButton, CdxIcon } from "@wikimedia/codex";
 import { cdxIconClose } from "@wikimedia/codex-icons";

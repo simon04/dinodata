@@ -1,5 +1,5 @@
 <template>
-  <div class="dd-skeleton" aria-busy="true" aria-label="Loading">
+  <div class="dd-skeleton" aria-busy="true" :aria-label="t('loading')">
     <cdx-progress-bar inline aria-hidden="true" />
     <div class="dd-bone dd-title" />
     <div class="dd-bone dd-line" style="width: 40%" />
@@ -19,6 +19,7 @@
 </template>
 
 <script setup lang="ts">
+import { t } from "../i18n";
 import { CdxProgressBar } from "@wikimedia/codex";
 </script>
 

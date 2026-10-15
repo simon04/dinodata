@@ -6,17 +6,18 @@
     :menu-items="menuItems"
     :menu-config="{ visibleItemLimit: 10 }"
     :start-icon="cdxIconLanguage"
-    aria-label="Language"
+    :aria-label="t('language')"
     @input="onInput"
     @focusin="onFocus"
     @focusout="inputValue = model"
     @update:selected="onSelected"
   >
-    <template #no-results>No matching language.</template>
+    <template #no-results>{{ t("language-no-results") }}</template>
   </cdx-lookup>
 </template>
 
 <script setup lang="ts">
+import { t } from "../i18n";
 import { onMounted, ref, watch } from "vue";
 import { CdxLookup, type MenuItemData } from "@wikimedia/codex";
 import { cdxIconLanguage } from "@wikimedia/codex-icons";

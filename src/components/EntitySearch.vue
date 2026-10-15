@@ -4,15 +4,16 @@
     v-model:input-value="inputValue"
     :menu-items="menuItems"
     :start-icon="cdxIconSearch"
-    :placeholder="placeholder ?? 'Search DinoData'"
+    :placeholder="placeholder ?? t('app-search-placeholder')"
     @input="onInput"
     @update:selected="onSelected"
   >
-    <template #no-results>No results found.</template>
+    <template #no-results>{{ t("search-no-results") }}</template>
   </cdx-lookup>
 </template>
 
 <script setup lang="ts">
+import { t } from "../i18n";
 import { ref } from "vue";
 import { CdxLookup, type MenuItemData } from "@wikimedia/codex";
 import { cdxIconSearch } from "@wikimedia/codex-icons";

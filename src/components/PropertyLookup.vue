@@ -5,17 +5,16 @@
     v-model:input-value="inputValue"
     :menu-items="menuItems"
     :menu-config="{ visibleItemLimit: 8 }"
-    :placeholder="
-      loading ? 'Loading properties…' : 'Property: label, alias, P123 or URL'
-    "
+    :placeholder="loading ? t('property-loading') : t('property-placeholder')"
     @input="onInput"
     @update:selected="onSelected"
   >
-    <template #no-results>No matching property.</template>
+    <template #no-results>{{ t("property-no-results") }}</template>
   </cdx-lookup>
 </template>
 
 <script setup lang="ts">
+import { t } from "../i18n";
 import { onMounted, ref, useTemplateRef } from "vue";
 import { CdxLookup, type MenuItemData } from "@wikimedia/codex";
 import {

@@ -1,10 +1,15 @@
 <template>
-  <code class="dd-entity-id" :title="`Copy ${id}`" @click.prevent="copy(id)">
-    {{ copied ? "copied" : id }}
+  <code
+    class="dd-entity-id"
+    :title="t('copy-id', id)"
+    @click.prevent="copy(id)"
+  >
+    {{ copied ? t("copied") : id }}
   </code>
 </template>
 
 <script setup lang="ts">
+import { t } from "../i18n";
 import { useClipboard } from "@vueuse/core";
 
 defineProps<{ id: string }>();

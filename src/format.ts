@@ -1,20 +1,4 @@
-import { inject, ref, type InjectionKey, type Ref } from "vue";
-
-/** User-selected language, provided by App. */
-export const LANGUAGE: InjectionKey<Ref<string>> = Symbol("language");
-
-export function useLanguage(): Ref<string> {
-  return inject(LANGUAGE, ref("en"));
-}
-
-/** Wikimedia language code → BCP 47 locale supported by Intl, else "en". */
-function locale(language: string): string {
-  try {
-    return Intl.getCanonicalLocales(language)[0] ?? "en";
-  } catch {
-    return "en";
-  }
-}
+import { locale, t } from "./i18n";
 
 export function formatNumber(
   value: number | string,
@@ -51,17 +35,19 @@ export function formatTime(
       era: bce ? "short" : undefined,
     }).format(date);
   }
-  const era = bce ? " BCE" : "";
+  const era = (text: string) => (bce ? t("time-bce", text) : text);
   const n = (v: number) => formatNumber(v, language, { useGrouping: false });
   const ordinal = (v: number) => {
     if (!locale(language).startsWith("en")) return `${n(v)}.`;
     const rule = new Intl.PluralRules("en", { type: "ordinal" }).select(v);
     return `${v}${{ one: "st", two: "nd", few: "rd" }[rule as string] ?? "th"}`;
   };
-  if (precision === 8) return `${n(year)}s${era}`;
+  if (precision === 8) return era(t("time-decade", n(year)));
   if (precision === 7)
-    return `${ordinal(Math.floor((year - 1) / 100) + 1)} century${era}`;
+    return era(t("time-century", ordinal(Math.floor((year - 1) / 100) + 1)));
   if (precision === 6)
-    return `${ordinal(Math.floor((year - 1) / 1000) + 1)} millennium${era}`;
-  return `${formatNumber(year, language)} years${era}`;
+    return era(
+      t("time-millennium", ordinal(Math.floor((year - 1) / 1000) + 1)),
+    );
+  return era(t("time-years", formatNumber(year, language)));
 }

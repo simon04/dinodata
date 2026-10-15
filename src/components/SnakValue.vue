@@ -1,7 +1,9 @@
 <template>
-  <span v-if="snak.snaktype === 'novalue'" class="dd-special">no value</span>
+  <span v-if="snak.snaktype === 'novalue'" class="dd-special">
+    {{ t("snak-novalue") }}
+  </span>
   <span v-else-if="snak.snaktype === 'somevalue'" class="dd-special">
-    unknown value
+    {{ t("snak-somevalue") }}
   </span>
   <template v-else-if="entityId">
     <a :href="`#${entityId}`" :title="entityId">
@@ -16,10 +18,11 @@
 </template>
 
 <script setup lang="ts">
+import { language, t } from "../i18n";
 import { computed } from "vue";
 import type { Snak } from "../wikidata";
 import EntityId from "./EntityId.vue";
-import { formatNumber, formatTime, useLanguage } from "../format";
+import { formatNumber, formatTime } from "../format";
 
 const props = defineProps<{
   snak: Snak;
@@ -27,7 +30,6 @@ const props = defineProps<{
   formatterUrls?: Record<string, string>;
 }>();
 
-const language = useLanguage();
 const value = computed(() => props.snak.datavalue?.value);
 
 const entityId = computed(() =>
