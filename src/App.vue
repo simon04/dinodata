@@ -32,20 +32,52 @@
         src="https://upload.wikimedia.org/wikipedia/commons/d/dd/Wikimania_2024_Dragons_in_love_illustration_%28beige_background%29.png"
       />
     </a>
+    <p>
+      {{ t("app-hackathon") }}
+      <a
+        href="https://wikimania.wikimedia.org/wiki/2024:Hackathon"
+        target="_blank"
+        rel="external noopener"
+      >
+        {{ t("app-hackathon-link") }}
+      </a>
+    </p>
+    <p class="dd-credit">{{ t("app-dialog-image-credit") }}</p>
   </cdx-dialog>
 
   <main class="mw-page-container">
     <EntityView v-if="id" :id="id" :language="language" />
-    <section v-else>
-      <h1>{{ t("app-welcome") }}</h1>
-      <p>{{ t("app-intro") }}</p>
-      <ul>
-        <li><a href="#Q40">Austria (Q40)</a></li>
-        <li><a href="#Q1735">Innsbruck (Q1735)</a></li>
-        <li><a href="#Q42">Douglas Adams (Q42)</a></li>
-        <li><a href="#Q430">Dinosaur (Q430)</a></li>
-        <li><a href="#Q14384">Tyrannosaurus (Q14384)</a></li>
-      </ul>
+    <section v-else class="dd-home">
+      <div>
+        <h1>{{ t("app-welcome") }}</h1>
+        <p>{{ t("app-intro") }}</p>
+        <ul>
+          <li><a href="#Q40">Austria (Q40)</a></li>
+          <li><a href="#Q1735">Innsbruck (Q1735)</a></li>
+          <li><a href="#Q42">Douglas Adams (Q42)</a></li>
+          <li><a href="#Q430">Dinosaur (Q430)</a></li>
+          <li><a href="#Q14384">Tyrannosaurus (Q14384)</a></li>
+        </ul>
+      </div>
+      <aside class="dd-hackathon">
+        <button class="dd-hackathon-image" @click="showDialog = true">
+          <img
+            src="https://commons.wikimedia.org/wiki/Special:FilePath/Wikimania_2024_Dragons_in_love_illustration_(beige_background).png?width=480"
+            :alt="t('app-dialog-title')"
+          />
+        </button>
+        <div class="dd-hackathon-text">
+          <strong>🦕 {{ t("app-dialog-title") }}</strong>
+          <p>{{ t("app-hackathon") }}</p>
+          <a
+            href="https://wikimania.wikimedia.org/wiki/2024:Hackathon"
+            target="_blank"
+            rel="external noopener"
+          >
+            {{ t("app-hackathon-link") }}
+          </a>
+        </div>
+      </aside>
     </section>
   </main>
 
@@ -199,6 +231,43 @@ body {
 }
 .dd-table tr.dd-removed {
   background: var(--background-color-error-subtle);
+}
+
+.dd-home {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.dd-hackathon {
+  display: flex;
+  flex-direction: column;
+  width: 20rem;
+  max-width: 100%;
+  border: 1px solid var(--border-color-subtle);
+  border-radius: var(--border-radius-base);
+  overflow: hidden;
+  box-shadow: var(--box-shadow-medium);
+}
+.dd-hackathon-image {
+  all: unset;
+  cursor: zoom-in;
+  background: #f9eec0;
+}
+.dd-hackathon-image img {
+  display: block;
+  width: 100%;
+}
+.dd-hackathon-text {
+  padding: 0.75rem 1rem;
+}
+.dd-hackathon-text p {
+  margin: 0.5rem 0;
+}
+.dd-credit {
+  font-size: 0.8125em;
+  color: var(--color-subtle);
 }
 
 .dd-footer {

@@ -2,7 +2,11 @@
 
 A prototype of [Wikidata](https://www.wikidata.org/) with a nicer UX, built with Vue and [Codex](https://doc.wikimedia.org/codex/), the Wikimedia design system.
 
-The name comes from the dragons of the [Wikimania 2024](<https://commons.wikimedia.org/wiki/File:Wikimania_2024_Dragons_in_love_illustration_(beige_background).png>) logo — click the 🦕.
+> 🦕 **Wikimania 2024 Hackathon** — DinoData is named after the dragons in the logo of the [Wikimania 2024 Hackathon](https://wikimania.wikimedia.org/wiki/2024:Hackathon) in Katowice, Poland.
+>
+> ![Wikimania 2024 dragons](<https://commons.wikimedia.org/wiki/Special:FilePath/Wikimania_2024_Dragons_in_love_illustration_(beige_background).png?width=320>)
+>
+> Illustration by Kasia Ostrowska (bazgra_nina), Wikimedia Foundation, [CC0](<https://commons.wikimedia.org/wiki/File:Wikimania_2024_Dragons_in_love_illustration_(beige_background).png>)
 
 ## Features
 
