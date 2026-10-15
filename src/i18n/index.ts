@@ -29,11 +29,49 @@ const messages = shallowRef<Messages>({});
 watch(
   language,
   async (code) => {
-    const load = loaders[`./${code}.json`];
+    // e.g. zh-hans → zh
+    const load =
+      loaders[`./${code}.json`] ?? loaders[`./${code.split("-")[0]}.json`];
     messages.value = load ? (await load()).default : {};
   },
   { immediate: true },
 );
+
+const RTL = new Set([
+  "ar",
+  "arc",
+  "arz",
+  "azb",
+  "ckb",
+  "dv",
+  "fa",
+  "glk",
+  "he",
+  "ks",
+  "lrc",
+  "mzn",
+  "pnb",
+  "ps",
+  "sd",
+  "ug",
+  "ur",
+  "yi",
+]);
+export const isRTL = (code = language.value) =>
+  RTL.has(code.split("-")[0]) || code.endsWith("-arab");
+
+const CATEGORIES = ["zero", "one", "two", "few", "many", "other"];
+
+/** Pick a {{PLURAL}} form: forms are given in CLDR category order. */
+function plural(n: number, forms: string[]): string {
+  const rules = new Intl.PluralRules(locale());
+  const categories = CATEGORIES.filter((c) =>
+    rules.resolvedOptions().pluralCategories.includes(c as Intl.LDMLPluralRule),
+  );
+  // explicit zero form only if the language has one (e.g. Arabic)
+  const index = categories.indexOf(rules.select(n));
+  return forms[Math.min(index, forms.length - 1)] ?? "";
+}
 
 /**
  * Translate a message. Supports MediaWiki-style `$1` parameters and
@@ -44,13 +82,8 @@ export function t(key: MessageKey, ...params: (string | number)[]): string {
   return message
     .replace(
       /\{\{PLURAL:\$(\d+)\|([^}]*)\}\}/g,
-      (_, i: string, forms: string) => {
-        const [one, other = one] = forms.split("|");
-        const rule = new Intl.PluralRules(locale()).select(
-          Number(params[+i - 1]),
-        );
-        return rule === "one" ? one : other;
-      },
+      (_, i: string, forms: string) =>
+        plural(Number(params[+i - 1]), forms.split("|")),
     )
     .replace(/\$(\d+)/g, (_, i: string) => String(params[+i - 1] ?? ""));
 }

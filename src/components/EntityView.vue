@@ -548,7 +548,7 @@ watch(
   margin: 0;
 }
 .dd-aliases a {
-  margin-left: 0.5rem;
+  margin-inline-start: 0.5rem;
 }
 /* many single-valued identifiers: flow them in columns */
 .dd-identifiers {
@@ -559,7 +559,7 @@ watch(
   break-inside: avoid;
 }
 .dd-paste {
-  margin-left: 0.5rem;
+  margin-inline-start: 0.5rem;
 }
 .dd-toast {
   position: fixed;

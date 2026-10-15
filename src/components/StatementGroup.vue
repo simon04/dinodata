@@ -348,7 +348,7 @@ function thumb(file: string) {
 .dd-property-actions {
   display: flex;
   flex-wrap: wrap;
-  margin-left: -0.5rem;
+  margin-inline-start: -0.5rem;
   font-weight: normal;
 }
 .dd-property-actions .cdx-button {
@@ -361,7 +361,8 @@ function thumb(file: string) {
 }
 .dd-value {
   position: relative;
-  padding: 0.375rem 2rem 0.375rem 0.625rem;
+  padding-block: 0.375rem;
+  padding-inline: 0.625rem 2rem;
   box-shadow:
     1px 0 0 var(--border-color-subtle),
     0 1px 0 var(--border-color-subtle);
@@ -385,7 +386,7 @@ function thumb(file: string) {
 }
 .dd-qualifier-property {
   color: var(--color-subtle);
-  margin-right: 0.25rem;
+  margin-inline-end: 0.25rem;
 }
 .dd-qualifier-property::after {
   content: ":";
@@ -414,8 +415,8 @@ function thumb(file: string) {
   display: flex;
   flex-wrap: wrap;
   column-gap: 0.75rem;
-  border-left: 2px solid var(--border-color-subtle);
-  padding-left: 0.5rem;
+  border-inline-start: 2px solid var(--border-color-subtle);
+  padding-inline-start: 0.5rem;
   margin: 0.25rem 0;
 }
 .dd-pending {
@@ -441,10 +442,14 @@ function thumb(file: string) {
 .dd-actions {
   position: absolute;
   top: 0.125rem;
-  right: 0.125rem;
+  inset-inline-end: 0.125rem;
   display: flex;
   border-radius: var(--border-radius-base);
+}
+/* opaque only while hovering, so it never hides the value */
+.dd-value:hover .dd-actions {
   background: var(--background-color-base);
+  box-shadow: var(--box-shadow-small);
 }
 .dd-pending .dd-actions,
 .dd-changed .dd-actions,

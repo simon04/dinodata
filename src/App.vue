@@ -51,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import { language, t } from "./i18n";
+import { isRTL, language, t } from "./i18n";
 import { ref, watchEffect } from "vue";
 import { useEventListener } from "@vueuse/core";
 import { CdxDialog } from "@wikimedia/codex";
@@ -60,7 +60,10 @@ import LanguageSelector from "./components/LanguageSelector.vue";
 import EntitySearch from "./components/EntitySearch.vue";
 import EntityView from "./components/EntityView.vue";
 
-watchEffect(() => (document.documentElement.lang = language.value));
+watchEffect(() => {
+  document.documentElement.lang = language.value;
+  document.documentElement.dir = isRTL() ? "rtl" : "ltr";
+});
 loadProperties(language);
 
 const showDialog = ref(false);

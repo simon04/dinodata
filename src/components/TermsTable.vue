@@ -198,7 +198,7 @@ function addLanguage() {
   display: inline-block;
   width: 16rem;
   min-width: 16rem;
-  margin-right: 0.5rem;
+  margin-inline-end: 0.5rem;
 }
 .dd-aliases {
   display: flex;

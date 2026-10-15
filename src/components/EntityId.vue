@@ -18,7 +18,7 @@ const { copy, copied } = useClipboard({ copiedDuring: 800 });
 
 <style>
 .dd-entity-id {
-  margin-left: 0.35em;
+  margin-inline-start: 0.35em;
   padding: 0.05em 0.35em;
   border-radius: var(--border-radius-base);
   background: var(--background-color-neutral-subtle);
