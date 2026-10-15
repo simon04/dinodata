@@ -3,9 +3,12 @@
   <span v-else-if="snak.snaktype === 'somevalue'" class="dd-special">
     unknown value
   </span>
-  <a v-else-if="entityId" :href="`#${entityId}`" :title="entityId">
-    {{ labels[entityId] ?? entityId }}
-  </a>
+  <template v-else-if="entityId">
+    <a :href="`#${entityId}`" :title="entityId">
+      {{ labels[entityId] ?? entityId }}
+    </a>
+    <EntityId :id="entityId" />
+  </template>
   <a v-else-if="href" :href="href" target="_blank" rel="external noopener">
     {{ text }}
   </a>
@@ -15,6 +18,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { Snak } from "../wikidata";
+import EntityId from "./EntityId.vue";
 
 const props = defineProps<{
   snak: Snak;

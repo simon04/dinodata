@@ -4,6 +4,7 @@
       <a :href="`#${property}`" :title="property">
         {{ labels[property] ?? property }}
       </a>
+      <EntityId :id="property" />
     </div>
     <div class="dd-values">
       <div
@@ -75,9 +76,12 @@
           :key="qualifier"
           class="dd-qualifier"
         >
-          <a :href="`#${qualifier}`" class="dd-qualifier-property">
-            {{ labels[qualifier] ?? qualifier }}
-          </a>
+          <span class="dd-qualifier-property">
+            <a :href="`#${qualifier}`">
+              {{ labels[qualifier] ?? qualifier }}
+            </a>
+            <EntityId :id="qualifier" />
+          </span>
           <span>
             <template v-for="(snak, i) in snaks" :key="i">
               <span v-if="i">,</span>
@@ -105,9 +109,12 @@
               :key="refProperty"
               class="dd-qualifier"
             >
-              <a :href="`#${refProperty}`" class="dd-qualifier-property">
-                {{ labels[refProperty] ?? refProperty }}
-              </a>
+              <span class="dd-qualifier-property">
+                <a :href="`#${refProperty}`">
+                  {{ labels[refProperty] ?? refProperty }}
+                </a>
+                <EntityId :id="refProperty" />
+              </span>
               <span>
                 <template v-for="(snak, i) in snaks" :key="i">
                   <span v-if="i">,</span>
@@ -159,6 +166,7 @@ import {
 import { useProperties } from "../properties";
 import type { Claim, Snak } from "../wikidata";
 import AddStatement from "./AddStatement.vue";
+import EntityId from "./EntityId.vue";
 import SnakValue from "./SnakValue.vue";
 
 defineProps<{
@@ -252,7 +260,7 @@ function thumb(file: string) {
   font-size: 0.875em;
   margin: 0.25rem 0 0 1rem;
 }
-.dd-qualifier-property {
+.dd-qualifier-property a {
   color: var(--color-subtle);
 }
 .dd-references {

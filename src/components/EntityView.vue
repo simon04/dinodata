@@ -6,7 +6,7 @@
       <div class="dd-entity-title">
         <h1>
           {{ label(entity, language) ?? entity.id }}
-          <span class="dd-id">({{ entity.id }})</span>
+          <EntityId :id="entity.id" />
         </h1>
         <p class="dd-description">
           {{ entity.descriptions[language]?.value ?? "No description" }}
@@ -151,6 +151,7 @@ import {
 import type { Edit } from "../quickstatements";
 import { propertyLabel, useProperties } from "../properties";
 import AddStatement from "./AddStatement.vue";
+import EntityId from "./EntityId.vue";
 import EntitySkeleton from "./EntitySkeleton.vue";
 import StatementGroup from "./StatementGroup.vue";
 import QuickStatementsPanel from "./QuickStatementsPanel.vue";
@@ -354,7 +355,10 @@ watch(
       entity.value = e;
       loading.value = false;
       await getLabels(
-        referenced.filter((i) => !i.startsWith("P")),
+        // fall back to the API for property labels until the cache is loaded
+        Object.keys(byId.value).length
+          ? referenced.filter((i) => !i.startsWith("P"))
+          : referenced,
         props.language,
         (batch) => Object.assign(labels.value, batch),
       );
@@ -381,10 +385,6 @@ watch(
   max-height: 240px;
   border-radius: var(--border-radius-base);
   box-shadow: var(--box-shadow-medium);
-}
-.dd-id {
-  color: var(--color-subtle);
-  font-weight: normal;
 }
 .dd-description {
   font-size: 1.2em;
