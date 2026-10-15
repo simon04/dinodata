@@ -45,12 +45,7 @@
           @add="addStatement"
           @close="adding = false"
         />
-        <cdx-button
-          v-else
-          action="progressive"
-          class="dd-add-statement-button"
-          @click="adding = true"
-        >
+        <cdx-button v-else action="progressive" @click="adding = true">
           <cdx-icon :icon="cdxIconAdd" />
           Add statement
         </cdx-button>
@@ -434,13 +429,11 @@ watch(
   break-inside: avoid;
 }
 .dd-statements {
+  margin-top: 0.75rem;
   border: 1px solid var(--border-color-subtle);
   border-bottom: none;
   border-radius: var(--border-radius-base);
   overflow: hidden;
-}
-.dd-add-statement-button {
-  margin-bottom: 0.75rem;
 }
 .dd-entity :deep(.cdx-tab) {
   padding-top: 1rem;
