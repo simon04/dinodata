@@ -65,6 +65,7 @@
   "copied-statements": "$1 {{PLURAL:$1|Aussage|Aussagen}} kopiert – mit Strg+V bei einem beliebigen Datenobjekt einfügen",
   "paste-statements": "Aussagen einfügen",
   "pasted": "$1 {{PLURAL:$1|Aussage|Aussagen}} eingefügt, $2 bereits vorhanden",
-  "paste-empty": "Die Zwischenablage enthält keine Aussagen.",
-  "paste-denied": "Zugriff auf die Zwischenablage verweigert – drücke stattdessen Strg+V."
+  "paste-empty": "Die Zwischenablage enthält keine Aussagen. Unterstützt: kopierte Aussagen, Wikidata-JSON oder Zeilen wie P31=Q5.",
+  "paste-denied": "Zugriff auf die Zwischenablage verweigert – drücke stattdessen Strg+V.",
+  "paste-invalid": "$1 ungültige {{PLURAL:$1|Zeile|Zeilen}} übersprungen: $2"
 }

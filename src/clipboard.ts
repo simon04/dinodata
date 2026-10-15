@@ -1,3 +1,4 @@
+import { FORMAT_EXAMPLES, parseValue } from "./values";
 import type { Claim, Snak } from "./wikidata";
 
 /**
@@ -78,4 +79,43 @@ export function parseClaims(
       ? Object.values(data.entities).flatMap((e) => claimsOf(e.claims))
       : claimsOf(data.claims);
   return claims.length ? { claims, labels: data.labels } : undefined;
+}
+
+/**
+ * Parse lines like `P31=Q5`, `P569 = 1952-03-11` or `P1082=8572895`,
+ * validating each value against the property's datatype.
+ * Returns undefined if the text is not in this format at all.
+ */
+export function parsePropertyValues(
+  text: string,
+  properties: Record<string, { datatype: string }>,
+  language: string,
+): { claims: Claim[]; invalid: string[] } | undefined {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const pattern = /^(P\d+)\s*=\s*(.+)$/i;
+  if (!lines.some((line) => pattern.test(line))) return undefined;
+  const claims: Claim[] = [];
+  const invalid: string[] = [];
+  for (const line of lines) {
+    const m = line.match(pattern);
+    const property = m?.[1].toUpperCase();
+    const datatype = property && properties[property]?.datatype;
+    const datavalue = datatype
+      ? parseValue(datatype, m?.[2] ?? "", language)
+      : undefined;
+    if (!property || !datatype || !datavalue) {
+      const example = datatype && FORMAT_EXAMPLES[datatype];
+      invalid.push(example ? `${line} (${property}=${example})` : line);
+      continue;
+    }
+    claims.push({
+      id: "",
+      rank: "normal",
+      mainsnak: { snaktype: "value", property, datatype, datavalue },
+    });
+  }
+  return { claims, invalid };
 }

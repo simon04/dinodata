@@ -43,8 +43,9 @@
       v-if="message"
       :key="message"
       class="dd-toast"
+      :type="messageType"
       :auto-dismiss="true"
-      :display-time="2500"
+      :display-time="messageType === 'warning' ? 8000 : 2500"
       @auto-dismissed="message = undefined"
     >
       {{ message }}
@@ -163,10 +164,10 @@ import {
   type Entity,
   type Snak,
 } from "../wikidata";
-import type { Edit } from "../quickstatements";
+import { snakValue, type Edit } from "../quickstatements";
 import { consumeReloadBypass } from "../cache";
-import { copyClaims, parseClaims } from "../clipboard";
-import { useEventListener } from "@vueuse/core";
+import { copyClaims, parseClaims, parsePropertyValues } from "../clipboard";
+import { until, useEventListener } from "@vueuse/core";
 import { propertyLabel, useProperties } from "../properties";
 import AddStatement from "./AddStatement.vue";
 import EntityId from "./EntityId.vue";
@@ -236,21 +237,35 @@ function groupSnaks(snaks: Snak[]): Record<string, Snak[]> {
 }
 
 const message = ref<string>();
+const messageType = ref<"notice" | "warning">("notice");
 
-/** Paste statements, skipping values the item already has. */
-function pasteClaims(text: string | undefined): boolean {
-  const data = text ? parseClaims(text) : undefined;
+/**
+ * Paste statements (DinoData/Wikidata JSON or `Pxxx=value` lines), skipping
+ * values the item already has.
+ */
+async function pasteClaims(text: string | undefined): Promise<void> {
+  if (!text) return;
+  if (!parseClaims(text) && PROPERTY_VALUE.test(text) && !propertiesLoaded()) {
+    // validating Pxxx=value lines needs the property datatypes
+    message.value = t("property-loading");
+    messageType.value = "notice";
+    await until(propertiesLoaded).toBe(true);
+  }
+  const data =
+    parseClaims(text) ?? parsePropertyValues(text, byId.value, props.language);
   if (!data) {
     message.value = t("paste-empty");
-    return false;
+    messageType.value = "warning";
+    return;
   }
-  Object.assign(labels.value, data.labels);
-  const key = (snak: Snak) =>
-    `${snak.property}:${snak.snaktype}:${JSON.stringify(snak.datavalue?.value)}`;
+  if ("labels" in data) Object.assign(labels.value, data.labels);
+  // compare values in their normalized QuickStatements form
+  const key = (snak: Snak) => `${snak.property}|${snakValue(snak)}`;
   const existing = new Set(
     properties.value.flatMap((p) => claimsOf(p).map((c) => key(c.mainsnak))),
   );
   let count = 0;
+  const newIds: string[] = [];
   for (const claim of data.claims) {
     if (existing.has(key(claim.mainsnak))) continue;
     existing.add(key(claim.mainsnak));
@@ -261,15 +276,29 @@ function pasteClaims(text: string | undefined): boolean {
       qualifiers: Object.values(claim.qualifiers ?? {}).flat(),
       references: claim.references?.map((r) => Object.values(r.snaks).flat()),
     });
+    const id = (claim.mainsnak.datavalue?.value as { id?: string })?.id;
+    if (id && !labels.value[id]) newIds.push(id);
     count++;
   }
-  message.value = t("pasted", count, data.claims.length - count);
-  return true;
+  getLabels(newIds, props.language, (batch) =>
+    Object.assign(labels.value, batch),
+  ).catch(console.warn);
+  const invalid = "invalid" in data ? data.invalid : [];
+  message.value = [
+    t("pasted", count, data.claims.length - count),
+    ...(invalid.length
+      ? [t("paste-invalid", invalid.length, invalid.join("; "))]
+      : []),
+  ].join(" · ");
+  messageType.value = invalid.length ? "warning" : "notice";
 }
+
+const PROPERTY_VALUE = /^\s*P\d+\s*=/im;
+const propertiesLoaded = () => Object.keys(byId.value).length > 0;
 
 async function pasteFromButton() {
   try {
-    pasteClaims(await navigator.clipboard.readText());
+    await pasteClaims(await navigator.clipboard.readText());
   } catch {
     // clipboard read denied: Ctrl+V still works via the paste event
     message.value = t("paste-denied");
@@ -280,13 +309,14 @@ async function pasteFromButton() {
 useEventListener(document, "paste", (event: ClipboardEvent) => {
   const target = event.target as HTMLElement;
   if (target.closest("input, textarea, [contenteditable]")) return;
-  if (pasteClaims(event.clipboardData?.getData("text/plain")))
-    event.preventDefault();
+  event.preventDefault();
+  pasteClaims(event.clipboardData?.getData("text/plain"));
 });
 
 async function copy(claims: Claim[]) {
   await copyClaims(claims, props.id, allLabels.value);
   message.value = t("copied-statements", claims.length);
+  messageType.value = "notice";
 }
 
 function addStatement(snak: Snak, valueLabel?: string) {
