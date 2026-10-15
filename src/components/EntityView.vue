@@ -2,73 +2,203 @@
   <cdx-progress-bar v-if="loading" aria-label="Loading" />
   <cdx-message v-else-if="error" type="error">{{ error }}</cdx-message>
   <article v-else-if="entity" class="dd-entity">
-    <header>
-      <h1>
-        {{ label(entity, language) ?? entity.id }}
-        <span class="dd-id">({{ entity.id }})</span>
-      </h1>
-      <p class="dd-description">
-        {{ entity.descriptions[language]?.value ?? "No description" }}
-      </p>
-      <p v-if="aliases.length" class="dd-aliases">
-        <cdx-info-chip v-for="alias in aliases" :key="alias">
-          {{ alias }}
-        </cdx-info-chip>
-      </p>
+    <header class="dd-entity-header">
+      <div class="dd-entity-title">
+        <h1>
+          {{ label(entity, language) ?? entity.id }}
+          <span class="dd-id">({{ entity.id }})</span>
+        </h1>
+        <p class="dd-description">
+          {{ entity.descriptions[language]?.value ?? "No description" }}
+        </p>
+        <p v-if="aliases.length" class="dd-aliases">
+          <cdx-info-chip v-for="alias in aliases" :key="alias">
+            {{ alias }}
+          </cdx-info-chip>
+        </p>
+        <p class="dd-links">
+          <a
+            :href="`https://www.wikidata.org/wiki/${entity.id}`"
+            target="_blank"
+            rel="external noopener"
+          >
+            <cdx-icon :icon="cdxIconLinkExternal" size="small" />
+            Wikidata
+          </a>
+          <a
+            v-if="entity.sitelinks?.[`${language}wiki`]"
+            :href="`https://${language}.wikipedia.org/wiki/${entity.sitelinks[`${language}wiki`].title}`"
+            target="_blank"
+            rel="external noopener"
+          >
+            <cdx-icon :icon="cdxIconLinkExternal" size="small" />
+            Wikipedia
+          </a>
+        </p>
+      </div>
+      <img v-if="image" class="dd-image" :src="image" alt="" />
     </header>
 
-    <section>
-      <h2>Statements</h2>
-      <div
-        v-for="(claims, property) in entity.claims"
-        :key="property"
-        class="dd-statement-group"
+    <cdx-tabs v-model:active="tab">
+      <cdx-tab name="statements" :label="`Statements (${statements.length})`">
+        <StatementGroup
+          v-for="property in statements"
+          :key="property"
+          :property="property"
+          :claims="entity.claims[property]"
+          :labels="labels"
+          :formatter-urls="formatterUrls"
+        />
+      </cdx-tab>
+      <cdx-tab
+        name="identifiers"
+        :label="`Identifiers (${identifiers.length})`"
       >
-        <div class="dd-property">
-          <a :href="`#${property}`">{{ labels[property] ?? property }}</a>
-        </div>
-        <div class="dd-values">
-          <div
-            v-for="claim in claims"
-            :key="claim.id"
-            class="dd-value"
-            :class="`dd-rank-${claim.rank}`"
-          >
-            <SnakValue :snak="claim.mainsnak" :labels="labels" />
-            <div
-              v-for="(snaks, qualifier) in claim.qualifiers"
-              :key="qualifier"
-              class="dd-qualifier"
+        <StatementGroup
+          v-for="property in identifiers"
+          :key="property"
+          :property="property"
+          :claims="entity.claims[property]"
+          :labels="labels"
+          :formatter-urls="formatterUrls"
+        />
+      </cdx-tab>
+      <cdx-tab name="terms" :label="`Languages (${terms.length})`">
+        <cdx-table
+          caption="Labels, descriptions and aliases"
+          :columns="[
+            { id: 'language', label: 'Language' },
+            { id: 'label', label: 'Label' },
+            { id: 'description', label: 'Description' },
+            { id: 'aliases', label: 'Also known as' },
+          ]"
+          :data="terms"
+        />
+      </cdx-tab>
+      <cdx-tab name="sitelinks" :label="`Sitelinks (${sitelinks.length})`">
+        <cdx-table
+          caption="Sitelinks"
+          :columns="[
+            { id: 'site', label: 'Site' },
+            { id: 'title', label: 'Title' },
+          ]"
+          :data="sitelinks"
+        >
+          <template #item-title="{ item, row }">
+            <a
+              :href="siteUrl(row.site, item)"
+              target="_blank"
+              rel="external noopener"
             >
-              {{ labels[qualifier] ?? qualifier }}:
-              <template v-for="(snak, i) in snaks" :key="i">
-                <span v-if="i">,</span>
-                <SnakValue :snak="snak" :labels="labels" />
-              </template>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+              {{ item }}
+            </a>
+          </template>
+        </cdx-table>
+      </cdx-tab>
+    </cdx-tabs>
+
+    <QuickStatementsPanel :id="entity.id" :edits="edits" />
   </article>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { CdxInfoChip, CdxMessage, CdxProgressBar } from "@wikimedia/codex";
+import {
+  CdxIcon,
+  CdxInfoChip,
+  CdxMessage,
+  CdxProgressBar,
+  CdxTab,
+  CdxTable,
+  CdxTabs,
+} from "@wikimedia/codex";
+import { cdxIconLinkExternal } from "@wikimedia/codex-icons";
 import { getEntities, label, type Entity, type Snak } from "../wikidata";
-import SnakValue from "./SnakValue.vue";
+import type { Edit } from "../quickstatements";
+import StatementGroup from "./StatementGroup.vue";
+import QuickStatementsPanel from "./QuickStatementsPanel.vue";
 
 const props = defineProps<{ id: string; language: string }>();
 
 const entity = ref<Entity>();
 const labels = ref<Record<string, string>>({});
+const formatterUrls = ref<Record<string, string>>({});
+const edits = ref<Edit[]>([]);
 const loading = ref(false);
 const error = ref<string>();
+const tab = ref("statements");
 
 const aliases = computed(
   () => entity.value?.aliases[props.language]?.map((a) => a.value) ?? [],
 );
+
+const isIdentifier = (property: string) =>
+  entity.value?.claims[property][0]?.mainsnak.datatype === "external-id";
+const statements = computed(() =>
+  Object.keys(entity.value?.claims ?? {}).filter((p) => !isIdentifier(p)),
+);
+const identifiers = computed(() =>
+  Object.keys(entity.value?.claims ?? {}).filter(isIdentifier),
+);
+
+const image = computed(() => {
+  const file = entity.value?.claims.P18?.[0]?.mainsnak.datavalue?.value;
+  return file
+    ? `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(String(file))}?width=400`
+    : undefined;
+});
+
+const terms = computed(() => {
+  const e = entity.value;
+  if (!e) return [];
+  const languages = new Set([
+    ...Object.keys(e.labels),
+    ...Object.keys(e.descriptions),
+    ...Object.keys(e.aliases),
+  ]);
+  return [...languages]
+    .sort((a, b) =>
+      a === props.language ? -1 : b === props.language ? 1 : a.localeCompare(b),
+    )
+    .map((language) => ({
+      language,
+      label: e.labels[language]?.value ?? "",
+      description: e.descriptions[language]?.value ?? "",
+      aliases: e.aliases[language]?.map((a) => a.value).join(" · ") ?? "",
+    }));
+});
+
+const sitelinks = computed(() =>
+  Object.values(entity.value?.sitelinks ?? {})
+    .map(({ site, title }) => ({ site, title }))
+    .sort((a, b) => a.site.localeCompare(b.site)),
+);
+
+function siteUrl(site: string, title: string): string {
+  const project: Record<string, string> = {
+    wiki: "wikipedia",
+    wikivoyage: "wikivoyage",
+    wikiquote: "wikiquote",
+    wikisource: "wikisource",
+    wikinews: "wikinews",
+    wikibooks: "wikibooks",
+    wikiversity: "wikiversity",
+    wiktionary: "wiktionary",
+  };
+  const special: Record<string, string> = {
+    commonswiki: "commons.wikimedia.org",
+    specieswiki: "species.wikimedia.org",
+    metawiki: "meta.wikimedia.org",
+    wikidatawiki: "www.wikidata.org",
+  };
+  const m = site.match(
+    /^(.+?)(wiki|wikivoyage|wikiquote|wikisource|wikinews|wikibooks|wikiversity|wiktionary)$/,
+  );
+  const host =
+    special[site] ??
+    (m ? `${m[1].replace(/_/g, "-")}.${project[m[2]]}.org` : site);
+  return `https://${host}/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`;
+}
 
 function referencedIds(e: Entity): string[] {
   const ids = new Set<string>();
@@ -85,6 +215,9 @@ function referencedIds(e: Entity): string[] {
       Object.values(claim.qualifiers ?? {})
         .flat()
         .forEach(visit);
+      claim.references?.forEach((r) =>
+        Object.values(r.snaks).flat().forEach(visit),
+      );
     }
   }
   return [...ids];
@@ -92,21 +225,40 @@ function referencedIds(e: Entity): string[] {
 
 watch(
   () => [props.id, props.language],
-  async () => {
+  async ([id], old) => {
+    const oldId = old?.[0];
     loading.value = true;
     error.value = undefined;
+    if (id !== oldId) edits.value = [];
     try {
       const entities = await getEntities([props.id]);
       const e = entities[props.id];
       if (!e || "missing" in e) throw new Error(`${props.id} not found`);
-      entity.value = e;
-      const referenced = await getEntities(referencedIds(e), "labels");
+      const ids = referencedIds(e);
+      const [items, properties] = await Promise.all([
+        getEntities(
+          ids.filter((i) => !i.startsWith("P")),
+          "labels",
+        ),
+        getEntities(
+          ids.filter((i) => i.startsWith("P")),
+          "labels|claims",
+        ),
+      ]);
+      const referenced = { ...items, ...properties };
       labels.value = Object.fromEntries(
-        Object.entries(referenced).map(([id, r]) => [
-          id,
-          label(r, props.language) ?? id,
+        Object.entries(referenced).map(([i, r]) => [
+          i,
+          label(r, props.language) ?? i,
         ]),
       );
+      formatterUrls.value = Object.fromEntries(
+        Object.entries(properties).flatMap(([i, p]) => {
+          const url = p.claims?.P1630?.[0]?.mainsnak.datavalue?.value;
+          return url ? [[i, String(url)]] : [];
+        }),
+      );
+      entity.value = e;
     } catch (e) {
       error.value = String(e);
     } finally {
@@ -118,6 +270,19 @@ watch(
 </script>
 
 <style scoped>
+.dd-entity-header {
+  display: flex;
+  gap: 2rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+.dd-image {
+  max-width: 300px;
+  max-height: 240px;
+  border-radius: var(--border-radius-base);
+  box-shadow: var(--box-shadow-medium);
+}
 .dd-id {
   color: var(--color-subtle);
   font-weight: normal;
@@ -131,41 +296,19 @@ watch(
   flex-wrap: wrap;
   gap: 0.25rem;
 }
-.dd-statement-group {
-  display: grid;
-  grid-template-columns: minmax(10rem, 1fr) 3fr;
-  border: 1px solid var(--border-color-subtle);
-  border-radius: 2px;
-  margin-bottom: 0.5rem;
+.dd-links {
+  display: flex;
+  gap: 1rem;
 }
-.dd-property {
-  background: var(--background-color-neutral-subtle);
-  padding: 0.5rem;
-  font-weight: bold;
-}
-.dd-value {
-  padding: 0.5rem;
-  border-bottom: 1px solid var(--border-color-subtle);
-}
-.dd-value:last-child {
-  border-bottom: none;
-}
-.dd-rank-deprecated {
-  text-decoration: line-through;
-  opacity: 0.6;
-}
-.dd-rank-preferred {
-  font-weight: bold;
-}
-.dd-qualifier {
-  font-size: 0.9em;
-  font-weight: normal;
-  margin-left: 1rem;
-  color: var(--color-subtle);
+.dd-entity :deep(.cdx-tab) {
+  padding-top: 1rem;
 }
 @media (max-width: 640px) {
-  .dd-statement-group {
-    grid-template-columns: 1fr;
+  .dd-entity-header {
+    flex-direction: column-reverse;
+  }
+  .dd-image {
+    max-width: 100%;
   }
 }
 </style>
