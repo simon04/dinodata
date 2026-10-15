@@ -1,11 +1,38 @@
 <template>
   <div class="vector-header-container">
     <div class="vector-header mw-header dd-header">
-      <a href="#" class="dd-logo">🦕 DinoData</a>
+      <span class="dd-logo">
+        <button
+          class="dd-dino"
+          title="Why DinoData?"
+          @click="showDialog = true"
+        >
+          🦕
+        </button>
+        <a href="#">DinoData</a>
+      </span>
       <EntitySearch class="dd-search" :language="language" @select="go" />
       <LanguageSelector v-model="language" />
     </div>
   </div>
+
+  <cdx-dialog
+    v-model:open="showDialog"
+    title="Wikimania 2024 Hackathon"
+    :use-close-button="true"
+  >
+    <a
+      href="https://commons.wikimedia.org/wiki/File:Wikimania_2024_Dragons_in_love_illustration_(beige_background).png"
+      title="By Illustrated by Kasia Ostrowska (bazgra_nina) – Wikimedia Foundation – Logos of Wikimania 2024, CC0"
+      target="_blank"
+      rel="external noopener"
+    >
+      <img
+        style="max-width: 100%; max-height: 80vh"
+        src="https://upload.wikimedia.org/wikipedia/commons/d/dd/Wikimania_2024_Dragons_in_love_illustration_%28beige_background%29.png"
+      />
+    </a>
+  </cdx-dialog>
 
   <main class="mw-page-container">
     <EntityView v-if="id" :id="id" :language="language" />
@@ -26,6 +53,7 @@
 <script setup lang="ts">
 import { ref, watchEffect } from "vue";
 import { useEventListener, useLocalStorage } from "@vueuse/core";
+import { CdxDialog } from "@wikimedia/codex";
 import { loadProperties } from "./properties";
 import LanguageSelector from "./components/LanguageSelector.vue";
 import EntitySearch from "./components/EntitySearch.vue";
@@ -37,6 +65,8 @@ const language = useLocalStorage(
 );
 watchEffect(() => (document.documentElement.lang = language.value));
 loadProperties(language);
+
+const showDialog = ref(false);
 
 const parseHash = () => location.hash.match(/^#([LPQ]\d+)$/)?.[1];
 const id = ref(parseHash());
@@ -93,10 +123,22 @@ body {
   gap: 1rem;
 }
 .dd-logo {
+  display: flex;
+  gap: 0.25rem;
   font-size: 1.5rem;
   font-weight: bold;
   white-space: nowrap;
   color: inherit;
+}
+.dd-logo a {
+  color: inherit;
+}
+.dd-dino {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
 }
 .dd-search {
   flex: 1;
