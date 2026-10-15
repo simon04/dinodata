@@ -13,6 +13,8 @@
       <h1>Welcome to DinoData</h1>
       <p>A friendly face for Wikidata. Search above, or try:</p>
       <ul>
+        <li><a href="#Q40">Austria (Q40)</a></li>
+        <li><a href="#Q1735">Innsbruck (Q1735)</a></li>
         <li><a href="#Q42">Douglas Adams (Q42)</a></li>
         <li><a href="#Q430">Dinosaur (Q430)</a></li>
         <li><a href="#Q14384">Tyrannosaurus (Q14384)</a></li>
