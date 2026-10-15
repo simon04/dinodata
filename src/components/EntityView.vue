@@ -11,12 +11,10 @@
         <p class="dd-description">
           {{ entity.descriptions[language]?.value ?? "No description" }}
         </p>
-        <p v-if="aliases.length" class="dd-aliases">
+        <p class="dd-aliases">
           <cdx-info-chip v-for="alias in aliases" :key="alias">
             {{ alias }}
           </cdx-info-chip>
-        </p>
-        <p class="dd-links">
           <a
             :href="`https://www.wikidata.org/wiki/${entity.id}`"
             target="_blank"
@@ -56,39 +54,43 @@
           <cdx-icon :icon="cdxIconAdd" />
           Add statement
         </cdx-button>
-        <StatementGroup
-          v-for="property in statements"
-          :key="property"
-          :property="property"
-          :claims="claimsOf(property)"
-          :labels="allLabels"
-          :formatter-urls="formatterUrls"
-          :language="language"
-          :pending="pending"
-          :removed="removed"
-          @add="addStatement"
-          @remove="removeStatement"
-          @undo="undo"
-        />
+        <div class="dd-statements">
+          <StatementGroup
+            v-for="property in statements"
+            :key="property"
+            :property="property"
+            :claims="claimsOf(property)"
+            :labels="allLabels"
+            :formatter-urls="formatterUrls"
+            :language="language"
+            :pending="pending"
+            :removed="removed"
+            @add="addStatement"
+            @remove="removeStatement"
+            @undo="undo"
+          />
+        </div>
       </cdx-tab>
       <cdx-tab
         name="identifiers"
         :label="`Identifiers (${identifiers.length})`"
       >
-        <StatementGroup
-          v-for="property in identifiers"
-          :key="property"
-          :property="property"
-          :claims="claimsOf(property)"
-          :labels="allLabels"
-          :formatter-urls="formatterUrls"
-          :language="language"
-          :pending="pending"
-          :removed="removed"
-          @add="addStatement"
-          @remove="removeStatement"
-          @undo="undo"
-        />
+        <div class="dd-statements dd-identifiers">
+          <StatementGroup
+            v-for="property in identifiers"
+            :key="property"
+            :property="property"
+            :claims="claimsOf(property)"
+            :labels="allLabels"
+            :formatter-urls="formatterUrls"
+            :language="language"
+            :pending="pending"
+            :removed="removed"
+            @add="addStatement"
+            @remove="removeStatement"
+            @undo="undo"
+          />
+        </div>
       </cdx-tab>
       <cdx-tab name="terms" :label="`Languages (${terms.length})`">
         <cdx-table
@@ -397,7 +399,7 @@ watch(
 }
 .dd-image {
   max-width: 300px;
-  max-height: 240px;
+  max-height: 160px;
   border-radius: var(--border-radius-base);
   box-shadow: var(--box-shadow-medium);
 }
@@ -410,9 +412,32 @@ watch(
   flex-wrap: wrap;
   gap: 0.25rem;
 }
-.dd-links {
-  display: flex;
-  gap: 1rem;
+.dd-entity h1 {
+  margin: 0.25rem 0;
+}
+.dd-description {
+  margin: 0 0 0.5rem;
+}
+.dd-aliases {
+  align-items: center;
+  margin: 0;
+}
+.dd-aliases a {
+  margin-left: 0.5rem;
+}
+/* many single-valued identifiers: flow them in columns */
+.dd-identifiers {
+  columns: 34rem;
+  column-gap: 0;
+}
+.dd-identifiers :deep(.dd-statement-group) {
+  break-inside: avoid;
+}
+.dd-statements {
+  border: 1px solid var(--border-color-subtle);
+  border-bottom: none;
+  border-radius: var(--border-radius-base);
+  overflow: hidden;
 }
 .dd-add-statement-button {
   margin-bottom: 0.75rem;

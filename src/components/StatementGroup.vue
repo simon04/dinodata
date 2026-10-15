@@ -5,23 +5,42 @@
         {{ labels[property] ?? property }}
       </a>
       <EntityId :id="property" />
-      <div>
+      <cdx-button
+        v-if="propertyInfo && !adding"
+        class="dd-add-value-button"
+        weight="quiet"
+        action="progressive"
+        size="small"
+        aria-label="Add value"
+        title="Add value"
+        @click="adding = true"
+      >
+        <cdx-icon :icon="cdxIconAdd" size="small" />
+      </cdx-button>
+      <div v-if="hidden > 0 || expanded" class="dd-property-actions">
         <cdx-button
-          v-if="byId[property] && !adding"
-          class="dd-add-button"
+          v-if="hidden > 0"
           weight="quiet"
-          action="progressive"
           size="small"
-          @click="adding = true"
+          @click="expanded = true"
         >
-          <cdx-icon :icon="cdxIconAdd" size="small" />
-          add value
+          <cdx-icon :icon="cdxIconExpand" size="small" />
+          {{ hidden }} more
+        </cdx-button>
+        <cdx-button
+          v-else-if="expanded"
+          weight="quiet"
+          size="small"
+          @click="expanded = false"
+        >
+          <cdx-icon :icon="cdxIconCollapse" size="small" />
+          show less
         </cdx-button>
       </div>
     </div>
     <div class="dd-values">
       <div
-        v-for="claim in claims"
+        v-for="claim in visibleClaims"
         :key="claim.id"
         class="dd-value"
         :class="[
@@ -36,13 +55,13 @@
           <cdx-icon
             v-if="claim.rank === 'preferred'"
             :icon="cdxIconUpTriangle"
-            size="small"
+            size="x-small"
             title="Preferred rank"
           />
           <cdx-icon
             v-else-if="claim.rank === 'deprecated'"
             :icon="cdxIconDownTriangle"
-            size="small"
+            size="x-small"
             title="Deprecated rank"
           />
           <img
@@ -56,79 +75,31 @@
             alt=""
           />
           <SnakValue
+            class="dd-snak"
             :snak="claim.mainsnak"
             :labels="labels"
             :formatter-urls="formatterUrls"
           />
-          <cdx-button
-            v-if="pending.has(claim.id) || removed.has(claim.id)"
-            class="dd-action"
-            weight="quiet"
-            size="small"
-            aria-label="Undo"
-            title="Undo"
-            @click="emit('undo', claim)"
-          >
-            <cdx-icon :icon="cdxIconUndo" size="small" />
-          </cdx-button>
-          <cdx-button
-            v-else
-            class="dd-action dd-hover"
-            weight="quiet"
-            action="destructive"
-            size="small"
-            aria-label="Remove"
-            title="Remove"
-            @click="emit('remove', claim)"
-          >
-            <cdx-icon :icon="cdxIconTrash" size="small" />
-          </cdx-button>
-        </div>
-        <div
-          v-for="(snaks, qualifier) in claim.qualifiers"
-          :key="qualifier"
-          class="dd-qualifier"
-        >
-          <span class="dd-qualifier-property">
-            <a :href="`#${qualifier}`">
-              {{ labels[qualifier] ?? qualifier }}
-            </a>
-            <EntityId :id="qualifier" />
-          </span>
-          <span>
-            <template v-for="(snak, i) in snaks" :key="i">
-              <span v-if="i">,</span>
-              <SnakValue
-                :snak="snak"
-                :labels="labels"
-                :formatter-urls="formatterUrls"
-              />
-            </template>
-          </span>
-        </div>
-        <details v-if="claim.references?.length" class="dd-references">
-          <summary>
-            <cdx-icon :icon="cdxIconReference" size="small" />
-            {{ claim.references.length }}
-            {{ claim.references.length === 1 ? "reference" : "references" }}
-          </summary>
-          <div
-            v-for="(reference, r) in claim.references"
-            :key="r"
-            class="dd-reference"
-          >
-            <div
-              v-for="(snaks, refProperty) in reference.snaks"
-              :key="refProperty"
-              class="dd-qualifier"
+          <details v-if="claim.references?.length" class="dd-references">
+            <summary
+              :title="`${claim.references.length} ${claim.references.length === 1 ? 'reference' : 'references'}`"
             >
-              <span class="dd-qualifier-property">
-                <a :href="`#${refProperty}`">
+              <cdx-icon :icon="cdxIconReference" size="x-small" />
+              {{ claim.references.length }}
+            </summary>
+            <div
+              v-for="(reference, r) in claim.references"
+              :key="r"
+              class="dd-reference"
+            >
+              <span
+                v-for="(snaks, refProperty) in reference.snaks"
+                :key="refProperty"
+                class="dd-qualifier"
+              >
+                <a :href="`#${refProperty}`" class="dd-qualifier-property">
                   {{ labels[refProperty] ?? refProperty }}
                 </a>
-                <EntityId :id="refProperty" />
-              </span>
-              <span>
                 <template v-for="(snak, i) in snaks" :key="i">
                   <span v-if="i">,</span>
                   <SnakValue
@@ -139,14 +110,60 @@
                 </template>
               </span>
             </div>
-          </div>
-        </details>
+          </details>
+        </div>
+        <div v-if="claim.qualifiers" class="dd-qualifiers">
+          <span
+            v-for="(snaks, qualifier) in claim.qualifiers"
+            :key="qualifier"
+            class="dd-qualifier"
+          >
+            <a
+              :href="`#${qualifier}`"
+              class="dd-qualifier-property"
+              :title="qualifier"
+            >
+              {{ labels[qualifier] ?? qualifier }}
+            </a>
+            <template v-for="(snak, i) in snaks" :key="i">
+              <span v-if="i">,</span>
+              <SnakValue
+                :snak="snak"
+                :labels="labels"
+                :formatter-urls="formatterUrls"
+              />
+            </template>
+          </span>
+        </div>
+        <cdx-button
+          v-if="pending.has(claim.id) || removed.has(claim.id)"
+          class="dd-action"
+          weight="quiet"
+          size="small"
+          aria-label="Undo"
+          title="Undo"
+          @click="emit('undo', claim)"
+        >
+          <cdx-icon :icon="cdxIconUndo" size="small" />
+        </cdx-button>
+        <cdx-button
+          v-else
+          class="dd-action dd-hover"
+          weight="quiet"
+          action="destructive"
+          size="small"
+          aria-label="Remove"
+          title="Remove"
+          @click="emit('remove', claim)"
+        >
+          <cdx-icon :icon="cdxIconTrash" size="small" />
+        </cdx-button>
       </div>
       <AddStatement
-        v-if="adding && byId[property]"
+        v-if="adding && propertyInfo"
         class="dd-add-value"
         :language="language"
-        :fixed-property="byId[property]"
+        :fixed-property="propertyInfo"
         @add="(snak, label) => emit('add', snak, label)"
         @close="adding = false"
       />
@@ -155,23 +172,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { CdxButton, CdxIcon } from "@wikimedia/codex";
 import {
   cdxIconAdd,
+  cdxIconCollapse,
   cdxIconDownTriangle,
+  cdxIconExpand,
   cdxIconReference,
   cdxIconTrash,
   cdxIconUndo,
   cdxIconUpTriangle,
 } from "@wikimedia/codex-icons";
-import { useProperties } from "../properties";
+import { useProperties, type Property } from "../properties";
 import type { Claim, Snak } from "../wikidata";
 import AddStatement from "./AddStatement.vue";
 import EntityId from "./EntityId.vue";
 import SnakValue from "./SnakValue.vue";
 
-defineProps<{
+const props = defineProps<{
   property: string;
   claims: Claim[];
   labels: Record<string, string>;
@@ -189,6 +208,34 @@ const emit = defineEmits<{
 const { byId } = useProperties();
 const adding = ref(false);
 
+/** From the cache, or derived from existing statements while it loads. */
+const propertyInfo = computed<Property | undefined>(() => {
+  const datatype = props.claims[0]?.mainsnak.datatype;
+  return (
+    byId.value[props.property] ??
+    (datatype
+      ? {
+          id: props.property,
+          datatype,
+          labels: {},
+          descriptions: {},
+          aliases: {},
+        }
+      : undefined)
+  );
+});
+
+/** Long lists (e.g. population over time) are collapsed. */
+const COLLAPSE_ABOVE = 12;
+const COLLAPSED = 8;
+const expanded = ref(false);
+const visibleClaims = computed(() =>
+  expanded.value || props.claims.length <= COLLAPSE_ABOVE
+    ? props.claims
+    : props.claims.slice(0, COLLAPSED),
+);
+const hidden = computed(() => props.claims.length - visibleClaims.value.length);
+
 function thumb(file: string) {
   return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=160`;
 }
@@ -197,29 +244,99 @@ function thumb(file: string) {
 <style scoped>
 .dd-statement-group {
   display: grid;
-  grid-template-columns: minmax(10rem, 1fr) 3fr;
-  border: 1px solid var(--border-color-subtle);
-  border-radius: var(--border-radius-base);
-  margin-bottom: 0.75rem;
-  overflow: hidden;
+  grid-template-columns: 15rem 1fr;
+  border-bottom: 1px solid var(--border-color-subtle);
 }
 .dd-property {
   background: var(--background-color-neutral-subtle);
-  padding: 0.75rem;
-  font-weight: bold;
+  padding: 0.375rem 0.625rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.dd-add-value-button {
+  min-height: 1.5rem;
+  min-width: 1.5rem;
+  padding: 0;
+  vertical-align: middle;
+  opacity: 0.5;
+}
+.dd-statement-group:hover .dd-add-value-button,
+.dd-add-value-button:focus {
+  opacity: 1;
+}
+.dd-property-actions {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: -0.5rem;
+  font-weight: normal;
+}
+.dd-property-actions .cdx-button {
+  min-height: 1.75rem;
+}
+/* values flow in columns, single values span the full width */
+.dd-values {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  overflow: hidden;
 }
 .dd-value {
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--border-color-subtle);
-}
-.dd-value:last-child {
-  border-bottom: none;
+  position: relative;
+  padding: 0.375rem 2rem 0.375rem 0.625rem;
+  box-shadow:
+    1px 0 0 var(--border-color-subtle),
+    0 1px 0 var(--border-color-subtle);
+  line-height: 1.4;
 }
 .dd-mainsnak {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: baseline;
+  gap: 0.375rem;
   flex-wrap: wrap;
+}
+.dd-snak {
+  overflow-wrap: anywhere;
+}
+.dd-qualifiers {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0.75rem;
+  font-size: 0.8125em;
+  color: var(--color-subtle);
+}
+.dd-qualifier-property {
+  color: var(--color-subtle);
+  margin-right: 0.25rem;
+}
+.dd-qualifier-property::after {
+  content: ":";
+}
+.dd-references {
+  font-size: 0.8125em;
+}
+.dd-references[open] {
+  flex-basis: 100%;
+}
+.dd-references summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  cursor: pointer;
+  list-style: none;
+  color: var(--color-progressive);
+  padding: 0 0.25rem;
+  border-radius: var(--border-radius-base);
+  background: var(--background-color-progressive-subtle);
+}
+.dd-references summary::-webkit-details-marker {
+  display: none;
+}
+.dd-reference {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0.75rem;
+  border-left: 2px solid var(--border-color-subtle);
+  padding-left: 0.5rem;
+  margin: 0.25rem 0;
 }
 .dd-pending {
   background: var(--background-color-success-subtle);
@@ -227,11 +344,13 @@ function thumb(file: string) {
 .dd-removed {
   background: var(--background-color-error-subtle);
 }
-.dd-removed .dd-mainsnak > :not(.dd-action) {
+.dd-removed .dd-mainsnak {
   text-decoration: line-through;
 }
 .dd-action {
-  margin-left: auto;
+  position: absolute;
+  top: 0.125rem;
+  right: 0.125rem;
 }
 .dd-hover {
   opacity: 0;
@@ -240,51 +359,22 @@ function thumb(file: string) {
 .dd-hover:focus {
   opacity: 1;
 }
-.dd-add-button {
-  margin: 0.25rem 0 0 -0.5rem;
-  font-weight: normal;
-}
 .dd-add-value {
-  margin: 0.5rem;
+  grid-column: 1 / -1;
+  margin: 0.375rem;
 }
 .dd-rank-deprecated .dd-mainsnak {
   text-decoration: line-through;
   opacity: 0.6;
 }
 .dd-media {
-  max-width: 160px;
-  max-height: 120px;
+  max-width: 120px;
+  max-height: 80px;
   border-radius: var(--border-radius-base);
-}
-.dd-qualifier {
-  display: grid;
-  grid-template-columns: minmax(8rem, 1fr) 2fr;
-  gap: 0.5rem;
-  font-size: 0.875em;
-  margin: 0.25rem 0 0 1rem;
-}
-.dd-qualifier-property a {
-  color: var(--color-subtle);
-}
-.dd-references {
-  margin: 0.5rem 0 0 1rem;
-  font-size: 0.875em;
-}
-.dd-references summary {
-  cursor: pointer;
-  color: var(--color-progressive);
-}
-.dd-reference {
-  border-left: 3px solid var(--border-color-subtle);
-  padding: 0.25rem 0;
-  margin: 0.5rem 0;
-}
-.dd-reference .dd-qualifier {
-  margin-left: 0.5rem;
+  align-self: center;
 }
 @media (max-width: 640px) {
-  .dd-statement-group,
-  .dd-qualifier {
+  .dd-statement-group {
     grid-template-columns: 1fr;
   }
 }
