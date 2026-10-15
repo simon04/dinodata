@@ -19,6 +19,7 @@
 import { computed } from "vue";
 import type { Snak } from "../wikidata";
 import EntityId from "./EntityId.vue";
+import { formatNumber, formatTime, useLanguage } from "../format";
 
 const props = defineProps<{
   snak: Snak;
@@ -26,6 +27,7 @@ const props = defineProps<{
   formatterUrls?: Record<string, string>;
 }>();
 
+const language = useLanguage();
 const value = computed(() => props.snak.datavalue?.value);
 
 const entityId = computed(() =>
@@ -53,49 +55,19 @@ const href = computed(() => {
   return undefined;
 });
 
-const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-
-function formatTime(time: string, precision: number): string {
-  const m = time.match(/^([+-])0*(\d+)-(\d\d)-(\d\d)/);
-  if (!m) return time;
-  const [, sign, year, month, day] = m;
-  const era = sign === "-" ? " BCE" : "";
-  if (precision >= 11) return `${+day} ${MONTHS[+month - 1]} ${year}${era}`;
-  if (precision === 10) return `${MONTHS[+month - 1]} ${year}${era}`;
-  if (precision === 9) return `${year}${era}`;
-  if (precision === 8) return `${year}s${era}`;
-  if (precision === 7) return `${Math.floor(+year / 100) + 1}th century${era}`;
-  if (precision === 6)
-    return `${Math.floor(+year / 1000) + 1}th millennium${era}`;
-  return `${year} years${era}`;
-}
-
 const text = computed(() => {
   const v = value.value as Record<string, string> | string | undefined;
   if (v === undefined) return "";
   if (typeof v === "string") return v;
   switch (props.snak.datavalue?.type) {
     case "time":
-      return formatTime(v.time, Number(v.precision));
+      return formatTime(v.time, Number(v.precision), language.value);
     case "quantity": {
       const unit = v.unit?.match(/Q\d+$/)?.[0];
-      const amount = Number(v.amount).toLocaleString();
+      const amount = formatNumber(v.amount, language.value);
       const bound =
         v.upperBound !== undefined
-          ? ` ±${Number(v.upperBound) - Number(v.amount)}`
+          ? ` ±${formatNumber(Number(v.upperBound) - Number(v.amount), language.value, { maximumSignificantDigits: 15 })}`
           : "";
       return unit
         ? `${amount}${bound} ${props.labels[unit] ?? unit}`
@@ -104,7 +76,12 @@ const text = computed(() => {
     case "monolingualtext":
       return `${v.text} (${v.language})`;
     case "globecoordinate":
-      return `${Number(v.latitude).toFixed(4)}°, ${Number(v.longitude).toFixed(4)}°`;
+      const coordinate = (c: string) =>
+        formatNumber(c, language.value, {
+          minimumFractionDigits: 4,
+          maximumFractionDigits: 4,
+        });
+      return `${coordinate(v.latitude)}°, ${coordinate(v.longitude)}°`;
   }
   return JSON.stringify(v);
 });

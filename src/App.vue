@@ -51,9 +51,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect } from "vue";
+import { provide, ref, watchEffect } from "vue";
 import { useEventListener, useLocalStorage } from "@vueuse/core";
 import { CdxDialog } from "@wikimedia/codex";
+import { LANGUAGE } from "./format";
 import { loadProperties } from "./properties";
 import LanguageSelector from "./components/LanguageSelector.vue";
 import EntitySearch from "./components/EntitySearch.vue";
@@ -65,6 +66,7 @@ const language = useLocalStorage(
 );
 watchEffect(() => (document.documentElement.lang = language.value));
 loadProperties(language);
+provide(LANGUAGE, language);
 
 const showDialog = ref(false);
 
