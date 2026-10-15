@@ -3,6 +3,8 @@ import vue from "@vitejs/plugin-vue";
 
 // https://viteplus.dev/config/
 export default defineConfig({
+  // relative paths: served from GitHub Pages (/dinodata/) and Toolforge (/)
+  base: "./",
   plugins: [vue()],
   fmt: {
     htmlWhitespaceSensitivity: "ignore",

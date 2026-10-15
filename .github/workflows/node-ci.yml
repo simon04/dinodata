@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: write # push to gh-pages
+
 jobs:
   build:
     runs-on: ubuntu-latest
