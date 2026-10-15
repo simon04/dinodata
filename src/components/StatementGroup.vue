@@ -5,6 +5,19 @@
         {{ labels[property] ?? property }}
       </a>
       <EntityId :id="property" />
+      <div>
+        <cdx-button
+          v-if="byId[property] && !adding"
+          class="dd-add-button"
+          weight="quiet"
+          action="progressive"
+          size="small"
+          @click="adding = true"
+        >
+          <cdx-icon :icon="cdxIconAdd" size="small" />
+          add value
+        </cdx-button>
+      </div>
     </div>
     <div class="dd-values">
       <div
@@ -137,17 +150,6 @@
         @add="(snak, label) => emit('add', snak, label)"
         @close="adding = false"
       />
-      <cdx-button
-        v-else-if="byId[property]"
-        class="dd-add-button"
-        weight="quiet"
-        action="progressive"
-        size="small"
-        @click="adding = true"
-      >
-        <cdx-icon :icon="cdxIconAdd" size="small" />
-        add value
-      </cdx-button>
     </div>
   </div>
 </template>
@@ -239,7 +241,8 @@ function thumb(file: string) {
   opacity: 1;
 }
 .dd-add-button {
-  margin: 0.25rem 0.5rem;
+  margin: 0.25rem 0 0 -0.5rem;
+  font-weight: normal;
 }
 .dd-add-value {
   margin: 0.5rem;
