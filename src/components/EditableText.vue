@@ -4,6 +4,7 @@
     ref="input"
     v-model="draft"
     class="dd-editable-input"
+    :aria-label="placeholder ?? t('edit')"
     :placeholder="placeholder"
     @keydown.enter="commit"
     @keydown.esc="editing = false"

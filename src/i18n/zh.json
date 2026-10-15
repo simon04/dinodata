@@ -78,5 +78,6 @@
   "footer-by": "作者：",
   "footer-source": "GitHub 上的源代码",
   "footer-license": "许可证：$1",
-  "footer-data": "数据来自维基数据（CC0）"
+  "footer-data": "数据来自维基数据（CC0）",
+  "search-wikidata": "在维基数据上搜索“$1”"
 }

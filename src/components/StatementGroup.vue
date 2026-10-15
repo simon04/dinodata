@@ -98,6 +98,7 @@
               "
               :language="language"
               :original="claim.mainsnak"
+              :label="labels[property] ?? property"
               @submit="
                 (snak, label) => {
                   emit('change', claim, snak, label);
@@ -339,7 +340,11 @@ function thumb(file: string) {
   min-width: 1.5rem;
   padding: 0;
   vertical-align: middle;
-  opacity: 0.5;
+}
+@media (hover: hover) {
+  .dd-add-value-button {
+    opacity: 0.5;
+  }
 }
 .dd-statement-group:hover .dd-add-value-button,
 .dd-add-value-button:focus {
@@ -456,8 +461,11 @@ function thumb(file: string) {
 .dd-removed .dd-actions {
   background: none;
 }
-.dd-hover {
-  opacity: 0;
+/* reveal on hover; always visible on touch devices */
+@media (hover: hover) {
+  .dd-hover {
+    opacity: 0;
+  }
 }
 .dd-value:hover .dd-hover,
 .dd-hover:focus {

@@ -3,17 +3,17 @@
     <caption>{{ t("terms-caption") }}</caption>
     <thead>
       <tr>
-        <th>{{ t("terms-language") }}</th>
-        <th>{{ t("terms-label") }}</th>
-        <th>{{ t("terms-description") }}</th>
-        <th>{{ t("terms-aliases") }}</th>
+        <th scope="col">{{ t("terms-language") }}</th>
+        <th scope="col">{{ t("terms-label") }}</th>
+        <th scope="col">{{ t("terms-description") }}</th>
+        <th scope="col">{{ t("terms-aliases") }}</th>
       </tr>
     </thead>
     <tbody>
       <tr v-for="row in rows" :key="row.language">
-        <td>
+        <th scope="row">
           <code>{{ row.language }}</code>
-        </td>
+        </th>
         <td :class="{ 'dd-changed': row.labelChanged }">
           <EditableText
             :model-value="row.label"
@@ -61,10 +61,11 @@
           <cdx-text-input
             v-model="newLanguage"
             class="dd-new-language"
+            :aria-label="t('terms-language')"
             :placeholder="t('terms-placeholder-language')"
             @keydown.enter="addLanguage"
           />
-          <cdx-button :disabled="!newLanguage.trim()" @click="addLanguage">
+          <cdx-button @click="addLanguage">
             <cdx-icon :icon="cdxIconAdd" />
             {{ t("add-label") }}
           </cdx-button>

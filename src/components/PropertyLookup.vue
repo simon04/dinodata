@@ -1,5 +1,6 @@
 <template>
   <cdx-lookup
+    :aria-label="t('search-property')"
     ref="lookup"
     v-model:selected="selected"
     v-model:input-value="inputValue"

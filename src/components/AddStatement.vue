@@ -13,6 +13,7 @@
       :property="current.id"
       :datatype="current.datatype"
       :language="language"
+      :label="propertyLabel(current, language) ?? current.id"
       @submit="onSubmit"
     />
     <cdx-button
@@ -31,7 +32,7 @@ import { t } from "../i18n";
 import { computed, ref, useTemplateRef } from "vue";
 import { CdxButton, CdxIcon } from "@wikimedia/codex";
 import { cdxIconClose } from "@wikimedia/codex-icons";
-import type { Property } from "../properties";
+import { propertyLabel, type Property } from "../properties";
 import type { Snak } from "../wikidata";
 import PropertyLookup from "./PropertyLookup.vue";
 import ValueInput from "./ValueInput.vue";

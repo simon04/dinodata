@@ -77,5 +77,6 @@
   "footer-by": "von",
   "footer-source": "Quellcode auf GitHub",
   "footer-license": "Lizenz: $1",
-  "footer-data": "Daten von Wikidata (CC0)"
+  "footer-data": "Daten von Wikidata (CC0)",
+  "search-wikidata": "Auf Wikidata nach „$1“ suchen"
 }

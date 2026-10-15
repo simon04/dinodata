@@ -9,14 +9,22 @@
     "
     @select="onEntity"
   />
-  <div v-else class="dd-value-input">
+  <cdx-field
+    v-else
+    class="dd-value-input"
+    :status="showError ? 'error' : 'default'"
+    :messages="{ error: t('value-invalid', placeholder) }"
+    :hide-label="true"
+  >
+    <template #label>{{ label ?? t("value-placeholder") }}</template>
     <div class="dd-value-row">
       <cdx-text-input
         ref="input"
         v-model="text"
         :placeholder="placeholder"
-        :status="invalid ? 'error' : 'default'"
+        :status="showError ? 'error' : 'default'"
         @keydown.enter="submit"
+        @blur="touched = true"
       />
       <cdx-text-input
         v-if="datatype === 'monolingualtext'"
@@ -25,25 +33,17 @@
         :aria-label="t('value-language-code')"
         @keydown.enter="submit"
       />
-      <cdx-button
-        action="progressive"
-        weight="primary"
-        :disabled="!snak"
-        @click="submit"
-      >
+      <cdx-button action="progressive" @click="submit">
         {{ original ? t("save") : t("add") }}
       </cdx-button>
     </div>
-    <div v-if="invalid" class="dd-invalid">
-      {{ t("value-invalid", placeholder) }}
-    </div>
-  </div>
+  </cdx-field>
 </template>
 
 <script setup lang="ts">
 import { t } from "../i18n";
 import { computed, onMounted, ref, useTemplateRef } from "vue";
-import { CdxButton, CdxTextInput } from "@wikimedia/codex";
+import { CdxButton, CdxField, CdxTextInput } from "@wikimedia/codex";
 import type { Snak } from "../wikidata";
 import EntitySearch from "./EntitySearch.vue";
 import { formatInput, parseValue } from "../values";
@@ -54,6 +54,8 @@ const props = defineProps<{
   language: string;
   /** value being edited: prefills the input, keeps the unit of quantities */
   original?: Snak;
+  /** accessible label, e.g. the property label */
+  label?: string;
 }>();
 const emit = defineEmits<{ submit: [snak: Snak, label?: string] }>();
 
@@ -116,11 +118,14 @@ const snak = computed<Snak | undefined>(() => {
     : undefined;
 });
 
-/** Show the expected format once the input is clearly not valid. */
-const invalid = computed(() => !!text.value.trim() && !snak.value);
+/** Validate on blur and on submit, not while typing. */
+const touched = ref(false);
+const showError = computed(() => touched.value && !snak.value);
 
 function submit() {
+  touched.value = true;
   if (!snak.value) return;
+  touched.value = false;
   emit("submit", snak.value);
   text.value = "";
 }
@@ -157,11 +162,7 @@ defineExpose({ focus });
 .dd-value-row > :first-child {
   flex: 1;
 }
-.dd-invalid {
-  margin-top: 0.25rem;
-  font-size: 0.875em;
-  color: var(--color-error);
-}
+
 .dd-lang {
   width: 5rem;
   min-width: 5rem;

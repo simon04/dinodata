@@ -5,13 +5,14 @@
         <button
           class="dd-dino"
           :title="t('app-why-dinodata')"
+          :aria-label="t('app-why-dinodata')"
           @click="showDialog = true"
         >
           🦕
         </button>
         <a href="#">DinoData</a>
       </span>
-      <EntitySearch class="dd-search" :language="language" @select="go" />
+      <HeaderSearch class="dd-search" :language="language" @select="go" />
       <LanguageSelector v-model="language" />
     </div>
   </div>
@@ -81,6 +82,8 @@
     </section>
   </main>
 
+  <cdx-toast-container />
+
   <footer class="dd-footer">
     <span>
       DinoData
@@ -133,10 +136,10 @@
 import { isRTL, language, t } from "./i18n";
 import { ref, watchEffect } from "vue";
 import { useEventListener } from "@vueuse/core";
-import { CdxDialog } from "@wikimedia/codex";
+import { CdxDialog, CdxToastContainer } from "@wikimedia/codex";
 import { loadProperties } from "./properties";
 import LanguageSelector from "./components/LanguageSelector.vue";
-import EntitySearch from "./components/EntitySearch.vue";
+import HeaderSearch from "./components/HeaderSearch.vue";
 import EntityView from "./components/EntityView.vue";
 
 watchEffect(() => {
@@ -166,16 +169,6 @@ function go(entityId: string) {
   (prefers-color-scheme: dark);
 
 :root {
-  /* native font stacks, as in Bootstrap 5 (https://getbootstrap.com/docs/5.3/content/reboot/#native-font-stack) */
-  --font-family-base:
-    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans",
-    "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
-    "Segoe UI Symbol", "Noto Color Emoji";
-  --font-family-monospace:
-    SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
-    monospace;
-}
-:root {
   color-scheme: light dark;
 }
 html,
@@ -183,27 +176,28 @@ body {
   background-color: var(--background-color-base);
   color: var(--color-base);
 }
+/* Codex typography: system sans-serif stack, serif for the page title
+   https://doc.wikimedia.org/codex/latest/style-guide/typography.html */
 html,
 body,
-h1,
 h2,
 h3,
 input,
 button,
 textarea,
 select {
-  font-family: var(--font-family-base);
+  font-family: var(--font-family-system-sans);
+}
+h1 {
+  font-family: var(--font-family-serif);
+  font-weight: normal;
 }
 code,
 kbd,
 pre,
 samp {
   font-family: var(--font-family-monospace);
-  font-size: 0.875em;
-}
-body {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  font-size: var(--font-size-small);
 }
 
 .dd-table {

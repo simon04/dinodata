@@ -52,15 +52,19 @@
     <div class="dd-sitelink-add">
       <cdx-text-input
         v-model="newSite"
+        :aria-label="t('sitelinks-site')"
+        :status="tried && !newSite.trim() ? 'error' : 'default'"
         :placeholder="t('sitelinks-placeholder-site')"
         @keydown.enter="add"
       />
       <cdx-text-input
         v-model="newTitle"
+        :aria-label="t('sitelinks-title')"
+        :status="tried && !newTitle.trim() ? 'error' : 'default'"
         :placeholder="t('sitelinks-title')"
         @keydown.enter="add"
       />
-      <cdx-button :disabled="!newSite.trim() || !newTitle.trim()" @click="add">
+      <cdx-button @click="add">
         <cdx-icon :icon="cdxIconAdd" />
         {{ t("add-sitelink") }}
       </cdx-button>
@@ -123,10 +127,14 @@ function undo(site: string) {
   );
 }
 
+const tried = ref(false);
+
 function add() {
   const site = newSite.value.trim();
   const title = newTitle.value.trim();
+  tried.value = true;
   if (!site || !title) return;
+  tried.value = false;
   setSitelink(site, title);
   newSite.value = "";
   newTitle.value = "";
@@ -182,8 +190,11 @@ function siteUrl(site: string, title: string): string {
 .dd-removed .dd-title {
   text-decoration: line-through;
 }
-.dd-hover {
-  opacity: 0;
+/* reveal on hover; always visible on touch devices */
+@media (hover: hover) {
+  .dd-hover {
+    opacity: 0;
+  }
 }
 .dd-sitelink-row:hover .dd-hover,
 .dd-hover:focus {

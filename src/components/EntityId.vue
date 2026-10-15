@@ -1,11 +1,12 @@
 <template>
-  <code
+  <button
     class="dd-entity-id"
     :title="t('copy-id', id)"
+    :aria-label="t('copy-id', id)"
     @click.prevent="copy(id)"
   >
-    {{ copied ? t("copied") : id }}
-  </code>
+    <code>{{ copied ? t("copied") : id }}</code>
+  </button>
 </template>
 
 <script setup lang="ts">
@@ -18,6 +19,9 @@ const { copy, copied } = useClipboard({ copiedDuring: 800 });
 
 <style>
 .dd-entity-id {
+  border: 1px solid var(--border-color-subtle);
+  font: inherit;
+  line-height: inherit;
   margin-inline-start: 0.35em;
   padding: 0.05em 0.35em;
   border-radius: var(--border-radius-base);
@@ -27,6 +31,10 @@ const { copy, copied } = useClipboard({ copiedDuring: 800 });
   font-weight: normal;
   cursor: copy;
   white-space: nowrap;
+}
+.dd-entity-id code {
+  all: unset;
+  font-family: var(--font-family-monospace);
 }
 .dd-entity-id:hover {
   color: var(--color-progressive);

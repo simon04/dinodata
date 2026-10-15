@@ -39,37 +39,27 @@
       <img v-if="image" class="dd-image" :src="image" alt="" />
     </header>
 
-    <cdx-message
-      v-if="message"
-      :key="message"
-      class="dd-toast"
-      :type="messageType"
-      :auto-dismiss="true"
-      :display-time="messageType === 'warning' ? 8000 : 2500"
-      @auto-dismissed="message = undefined"
-    >
-      {{ message }}
-    </cdx-message>
-
     <cdx-tabs v-model:active="tab">
       <cdx-tab
         name="statements"
         :label="t('tab-statements', statements.length)"
       >
-        <AddStatement
-          v-if="adding"
-          :language="language"
-          @add="addStatement"
-          @close="adding = false"
-        />
-        <cdx-button v-else action="progressive" @click="adding = true">
-          <cdx-icon :icon="cdxIconAdd" />
-          {{ t("add-statement") }}
-        </cdx-button>
-        <cdx-button class="dd-paste" @click="pasteFromButton">
-          <cdx-icon :icon="cdxIconPaste" />
-          {{ t("paste-statements") }}
-        </cdx-button>
+        <div class="dd-toolbar">
+          <AddStatement
+            v-if="adding"
+            :language="language"
+            @add="addStatement"
+            @close="adding = false"
+          />
+          <cdx-button v-else action="progressive" @click="adding = true">
+            <cdx-icon :icon="cdxIconAdd" />
+            {{ t("add-statement") }}
+          </cdx-button>
+          <cdx-button class="dd-paste" @click="pasteFromButton">
+            <cdx-icon :icon="cdxIconPaste" />
+            {{ t("paste-statements") }}
+          </cdx-button>
+        </div>
         <div class="dd-statements">
           <StatementGroup
             v-for="property in statements"
@@ -154,6 +144,7 @@ import {
   CdxMessage,
   CdxTab,
   CdxTabs,
+  useToast,
 } from "@wikimedia/codex";
 import {
   cdxIconAdd,
@@ -262,8 +253,7 @@ function groupSnaks(snaks: Snak[]): Record<string, Snak[]> {
   return result;
 }
 
-const message = ref<string>();
-const messageType = ref<"notice" | "warning">("notice");
+const toast = useToast();
 
 /**
  * Paste QuickStatements or `Pxxx=value` lines (or Wikidata entity JSON),
@@ -274,16 +264,14 @@ async function pasteClaims(text: string | undefined): Promise<void> {
   const entityClaims = parseEntityJson(text);
   if (!entityClaims && !propertiesLoaded()) {
     // validating values needs the property datatypes
-    message.value = t("property-loading");
-    messageType.value = "notice";
+    toast.info(t("property-loading"), { autoDismiss: true });
     await until(propertiesLoaded).toBe(true);
   }
   const data = entityClaims
     ? { claims: entityClaims, terms: [], invalid: [] }
     : parseStatements(text, byId.value, props.language);
   if (!data || (!data.claims.length && !data.terms.length)) {
-    message.value = t("paste-empty");
-    messageType.value = "warning";
+    toast.warning(t("paste-empty"), { autoDismiss: 8000 });
     return;
   }
   // compare values in their normalized QuickStatements form
@@ -291,6 +279,7 @@ async function pasteClaims(text: string | undefined): Promise<void> {
   const existing = new Set(
     properties.value.flatMap((p) => claimsOf(p).map((c) => key(c.mainsnak))),
   );
+  const before = edits.value.length;
   let count = 0;
   for (const claim of data.claims) {
     if (existing.has(key(claim.mainsnak))) continue;
@@ -308,14 +297,26 @@ async function pasteClaims(text: string | undefined): Promise<void> {
   getLabels(ids, props.language, (batch) =>
     Object.assign(labels.value, batch),
   ).catch(console.warn);
-  message.value = [
-    t("pasted", count, data.claims.length - count),
-    ...(data.terms.length ? [t("pasted-terms", data.terms.length)] : []),
-    ...(data.invalid.length
-      ? [t("paste-invalid", data.invalid.length, data.invalid.join("; "))]
-      : []),
-  ].join(" · ");
-  messageType.value = data.invalid.length ? "warning" : "notice";
+  const pasted = edits.value.slice(before);
+  toast.show({
+    type: data.invalid.length ? "warning" : "success",
+    message: [
+      t("pasted", count, data.claims.length - count),
+      ...(data.terms.length ? [t("pasted-terms", data.terms.length)] : []),
+      ...(data.invalid.length
+        ? [t("paste-invalid", data.invalid.length, data.invalid.join("; "))]
+        : []),
+    ].join(" · "),
+    // Codex: actions such as Undo must not rely on auto-dismiss alone
+    actionButton: pasted.length
+      ? {
+          label: t("undo"),
+          onClick: () =>
+            (edits.value = edits.value.filter((e) => !pasted.includes(e))),
+        }
+      : undefined,
+    autoDismiss: data.invalid.length ? false : 6000,
+  });
 }
 
 const propertiesLoaded = () => Object.keys(byId.value).length > 0;
@@ -325,7 +326,7 @@ async function pasteFromButton() {
     await pasteClaims(await navigator.clipboard.readText());
   } catch {
     // clipboard read denied: Ctrl+V still works via the paste event
-    message.value = t("paste-denied");
+    toast.warning(t("paste-denied"), { autoDismiss: 6000 });
   }
 }
 
@@ -339,8 +340,7 @@ useEventListener(document, "paste", (event: ClipboardEvent) => {
 
 async function copy(claims: Claim[]) {
   await copyClaims(claims, props.id);
-  message.value = t("copied-statements", claims.length);
-  messageType.value = "notice";
+  toast.success(t("copied-statements", claims.length), { autoDismiss: true });
 }
 
 function addStatement(snak: Snak, valueLabel?: string) {
@@ -558,16 +558,13 @@ watch(
 .dd-identifiers :deep(.dd-statement-group) {
   break-inside: avoid;
 }
-.dd-paste {
-  margin-inline-start: 0.5rem;
+.dd-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
-.dd-toast {
-  position: fixed;
-  bottom: 1rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  box-shadow: var(--box-shadow-large);
+.dd-toolbar > .dd-add-statement {
+  flex-basis: 100%;
 }
 .dd-statements {
   margin-top: 0.75rem;

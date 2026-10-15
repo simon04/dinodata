@@ -1,5 +1,6 @@
 <template>
   <cdx-lookup
+    :aria-label="placeholder ?? t('app-search-placeholder')"
     v-model:selected="selected"
     v-model:input-value="inputValue"
     :menu-items="menuItems"
