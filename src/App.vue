@@ -54,7 +54,7 @@
         <p>{{ t("app-intro") }}</p>
         <ul>
           <li v-for="[id, name] in EXAMPLES" :key="id">
-            <a :href="`#${id}`">{{ name }}</a>
+            <a :href="`#${id}`">{{ exampleLabels[id] ?? name }}</a>
             <code class="dd-id-chip">{{ id }}</code>
           </li>
         </ul>
@@ -133,10 +133,11 @@
 
 <script setup lang="ts">
 import { isRTL, language, t } from "./i18n";
-import { ref, watchEffect } from "vue";
+import { ref, watch, watchEffect } from "vue";
 import { useEventListener } from "@vueuse/core";
 import { CdxDialog, CdxToastContainer } from "@wikimedia/codex";
 import { loadProperties } from "./properties";
+import { getLabels } from "./wikidata";
 import LanguageSelector from "./components/LanguageSelector.vue";
 import HeaderSearch from "./components/HeaderSearch.vue";
 import EntityView from "./components/EntityView.vue";
@@ -148,8 +149,10 @@ const EXAMPLES = [
   ["Q357751", "Serles"],
   ["Q42", "Douglas Adams"],
   ["Q430", "Dinosaur"],
-  ["Q14384", "Tyrannosaurus"],
+  ["Q14332", "Tyrannosaurus"],
 ];
+/** example labels in the selected language, the English names until loaded */
+const exampleLabels = ref<Record<string, string>>({});
 
 watchEffect(() => {
   document.documentElement.lang = language.value;
@@ -165,6 +168,20 @@ useEventListener(window, "hashchange", () => {
   id.value = parseHash();
   window.scrollTo(0, 0);
 });
+
+watch(
+  [language, id],
+  ([lang, entityId]) => {
+    if (entityId) return;
+    const ids = EXAMPLES.map(([example]) => example);
+    getLabels(ids, lang, (labels) => {
+      // without a label, getLabels returns the ID: keep the English name
+      for (const [example, label] of Object.entries(labels))
+        if (label !== example) exampleLabels.value[example] = label;
+    }).catch(console.warn);
+  },
+  { immediate: true },
+);
 
 function go(entityId: string) {
   location.hash = entityId;
