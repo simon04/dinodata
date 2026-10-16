@@ -3,18 +3,23 @@
     class="dd-entity-id"
     v-tooltip="t('copy-id', id)"
     :aria-label="t('copy-id', id)"
-    @click.prevent="copy(id)"
+    @click.prevent="copyId"
   >
-    <code>{{ copied ? t("copied") : id }}</code>
+    <code>{{ id }}</code>
   </button>
 </template>
 
 <script setup lang="ts">
 import { t } from "../i18n";
-import { useClipboard } from "@vueuse/core";
+import { useToast } from "@wikimedia/codex";
 
-defineProps<{ id: string }>();
-const { copy, copied } = useClipboard({ copiedDuring: 800 });
+const props = defineProps<{ id: string }>();
+const toast = useToast();
+
+async function copyId() {
+  await navigator.clipboard.writeText(props.id);
+  toast.success(t("copied-id", props.id), { autoDismiss: true });
+}
 </script>
 
 <style>

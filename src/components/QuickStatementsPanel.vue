@@ -19,9 +19,9 @@
     </cdx-message>
     <template v-else>
       <cdx-text-area :model-value="commands" readonly rows="6" />
-      <cdx-button action="progressive" weight="primary" @click="copy(commands)">
+      <cdx-button action="progressive" weight="primary" @click="copy">
         <cdx-icon :icon="cdxIconCopy" />
-        {{ copied ? t("qs-copied") : t("qs-copy") }}
+        {{ t("qs-copy") }}
       </cdx-button>
     </template>
   </section>
@@ -30,14 +30,24 @@
 <script setup lang="ts">
 import { t } from "../i18n";
 import { computed } from "vue";
-import { CdxButton, CdxIcon, CdxMessage, CdxTextArea } from "@wikimedia/codex";
+import {
+  CdxButton,
+  CdxIcon,
+  CdxMessage,
+  CdxTextArea,
+  useToast,
+} from "@wikimedia/codex";
 import { cdxIconCopy } from "@wikimedia/codex-icons";
-import { useClipboard } from "@vueuse/core";
 import { toQuickStatements, type Edit } from "../quickstatements";
 
 const props = defineProps<{ id: string; edits: Edit[] }>();
-const { copy, copied } = useClipboard();
+const toast = useToast();
 const commands = computed(() => toQuickStatements(props.id, props.edits));
+
+async function copy() {
+  await navigator.clipboard.writeText(commands.value);
+  toast.success(t("qs-copied"), { autoDismiss: true });
+}
 </script>
 
 <style scoped>
