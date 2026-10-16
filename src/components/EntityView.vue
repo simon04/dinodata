@@ -48,7 +48,14 @@
           </a>
         </p>
       </div>
-      <img v-if="image" class="dd-image" :src="image" alt="" />
+      <button
+        v-if="imageFile"
+        class="dd-image"
+        :aria-label="t('media-enlarge')"
+        @click="mediaFile = imageFile"
+      >
+        <img :src="image" alt="" />
+      </button>
     </header>
 
     <cdx-tabs v-model:active="tab">
@@ -236,6 +243,7 @@ import {
   useProperties,
   type Property,
 } from "../properties";
+import { useMediaDialog } from "../commons";
 import AddStatement from "./AddStatement.vue";
 import EntityId from "./EntityId.vue";
 import EntitySkeleton from "./EntitySkeleton.vue";
@@ -637,12 +645,16 @@ const commons = computed(() => {
     : entity.value?.sitelinks?.commonswiki?.title;
 });
 
-const image = computed(() => {
+const imageFile = computed(() => {
   const file = entity.value?.claims.P18?.[0]?.mainsnak.datavalue?.value;
-  return file
-    ? `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(String(file))}?width=400`
-    : undefined;
+  return file ? String(file) : undefined;
 });
+const image = computed(
+  () =>
+    imageFile.value &&
+    `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(imageFile.value)}?width=400`,
+);
+const mediaFile = useMediaDialog();
 
 const terms = computed(() => {
   const e = entity.value;
@@ -738,6 +750,13 @@ watch(
   margin-bottom: 1rem;
 }
 .dd-image {
+  display: flex;
+  border: none;
+  padding: 0;
+  background: none;
+  cursor: zoom-in;
+}
+.dd-image img {
   max-width: 300px;
   max-height: 160px;
   border-radius: var(--border-radius-base);

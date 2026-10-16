@@ -91,5 +91,8 @@
   "footer-source": "Código fuente en GitHub",
   "footer-license": "Licencia: $1",
   "footer-data": "Datos de Wikidata (CC0)",
-  "search-wikidata": "Buscar «$1» en Wikidata"
+  "search-wikidata": "Buscar «$1» en Wikidata",
+  "media-enlarge": "Ampliar imagen",
+  "media-loading": "Cargando imagen…",
+  "media-commons": "Ver en Commons"
 }

@@ -88,6 +88,7 @@
     </section>
   </main>
 
+  <MediaDialog />
   <cdx-toast-container />
 
   <footer class="dd-footer">
@@ -152,6 +153,7 @@ import { description, getEntities, label } from "./wikidata";
 import LanguageSelector from "./components/LanguageSelector.vue";
 import HeaderSearch from "./components/HeaderSearch.vue";
 import EntityView from "./components/EntityView.vue";
+import MediaDialog from "./components/MediaDialog.vue";
 import dragons from "./assets/dragons.svg";
 
 const EXAMPLES = [

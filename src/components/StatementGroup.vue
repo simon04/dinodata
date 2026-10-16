@@ -87,16 +87,21 @@
             size="x-small"
             :title="t('rank-deprecated')"
           />
-          <img
+          <button
             v-if="
               claim.mainsnak.datatype === 'commonsMedia' &&
               claim.mainsnak.datavalue
             "
             class="dd-media"
-            :src="thumb(String(claim.mainsnak.datavalue.value))"
-            loading="lazy"
-            alt=""
-          />
+            :aria-label="t('media-enlarge')"
+            @click="mediaFile = String(claim.mainsnak.datavalue.value)"
+          >
+            <img
+              :src="thumb(String(claim.mainsnak.datavalue.value))"
+              loading="lazy"
+              alt=""
+            />
+          </button>
           <div v-if="editing === claim.id" class="dd-edit">
             <ValueInput
               :property="property"
@@ -357,6 +362,7 @@ import {
 } from "@wikimedia/codex-icons";
 import { useProperties, type Property } from "../properties";
 import type { Claim, Snak } from "../wikidata";
+import { useMediaDialog } from "../commons";
 import AddStatement from "./AddStatement.vue";
 import EntityId from "./EntityId.vue";
 import SnakValue from "./SnakValue.vue";
@@ -389,6 +395,7 @@ const emit = defineEmits<{
 }>();
 
 const { byId } = useProperties();
+const mediaFile = useMediaDialog();
 const adding = ref(false);
 const editing = ref<string>();
 
@@ -685,10 +692,17 @@ function thumb(file: string) {
   opacity: 0.6;
 }
 .dd-media {
+  display: flex;
+  align-self: center;
+  border: none;
+  padding: 0;
+  background: none;
+  cursor: zoom-in;
+}
+.dd-media img {
   max-width: 120px;
   max-height: 80px;
   border-radius: var(--border-radius-base);
-  align-self: center;
 }
 @media (max-width: 640px) {
   .dd-statement-group {
