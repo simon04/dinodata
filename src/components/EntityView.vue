@@ -18,20 +18,22 @@
             {{ alias }}
           </cdx-info-chip>
           <a
+            :class="LINK_BUTTON"
             :href="`https://www.wikidata.org/wiki/${entity.id}`"
             target="_blank"
             rel="external noopener"
           >
-            <cdx-icon :icon="cdxIconLinkExternal" size="small" />
+            <cdx-icon :icon="cdxIconLogoWikidata" size="small" />
             {{ t("entity-wikidata") }}
           </a>
           <a
             v-if="entity.sitelinks?.[`${language}wiki`]"
+            :class="LINK_BUTTON"
             :href="`https://${language}.wikipedia.org/wiki/${entity.sitelinks[`${language}wiki`].title}`"
             target="_blank"
             rel="external noopener"
           >
-            <cdx-icon :icon="cdxIconLinkExternal" size="small" />
+            <cdx-icon :icon="cdxIconLogoWikipedia" size="small" />
             {{ t("entity-wikipedia") }}
           </a>
         </p>
@@ -185,7 +187,8 @@ import {
 } from "@wikimedia/codex";
 import {
   cdxIconAdd,
-  cdxIconLinkExternal,
+  cdxIconLogoWikidata,
+  cdxIconLogoWikipedia,
   cdxIconPaste,
 } from "@wikimedia/codex-icons";
 import {
@@ -215,6 +218,14 @@ import StatementGroup from "./StatementGroup.vue";
 import QuickStatementsPanel from "./QuickStatementsPanel.vue";
 
 const props = defineProps<{ id: string; language: string }>();
+
+/** Codex link styled as a button ("fake button") */
+const LINK_BUTTON = [
+  "cdx-button",
+  "cdx-button--fake-button",
+  "cdx-button--fake-button--enabled",
+  "cdx-button--size-small",
+];
 
 const entity = ref<Entity>();
 const labels = ref<Record<string, string>>({});
@@ -688,9 +699,6 @@ watch(
 .dd-aliases {
   align-items: center;
   margin: 0;
-}
-.dd-aliases a {
-  margin-inline-start: 0.5rem;
 }
 /* many single-valued identifiers: flow them in columns */
 .dd-identifiers {
