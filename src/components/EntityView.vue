@@ -333,6 +333,12 @@ async function loadTypeProperties(e: Entity) {
       ),
     ),
   ];
+  // names of the suggested properties
+  await getLabels(
+    typeProperties.value.filter((p) => !labels.value[p]),
+    props.language,
+    addLabels,
+  );
 }
 
 type StatementEdit = Extract<Edit, { type: "statement" }>;
@@ -432,9 +438,7 @@ async function pasteClaims(text: string | undefined): Promise<void> {
   // labels for pasted values, qualifiers and references
   const ids = referencedIds({
     claims: { _: data.claims },
-  } as unknown as Entity).filter(
-    (id) => !id.startsWith("P") && !labels.value[id],
-  );
+  } as unknown as Entity).filter((id) => !labels.value[id]);
   getLabels(ids, props.language, addLabels).catch(console.warn);
   const pasted = edits.value.slice(before);
   toast.show({
@@ -744,7 +748,7 @@ async function reload() {
   propertyIds.value = referenced.filter((i) => i.startsWith("P"));
   entity.value = e;
   await getLabels(
-    referenced.filter((i) => !i.startsWith("P") && !labels.value[i]),
+    referenced.filter((i) => !labels.value[i]),
     props.language,
     addLabels,
   );
@@ -772,7 +776,6 @@ watch(
       );
       const e = entities[props.id];
       if (!e || "missing" in e) throw new Error(`${props.id} not found`);
-      // properties come from the local cache, only fetch item labels
       const referenced = referencedIds(e);
       propertyIds.value = referenced.filter((i) => i.startsWith("P"));
       labels.value = {};
@@ -780,11 +783,13 @@ watch(
       entity.value = e;
       loading.value = false;
       loadTypeProperties(e).catch(console.warn);
+      // the item's properties first: the preload of all properties (for
+      // search and editing) may take a while on the first visit
       await getLabels(
-        // fall back to the API for property labels until the cache is loaded
-        Object.keys(byId.value).length
-          ? referenced.filter((i) => !i.startsWith("P"))
-          : referenced,
+        [
+          ...referenced.filter((i) => i.startsWith("P")),
+          ...referenced.filter((i) => !i.startsWith("P")),
+        ],
         props.language,
         addLabels,
       );
