@@ -29,6 +29,7 @@
   "add-statement": "Ajouter une déclaration",
   "add-value": "Ajouter une valeur",
   "add-qualifier": "Ajouter un qualificatif",
+  "edit-qualifier": "Modifier le qualificatif",
   "remove-qualifier": "Supprimer le qualificatif",
   "suggested-properties": "Suggestions pour ce type :",
   "add-label": "Ajouter un libellé",

@@ -30,6 +30,7 @@
   "add-statement": "添加声明",
   "add-value": "添加值",
   "add-qualifier": "添加限定符",
+  "edit-qualifier": "编辑限定符",
   "remove-qualifier": "移除限定符",
   "suggested-properties": "此类型的建议：",
   "add-label": "添加标签",

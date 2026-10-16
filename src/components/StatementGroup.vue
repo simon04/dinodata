@@ -276,8 +276,19 @@
                   @dblclick="startEditQualifier(claim, String(qualifier), i)"
                 />
                 <cdx-button
+                  v-if="!removed.has(claim.id) && snak.snaktype === 'value'"
+                  class="dd-hover dd-qualifier-action"
+                  weight="quiet"
+                  size="small"
+                  :aria-label="t('edit-qualifier')"
+                  :title="t('edit-qualifier')"
+                  @click="startEditQualifier(claim, String(qualifier), i)"
+                >
+                  <cdx-icon :icon="cdxIconEdit" size="small" />
+                </cdx-button>
+                <cdx-button
                   v-if="!removed.has(claim.id)"
-                  class="dd-hover dd-qualifier-remove"
+                  class="dd-hover dd-qualifier-action"
                   weight="quiet"
                   action="destructive"
                   size="small"
@@ -551,7 +562,7 @@ function thumb(file: string) {
   align-items: baseline;
 }
 /* Codex minimum target size for small buttons (24px) */
-.dd-qualifier-remove {
+.dd-qualifier-action {
   align-self: center;
 }
 .dd-qualifiers .dd-edit {

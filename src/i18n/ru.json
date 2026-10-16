@@ -30,6 +30,7 @@
   "add-statement": "Добавить утверждение",
   "add-value": "Добавить значение",
   "add-qualifier": "Добавить квалификатор",
+  "edit-qualifier": "Изменить квалификатор",
   "remove-qualifier": "Удалить квалификатор",
   "suggested-properties": "Рекомендуется для этого типа:",
   "add-label": "Добавить метку",
