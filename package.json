@@ -8,7 +8,8 @@
     "prepare": "vp config",
     "dev": "vp dev",
     "build": "vue-tsc -b && vp build",
-    "preview": "vp preview"
+    "preview": "vp preview",
+    "start": "node server.js"
   },
   "dependencies": {
     "@vueuse/core": "^15.0.0",
