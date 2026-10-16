@@ -141,7 +141,11 @@
 <script setup lang="ts">
 import { isRTL, language, t } from "./i18n";
 import { ref, watchEffect } from "vue";
-import { computedAsync, useEventListener } from "@vueuse/core";
+import {
+  computedAsync,
+  useEventListener,
+  useTextDirection,
+} from "@vueuse/core";
 import { CdxDialog, CdxToastContainer } from "@wikimedia/codex";
 import { loadProperties } from "./properties";
 import { description, getEntities, label } from "./wikidata";
@@ -162,9 +166,10 @@ const EXAMPLES = [
   ["Q463190", "Wawel Dragon"],
   ["Q141746631", "DinoData"],
 ];
+const dir = useTextDirection();
 watchEffect(() => {
   document.documentElement.lang = language.value;
-  document.documentElement.dir = isRTL() ? "rtl" : "ltr";
+  dir.value = isRTL() ? "rtl" : "ltr";
 });
 loadProperties(language);
 
