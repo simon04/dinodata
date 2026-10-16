@@ -1,37 +1,41 @@
 <template>
   <div class="dd-statement-group">
     <div class="dd-property">
-      <a :href="`#${property}`" :title="property">
-        {{ labels[property] ?? property }}
-      </a>
-      <EntityId :id="property" />
-      <cdx-button
-        v-if="propertyInfo && !adding"
-        class="dd-add-value-button"
-        weight="quiet"
-        action="progressive"
-        size="small"
-        :aria-label="t('add-value')"
-        :title="t('add-value')"
-        @click="adding = true"
-      >
-        <cdx-icon :icon="cdxIconAdd" size="small" />
-      </cdx-button>
-      <cdx-button
-        class="dd-add-value-button"
-        weight="quiet"
-        size="small"
-        :aria-label="t('copy-statements', claims.length)"
-        :title="t('copy-statements', claims.length)"
-        @click="
-          emit(
-            'copy',
-            claims.filter((c) => !removed.has(c.id)),
-          )
-        "
-      >
-        <cdx-icon :icon="cdxIconCopy" size="small" />
-      </cdx-button>
+      <span class="dd-property-label">
+        <a :href="`#${property}`" :title="property">
+          {{ labels[property] ?? property }}
+        </a>
+        <EntityId :id="property" />
+      </span>
+      <span class="dd-property-buttons">
+        <cdx-button
+          v-if="propertyInfo && !adding"
+          class="dd-add-value-button"
+          weight="quiet"
+          action="progressive"
+          size="small"
+          :aria-label="t('add-value')"
+          :title="t('add-value')"
+          @click="adding = true"
+        >
+          <cdx-icon :icon="cdxIconAdd" size="small" />
+        </cdx-button>
+        <cdx-button
+          class="dd-add-value-button"
+          weight="quiet"
+          size="small"
+          :aria-label="t('copy-statements', claims.length)"
+          :title="t('copy-statements', claims.length)"
+          @click="
+            emit(
+              'copy',
+              claims.filter((c) => !removed.has(c.id)),
+            )
+          "
+        >
+          <cdx-icon :icon="cdxIconCopy" size="small" />
+        </cdx-button>
+      </span>
       <div v-if="hidden > 0 || expanded" class="dd-property-actions">
         <cdx-button
           v-if="hidden > 0"
@@ -470,10 +474,22 @@ function thumb(file: string) {
   border-bottom: 1px solid var(--border-color-subtle);
 }
 .dd-property {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  align-content: flex-start;
+  gap: 0 0.25rem;
   background: var(--background-color-neutral-subtle);
   padding: 0.375rem 0.625rem;
   font-weight: 600;
   line-height: 1.3;
+}
+.dd-property-label {
+  flex: 1;
+}
+/* both buttons together at the end of the first line */
+.dd-property-buttons {
+  display: flex;
 }
 .dd-add-value-button {
   min-height: 1.5rem;
@@ -491,6 +507,7 @@ function thumb(file: string) {
   opacity: 1;
 }
 .dd-property-actions {
+  flex-basis: 100%;
   display: flex;
   flex-wrap: wrap;
   margin-inline-start: -0.5rem;
