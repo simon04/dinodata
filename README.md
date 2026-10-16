@@ -81,7 +81,7 @@ Edits are collected locally, then saved to Wikidata directly (after logging in) 
 ### Languages
 
 - Searchable language selector over all Wikimedia languages, defaulting to the browser language
-- UI translated into English, German, Spanish, French, Chinese, Arabic and Russian (`src/i18n/*.json`, MediaWiki-style `$1` and `{{PLURAL:…}}` with CLDR plural forms)
+- UI translated into English, German, Spanish, French, Chinese, Arabic, Russian and Polish (`src/i18n/*.json`, MediaWiki-style `$1` and `{{PLURAL:…}}` with CLDR plural forms)
 - Right-to-left layout for Arabic, Hebrew, Persian, Urdu and other RTL languages
 
 ## Development
