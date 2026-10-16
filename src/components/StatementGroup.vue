@@ -638,6 +638,20 @@ function thumb(file: string) {
     opacity: 0;
   }
 }
+/* fade in and out, keeping Codex's button transitions */
+.dd-hover,
+.dd-add-value-button {
+  transition-property:
+    var(--transition-property-fade), var(--transition-property-base);
+  transition-duration: var(--transition-duration-medium);
+  transition-timing-function: var(--transition-timing-function-system);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dd-hover,
+  .dd-add-value-button {
+    transition: none;
+  }
+}
 .dd-value:hover .dd-hover,
 .dd-hover:focus {
   opacity: 1;
