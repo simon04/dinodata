@@ -503,7 +503,7 @@ function thumb(file: string) {
   }
 }
 .dd-statement-group:hover .dd-add-value-button,
-.dd-add-value-button:focus {
+.dd-property-buttons:focus-within .dd-add-value-button {
   opacity: 1;
 }
 .dd-property-actions {
@@ -651,8 +651,9 @@ function thumb(file: string) {
     transition: none;
   }
 }
+/* keyboard focus on one action reveals all of them */
 .dd-value:hover .dd-hover,
-.dd-hover:focus {
+.dd-value:focus-within .dd-hover {
   opacity: 1;
 }
 .dd-add-value {
