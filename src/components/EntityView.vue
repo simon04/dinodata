@@ -716,7 +716,8 @@ async function save(summary: string) {
   try {
     const { lastrevid } = await editEntity(e.id, toEntityData(e, edits.value), {
       baserevid: e.lastrevid,
-      summary: summary ? `${summary} (via DinoData)` : "via DinoData",
+      // edits are tagged with the OAuth consumer ("DinoData") anyway
+      summary,
       auth: { accessToken: accessToken.value, username: username.value },
     });
     edits.value = [];

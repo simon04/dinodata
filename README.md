@@ -45,7 +45,7 @@ Edits are collected locally, then saved to Wikidata directly (after logging in) 
 ### Saving
 
 - Log in with your Wikimedia account (OAuth 2.0 in a popup, so pending edits are kept); only on https://dinodata.toolforge.org/, where the registered callback is served
-- “Save to Wikidata” saves all pending edits of the item in one revision (`wbeditentity`), with an optional edit summary (“via DinoData” is appended), then reloads the item and links to the diff
+- “Save to Wikidata” saves all pending edits of the item in one revision (`wbeditentity`), with an optional edit summary, then reloads the item and links to the diff; edits are tagged with the OAuth consumer “DinoData”
 - Changed statements keep their ID, rank and references; removed ones are removed by ID
 - Edit conflicts are detected (`baserevid`) instead of overwriting changes made meanwhile
 - Runs entirely in the browser: public OAuth client with PKCE, the token is kept in sessionStorage and renewed with the refresh token
