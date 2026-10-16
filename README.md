@@ -12,10 +12,13 @@ A prototype of [Wikidata](https://www.wikidata.org/) with a nicer UX, built with
 
 ### Viewing
 
-- Open any item via search or URL hash, e.g. `#Q40` (Austria) or `#Q1735` (Innsbruck)
-- Header with label, description, aliases, image (P18) and links to Wikidata and Wikipedia
+- Open any item via search or URL hash, e.g. `#Q40` (Austria) or `#Q1735` (Innsbruck); the home page lists examples with their label and description in the selected language
+- Search results show the ID as a code chip next to the label
+- Header with label, description, aliases, image (P18) and buttons to Wikidata, Wikipedia and Wikimedia Commons (Commons category P373, or the Commons sitelink)
 - Tabs for statements, identifiers, languages (labels, descriptions, aliases) and sitelinks
 - Compact layout to minimize scrolling: values flow in columns, inline qualifiers, reference badges that expand on click, long value lists collapsed (“49 more”), identifiers and sitelinks in multiple columns
+- Statement groups ordered by the “properties for this type” (P1963) of the item’s classes (P31); missing ones are suggested for adding
+- Values sorted by rank (preferred first, deprecated last), then by point in time (P585) or publication date (P577), newest first
 - Ranks (preferred/deprecated), linked values, image thumbnails, OpenStreetMap links for coordinates, formatter URLs (P1630) for identifiers
 - Wikidata IDs shown as `<code>` after every link — click to copy
 - Numbers, dates and coordinates formatted for the selected language
@@ -28,12 +31,15 @@ Edits are collected locally and exported as [QuickStatements 3.0](https://meta.w
 
 - **Add statements** (property + value) with a keyboard-friendly flow: Enter adds and focuses the next property; add values to existing properties with `+`
 - **Change values** of existing statements (pencil or double-click), e.g. a number or a photo. QuickStatements cannot modify values, so this exports `-STATEMENT|<id>` followed by the statement re-added with its qualifiers, references and rank
+- **Edit qualifiers**: add, change (pencil or double-click) and remove qualifiers of a statement; exported the same way as changed values
 - **Remove statements** (`-STATEMENT|<id>`) and undo any change
 - Value inputs per datatype with validation and a hint for the expected format: items/properties (search), strings, external IDs, URLs, Commons files, dates (`1955`, `1955-05`, `1955-05-15`), quantities (unit kept when editing), coordinates, monolingual text
 - Ranks (`R+`/`R-`) and Julian calendar dates (`/J`) preserved in the export
 - Inline editing of labels, descriptions and aliases in all languages; add new languages
 - Edit, add and remove sitelinks
+- Suggested properties (P1963) that the item lacks, one click to add a value
 - Pending additions highlighted green, changes yellow, removals red
+- Actions appear on hover right after the value (fading in); always visible on touch devices
 
 ### Copy & paste
 
@@ -46,6 +52,7 @@ Edits are collected locally and exported as [QuickStatements 3.0](https://meta.w
   - simple `P31=Q5` lines
   - Wikidata entity JSON (e.g. from `Special:EntityData/Q42.json`)
 - Every value is validated against the property datatype; invalid lines are skipped with a hint, values already present are skipped
+- Copies and pastes are confirmed with a toast; pastes can be undone from the toast
 
 ### Speed
 
@@ -53,6 +60,14 @@ Edits are collected locally and exported as [QuickStatements 3.0](https://meta.w
 - Property search runs locally in a few milliseconds: by ID (`P31`, `31`), URL (`…/Property:P31`, `…/entity/P31`, `…/prop/direct/P31`), label or alias in English and the user language
 - Item renders immediately, value labels stream in progressively
 - Local cache: Cache API for properties (24 h, refreshed in the background) and entities (1 h), sessionStorage for labels. Browser refresh bypasses the cache for the current item; refreshing twice within 5 seconds drops all caches.
+
+### Design and accessibility
+
+- Built with [Codex](https://doc.wikimedia.org/codex/) components and design tokens (typography, colors, transitions), including dark mode
+- Icon-only buttons have accessible labels and Codex tooltips (on keyboard focus, or after the pointer rests for 500 ms; created lazily to stay fast on large items)
+- Everything works with the keyboard: hover actions are revealed on focus, qualifiers have edit buttons besides double-click
+- Codex minimum target sizes, toasts announced to screen readers, reduced motion respected
+- Open Graph and Twitter card tags for link previews
 
 ### Languages
 
