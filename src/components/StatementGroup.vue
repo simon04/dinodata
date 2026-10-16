@@ -285,7 +285,7 @@
                   :title="t('remove-qualifier')"
                   @click="setQualifier(claim, String(qualifier), i)"
                 >
-                  <cdx-icon :icon="cdxIconClose" size="x-small" />
+                  <cdx-icon :icon="cdxIconTrash" size="small" />
                 </cdx-button>
               </span>
             </template>
