@@ -38,9 +38,6 @@ const { copy, copied } = useClipboard({ copiedDuring: 800 });
   font-weight: normal;
   white-space: nowrap;
 }
-.dd-entity-id {
-  cursor: copy;
-}
 .dd-id-chip,
 .cdx-typeahead-search .cdx-search-result-title + .cdx-search-result-title {
   font-family: var(--font-family-monospace);
