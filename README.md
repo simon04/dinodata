@@ -63,11 +63,18 @@ Edits are collected locally and exported as [QuickStatements 3.0](https://meta.w
 ## Development
 
 ```sh
-pnpm install
-pnpm dev
+pnpm install   # also installs the Git pre-commit hook (vp config)
+pnpm dev       # development server with hot reload
+pnpm build     # type-check (vue-tsc) and build to dist/
+pnpm preview   # serve the production build from dist/
+pnpm vp check  # format, lint and type checks
+pnpm vp fmt    # format all files
+pnpm vp lint   # lint only
 ```
 
-`pnpm build` type-checks and builds to `dist/`. CI builds on every push and deploys `master` to GitHub Pages (and Toolforge, if `TOOLFORGE_DEPLOY_TOKEN` is set).
+Tooling is [Vite+](https://viteplus.dev/) (`vp`), configured in `vite.config.ts` (`fmt`, `lint`, `staged`). The pre-commit hook (`.vite-hooks/`) runs `vp check --fix` on staged files, so commits are formatted and linted automatically.
+
+CI builds on every push and deploys `master` to GitHub Pages (and Toolforge, if `TOOLFORGE_DEPLOY_TOKEN` is set).
 
 ## License
 
