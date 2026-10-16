@@ -490,7 +490,7 @@ function thumb(file: string) {
 <style scoped>
 .dd-statement-group {
   display: grid;
-  grid-template-columns: 15rem 1fr;
+  grid-template-columns: clamp(16rem, 28%, 32rem) 1fr;
   border-bottom: 1px solid var(--border-color-subtle);
 }
 .dd-property {
