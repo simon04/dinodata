@@ -298,14 +298,14 @@ const pending = computed(
   () =>
     new Set(
       statementEdits.value
-        .filter((e) => !e.remove && !e.replace)
+        .filter((e) => !e.remove && !e.original)
         .map((e) => e.claimId),
     ),
 );
 const changed = computed(
   () =>
     new Set(
-      statementEdits.value.filter((e) => e.replace).map((e) => e.claimId),
+      statementEdits.value.filter((e) => e.original).map((e) => e.claimId),
     ),
 );
 const removed = computed(
@@ -315,7 +315,7 @@ const removed = computed(
 
 function claimsOf(property: string): Claim[] {
   const replaced = new Map(
-    statementEdits.value.filter((e) => e.replace).map((e) => [e.claimId, e]),
+    statementEdits.value.filter((e) => e.original).map((e) => [e.claimId, e]),
   );
   return [
     ...(entity.value?.claims[property] ?? []).map((claim) => {
@@ -331,7 +331,7 @@ function claimsOf(property: string): Claim[] {
         : claim;
     }),
     ...statementEdits.value
-      .filter((e) => !e.remove && !e.replace && e.snak.property === property)
+      .filter((e) => !e.remove && !e.original && e.snak.property === property)
       .map((e) => ({
         id: e.claimId,
         rank: e.rank ?? "normal",
@@ -471,12 +471,12 @@ function changeQualifiers(
 }
 
 /**
- * Pending statements are changed in place; existing ones are replaced
- * (removed by ID and re-added), unless the change was reverted.
+ * Pending statements are changed in place; for existing ones the original is
+ * kept to export only the difference, unless the change was reverted.
  */
 function updateStatement(updated: Claim) {
   const pendingEdit = statementEdits.value.find(
-    (e) => e.claimId === updated.id && !e.remove && !e.replace,
+    (e) => e.claimId === updated.id && !e.remove && !e.original,
   );
   if (pendingEdit) {
     pendingEdit.snak = updated.mainsnak;
@@ -501,7 +501,14 @@ function updateStatement(updated: Claim) {
   const unchanged =
     toQuickStatements(props.id, [edit]) ===
     toQuickStatements(props.id, [claimToEdit(original, updated.id)]);
-  if (!unchanged) edits.value.push({ ...edit, replace: true });
+  if (!unchanged)
+    edits.value.push({
+      ...edit,
+      original: {
+        snak: original.mainsnak,
+        qualifiers: Object.values(original.qualifiers ?? {}).flat(),
+      },
+    });
 }
 
 function removeStatement(claim: Claim) {

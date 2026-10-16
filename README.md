@@ -30,8 +30,8 @@ A prototype of [Wikidata](https://www.wikidata.org/) with a nicer UX, built with
 Edits are collected locally and exported as [QuickStatements 3.0](https://meta.wikimedia.org/wiki/QuickStatements_3.0/Documentation/User_guide) commands to copy; nothing is written to Wikidata directly (yet).
 
 - **Add statements** (property + value) with a keyboard-friendly flow: Enter adds and focuses the next property; add values to existing properties with `+`
-- **Change values** of existing statements (pencil or double-click), e.g. a number or a photo. QuickStatements cannot modify values, so this exports `-STATEMENT|<id>` followed by the statement re-added with its qualifiers, references and rank
-- **Edit qualifiers**: add, change (pencil or double-click) and remove qualifiers of a statement; exported the same way as changed values
+- **Change values** of existing statements (pencil or double-click), e.g. a number or a photo, exported as `SWITCH_VALUE`, which keeps the statement with its ID, qualifiers, references and rank
+- **Edit qualifiers**: add, change (pencil or double-click) and remove qualifiers of a statement; only the difference is exported: added qualifiers on a line matching the existing statement (QuickStatements merges them), removed ones as `REMOVE_QUAL`
 - **Remove statements** (`-STATEMENT|<id>`) and undo any change
 - Value inputs per datatype with validation and a hint for the expected format: items/properties (search), strings, external IDs, URLs, Commons files, dates (`1955`, `1955-05`, `1955-05-15`), quantities (unit kept when editing), coordinates, monolingual text
 - Ranks (`R+`/`R-`) and Julian calendar dates (`/J`) preserved in the export

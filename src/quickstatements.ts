@@ -11,10 +11,11 @@ export type Edit =
       type: "statement";
       remove?: boolean;
       /**
-       * change an existing statement: QuickStatements cannot modify values,
-       * so it is removed by ID and re-added with qualifiers and references
+       * change of an existing statement (main value and/or qualifiers):
+       * exported as SWITCH_VALUE, REMOVE_QUAL and qualifiers added to the
+       * matching statement, keeping its ID, rank and references
        */
-      replace?: boolean;
+      original?: { snak: Snak; qualifiers: Snak[] };
       rank?: "preferred" | "normal" | "deprecated";
       /** existing claim (removals) or generated ID (additions), for the UI */
       claimId: string;
@@ -50,6 +51,46 @@ export function snakValue(snak: Snak): string {
   return quote(JSON.stringify(value));
 }
 
+type StatementEdit = Extract<Edit, { type: "statement" }>;
+
+const snakKey = (snak: Snak) => `${snak.property}|${snakValue(snak)}`;
+
+/** Snaks of `a` not in `b` (as multisets). */
+function without(a: Snak[], b: Snak[]): Snak[] {
+  const rest = b.map(snakKey);
+  return a.filter((snak) => {
+    const i = rest.indexOf(snakKey(snak));
+    if (i < 0) return true;
+    rest.splice(i, 1);
+    return false;
+  });
+}
+
+/**
+ * Change an existing statement in place: statements are matched by
+ * property and value, an existing match gets the qualifiers added.
+ */
+function changeStatement(id: string, edit: StatementEdit): string {
+  const { original, snak } = edit;
+  const property = snak.property;
+  const value = snakValue(snak);
+  const oldValue = snakValue(original!.snak);
+  const qualifiers = edit.qualifiers ?? [];
+  const removed = without(original!.qualifiers, qualifiers);
+  const added = without(qualifiers, original!.qualifiers);
+  return [
+    ...(value !== oldValue
+      ? [`SWITCH_VALUE|${id}|${property}|${oldValue}|${value}`]
+      : []),
+    ...removed.map(
+      (q) => `REMOVE_QUAL|${id}|${property}|${value}|${snakKey(q)}`,
+    ),
+    ...(added.length
+      ? [[id, property, value, ...added.map(snakKey)].join("|")]
+      : []),
+  ].join("\n");
+}
+
 export function toQuickStatements(id: string, edits: Edit[]): string {
   return edits
     .map((edit) => {
@@ -66,7 +107,7 @@ export function toQuickStatements(id: string, edits: Edit[]): string {
           // existing statements are removed precisely by their ID
           if (edit.remove && !edit.claimId.startsWith("new-"))
             return `-STATEMENT|${edit.claimId}`;
-          const removal = edit.replace ? [`-STATEMENT|${edit.claimId}`] : [];
+          if (edit.original) return changeStatement(id, edit);
           const statement = [
             `${edit.remove ? "-" : ""}${id}`,
             edit.snak.property,
@@ -82,7 +123,6 @@ export function toQuickStatements(id: string, edits: Edit[]): string {
           // one line per reference, QuickStatements merges the statements
           const references = edit.references?.length ? edit.references : [[]];
           return [
-            ...removal,
             ...references.map((reference) =>
               [
                 ...statement,
