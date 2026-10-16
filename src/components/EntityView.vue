@@ -147,7 +147,7 @@
             {{ allLabels[property] }}
           </cdx-button>
         </p>
-        <div class="dd-statements dd-identifiers">
+        <div class="dd-statements">
           <StatementGroup
             v-for="property in identifiers"
             :key="property"
@@ -749,17 +749,6 @@ watch(
   margin: 0;
 }
 /* many single-valued identifiers: flow them in columns */
-.dd-identifiers {
-  columns: 34rem;
-  column-gap: 0;
-}
-.dd-identifiers :deep(.dd-statement-group) {
-  break-inside: avoid;
-}
-/* identifier values one below the other, not side by side */
-.dd-identifiers :deep(.dd-values) {
-  grid-template-columns: 1fr;
-}
 .dd-toolbar {
   display: flex;
   flex-wrap: wrap;
