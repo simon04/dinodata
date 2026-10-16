@@ -8,7 +8,7 @@
           :aria-label="t('app-why-dinodata')"
           @click="showDialog = true"
         >
-          🦕
+          <img :src="dragons" alt="" />
         </button>
         <a href="#">DinoData</a>
       </span>
@@ -152,6 +152,7 @@ import { description, getEntities, label } from "./wikidata";
 import LanguageSelector from "./components/LanguageSelector.vue";
 import HeaderSearch from "./components/HeaderSearch.vue";
 import EntityView from "./components/EntityView.vue";
+import dragons from "./assets/dragons.svg";
 
 const EXAMPLES = [
   ["Q40", "Austria"],
@@ -345,10 +346,14 @@ samp {
   display: flex;
   align-items: center;
   gap: 1rem;
+  padding-block: 0.75rem;
+  border-bottom: 1px solid var(--border-color-subtle);
 }
 .dd-logo {
   display: flex;
-  gap: 0.25rem;
+  align-items: center;
+  gap: 0.5rem;
+  line-height: 1;
   font-size: 1.5rem;
   font-weight: bold;
   white-space: nowrap;
@@ -358,11 +363,21 @@ samp {
   color: inherit;
 }
 .dd-dino {
+  display: flex;
   border: none;
   background: none;
   padding: 0;
-  font: inherit;
   cursor: pointer;
+}
+.dd-dino img {
+  height: 2.25rem;
+}
+/* light outline for the black dragons */
+@media (prefers-color-scheme: dark) {
+  .dd-dino img {
+    filter: drop-shadow(0 0 0.5px var(--color-base))
+      drop-shadow(0 0 0.5px var(--color-base));
+  }
 }
 .dd-search {
   flex: 1;
