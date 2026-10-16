@@ -18,13 +18,13 @@
 
 <script setup lang="ts">
 import { t } from "../i18n";
-import { onMounted, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
+import { useFetch } from "@vueuse/core";
 import { CdxLookup, type MenuItemData } from "@wikimedia/codex";
 import { cdxIconLanguage } from "@wikimedia/codex-icons";
 
 const model = defineModel<string>({ required: true });
 
-const languages = ref<MenuItemData[]>([]);
 const selected = ref<string | null>(model.value);
 const inputValue = ref(model.value);
 const menuItems = ref<MenuItemData[]>([]);
@@ -34,21 +34,21 @@ watch(model, (value) => {
   inputValue.value = value;
 });
 
-onMounted(async () => {
-  const url =
-    "https://www.wikidata.org/w/api.php?action=query&meta=languageinfo&liprop=autonym|name&uselang=en&format=json&formatversion=2&origin=*";
-  const json: {
-    query: { languageinfo: Record<string, { autonym: string; name: string }> };
-  } = await (await fetch(url)).json();
-  languages.value = Object.entries(json.query.languageinfo).map(
+const { data } = useFetch(
+  "https://www.wikidata.org/w/api.php?action=query&meta=languageinfo&liprop=autonym|name&uselang=en&format=json&formatversion=2&origin=*",
+).json<{
+  query: { languageinfo: Record<string, { autonym: string; name: string }> };
+}>();
+const languages = computed<MenuItemData[]>(() =>
+  Object.entries(data.value?.query.languageinfo ?? {}).map(
     ([code, { autonym, name }]) => ({
       value: code,
       label: autonym || name,
       match: code,
       description: autonym && autonym !== name ? name : undefined,
     }),
-  );
-});
+  ),
+);
 
 function filter(query: string): MenuItemData[] {
   const q = query.trim().toLowerCase();
