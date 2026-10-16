@@ -46,10 +46,15 @@
       >
         <div class="dd-toolbar">
           <AddStatement
-            v-if="adding"
+            v-if="
+              adding ||
+              (addingProperty && addingProperty.datatype !== 'external-id')
+            "
+            :key="addingProperty?.id"
             :language="language"
+            :fixed-property="addingProperty"
             @add="addStatement"
-            @close="adding = false"
+            @close="closeAdding"
           />
           <cdx-button v-else action="progressive" @click="adding = true">
             <cdx-icon :icon="cdxIconAdd" />
@@ -60,6 +65,20 @@
             {{ t("paste-statements") }}
           </cdx-button>
         </div>
+        <p v-if="suggested.statements.length" class="dd-suggested">
+          {{ t("suggested-properties") }}
+          <cdx-button
+            v-for="property in suggested.statements"
+            :key="property"
+            weight="quiet"
+            size="small"
+            :title="property"
+            @click="addProperty(property)"
+          >
+            <cdx-icon :icon="cdxIconAdd" size="small" />
+            {{ allLabels[property] }}
+          </cdx-button>
+        </p>
         <div class="dd-statements">
           <StatementGroup
             v-for="property in statements"
@@ -85,10 +104,12 @@
         :label="t('tab-identifiers', identifiers.length)"
       >
         <AddStatement
-          v-if="addingIdentifier"
+          v-if="addingIdentifier || addingProperty?.datatype === 'external-id'"
+          :key="addingProperty?.id"
           :language="language"
+          :fixed-property="addingProperty"
           @add="addStatement"
-          @close="addingIdentifier = false"
+          @close="closeAdding"
         />
         <cdx-button
           v-else
@@ -98,6 +119,20 @@
           <cdx-icon :icon="cdxIconAdd" />
           {{ t("add-statement") }}
         </cdx-button>
+        <p v-if="suggested.identifiers.length" class="dd-suggested">
+          {{ t("suggested-properties") }}
+          <cdx-button
+            v-for="property in suggested.identifiers"
+            :key="property"
+            weight="quiet"
+            size="small"
+            :title="property"
+            @click="addProperty(property)"
+          >
+            <cdx-icon :icon="cdxIconAdd" size="small" />
+            {{ allLabels[property] }}
+          </cdx-button>
+        </p>
         <div class="dd-statements dd-identifiers">
           <StatementGroup
             v-for="property in identifiers"
@@ -168,7 +203,7 @@ import {
   parseStatements,
 } from "../clipboard";
 import { until, useEventListener } from "@vueuse/core";
-import { propertyLabel, useProperties } from "../properties";
+import { propertyLabel, useProperties, type Property } from "../properties";
 import AddStatement from "./AddStatement.vue";
 import EntityId from "./EntityId.vue";
 import EntitySkeleton from "./EntitySkeleton.vue";
@@ -197,7 +232,40 @@ watchEffect(() => {
 onUnmounted(() => (document.title = "DinoData"));
 const adding = ref(false);
 const addingIdentifier = ref(false);
+/** property chosen from the suggestions */
+const addingProperty = ref<Property>();
 const { byId } = useProperties();
+/** "properties for this type" (P1963) of the item's classes (P31) */
+const typeProperties = ref<string[]>([]);
+
+function addProperty(property: string) {
+  addingProperty.value = byId.value[property];
+}
+
+function closeAdding() {
+  adding.value = false;
+  addingIdentifier.value = false;
+  addingProperty.value = undefined;
+}
+
+async function loadTypeProperties(e: Entity) {
+  const classes = (e.claims.P31 ?? []).flatMap((c) => {
+    const id = (c.mainsnak.datavalue?.value as { id?: string })?.id;
+    return id && c.rank !== "deprecated" ? [id] : [];
+  });
+  const result = classes.length ? await getEntities(classes, "claims") : {};
+  if (entity.value !== e) return;
+  typeProperties.value = [
+    ...new Set(
+      classes.flatMap((id) =>
+        (result[id]?.claims?.P1963 ?? []).flatMap((c) => {
+          const p = (c.mainsnak.datavalue?.value as { id?: string })?.id;
+          return p && c.rank !== "deprecated" ? [p] : [];
+        }),
+      ),
+    ),
+  ];
+}
 
 type StatementEdit = Extract<Edit, { type: "statement" }>;
 const statementEdits = computed(() =>
@@ -404,7 +472,11 @@ const formatterUrls = computed(() =>
 /** Fetched labels, completed with locally preloaded property labels. */
 const allLabels = computed(() => {
   const result = { ...labels.value };
-  for (const property of [...propertyIds.value, ...properties.value]) {
+  for (const property of [
+    ...propertyIds.value,
+    ...properties.value,
+    ...typeProperties.value,
+  ]) {
     result[property] ??=
       propertyLabel(byId.value[property], props.language) ?? property;
   }
@@ -423,10 +495,29 @@ const properties = computed(() => [
     ...statementEdits.value.map((e) => e.snak.property),
   ]),
 ]);
+/** Properties for this type (P1963) first, in their order. */
+const orderedProperties = computed(() => {
+  const index = new Map(typeProperties.value.map((p, i) => [p, i]));
+  const rank = (p: string) => index.get(p) ?? index.size;
+  return [...properties.value].sort((a, b) => rank(a) - rank(b));
+});
 const statements = computed(() =>
-  properties.value.filter((p) => !isIdentifier(p)),
+  orderedProperties.value.filter((p) => !isIdentifier(p)),
 );
-const identifiers = computed(() => properties.value.filter(isIdentifier));
+const identifiers = computed(() =>
+  orderedProperties.value.filter(isIdentifier),
+);
+/** Properties for this type (P1963) the item does not have yet. */
+const suggested = computed(() => {
+  const missing = typeProperties.value.filter(
+    (p) => byId.value[p] && !properties.value.includes(p),
+  );
+  const external = (p: string) => byId.value[p].datatype === "external-id";
+  return {
+    statements: missing.filter((p) => !external(p)),
+    identifiers: missing.filter(external),
+  };
+});
 
 const image = computed(() => {
   const file = entity.value?.claims.P18?.[0]?.mainsnak.datavalue?.value;
@@ -479,7 +570,11 @@ watch(
     const oldId = old?.[0];
     loading.value = true;
     error.value = undefined;
-    if (id !== oldId) edits.value = [];
+    if (id !== oldId) {
+      edits.value = [];
+      typeProperties.value = [];
+      closeAdding();
+    }
     try {
       // browser refresh: bypass the cache for the item first shown
       const entities = await getEntities(
@@ -496,6 +591,7 @@ watch(
       labels.value = {};
       entity.value = e;
       loading.value = false;
+      loadTypeProperties(e).catch(console.warn);
       await getLabels(
         // fall back to the API for property labels until the cache is loaded
         Object.keys(byId.value).length
@@ -562,6 +658,14 @@ watch(
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+.dd-suggested {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0.5rem 0 0;
+  color: var(--color-subtle);
 }
 .dd-toolbar > .dd-add-statement {
   flex-basis: 100%;
