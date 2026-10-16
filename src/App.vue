@@ -150,6 +150,8 @@ import EntityView from "./components/EntityView.vue";
 
 const EXAMPLES = [
   ["Q40", "Austria"],
+  ["Q1741", "Vienna"],
+  ["Q18559623", "Wikimedia Austria"],
   ["Q1735", "Innsbruck"],
   ["Q96694010", "Marktplatz, Innsbruck"],
   ["Q357751", "Serles"],
