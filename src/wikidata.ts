@@ -105,8 +105,7 @@ export function description(
   language: string,
 ): string | undefined {
   return (
-    entity?.descriptions?.[language]?.value ??
-    entity?.descriptions?.en?.value
+    entity?.descriptions?.[language]?.value ?? entity?.descriptions?.en?.value
   );
 }
 
@@ -162,4 +161,60 @@ export async function getLabels(
       onLabels(labels, descriptions);
     }),
   );
+}
+
+export interface Backlink {
+  title: string;
+  /** item, property or lexeme ID, for entity pages */
+  id?: string;
+  label?: string;
+  description?: string;
+}
+
+/** namespace → title prefix of entity pages */
+const ENTITY_NAMESPACES: Record<number, string> = {
+  0: "",
+  120: "Property:",
+  146: "Lexeme:",
+};
+const TITLE_PREFIXES: Record<string, string> = { P: "Property:", L: "Lexeme:" };
+
+/**
+ * Pages linking to the entity (via statements, or wikitext on other pages),
+ * 500 per request, with labels and descriptions of linking entities.
+ */
+export async function getBacklinks(
+  id: string,
+  language: string,
+  from?: Record<string, string>,
+): Promise<{ pages: Backlink[]; next?: Record<string, string> }> {
+  const json = await api<{
+    query?: {
+      pages: {
+        ns: number;
+        title: string;
+        entityterms?: { label?: string[]; description?: string[] };
+      }[];
+    };
+    continue?: Record<string, string>;
+  }>({
+    action: "query",
+    generator: "backlinks",
+    gbltitle: `${TITLE_PREFIXES[id[0]] ?? ""}${id}`,
+    gbllimit: "max",
+    prop: "entityterms",
+    wbetterms: "label|description",
+    wbetlanguage: language,
+    ...from,
+  });
+  const pages = (json.query?.pages ?? []).map(({ ns, title, entityterms }) => {
+    const prefix = ENTITY_NAMESPACES[ns];
+    return {
+      title,
+      ...(prefix !== undefined && { id: title.slice(prefix.length) }),
+      label: entityterms?.label?.[0],
+      description: entityterms?.description?.[0],
+    };
+  });
+  return { pages, next: json.continue };
 }

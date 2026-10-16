@@ -179,6 +179,15 @@
       <cdx-tab name="sitelinks" :label="t('tab-sitelinks', sitelinks.length)">
         <SitelinksTable v-model:edits="edits" :entity="entity" />
       </cdx-tab>
+      <cdx-tab name="backlinks" :label="t('tab-backlinks')">
+        <!-- loaded when shown, the tab content is only hidden otherwise -->
+        <WhatLinksHere
+          v-if="tab === 'backlinks'"
+          :key="`${entity.id}:${language}`"
+          :id="entity.id"
+          :language="language"
+        />
+      </cdx-tab>
     </cdx-tabs>
 
     <QuickStatementsPanel :id="entity.id" :edits="edits" />
@@ -231,6 +240,7 @@ import AddStatement from "./AddStatement.vue";
 import EntityId from "./EntityId.vue";
 import EntitySkeleton from "./EntitySkeleton.vue";
 import SitelinksTable from "./SitelinksTable.vue";
+import WhatLinksHere from "./WhatLinksHere.vue";
 import TermsTable from "./TermsTable.vue";
 import StatementGroup from "./StatementGroup.vue";
 import QuickStatementsPanel from "./QuickStatementsPanel.vue";

@@ -9,6 +9,7 @@ import {
 import { fakeCaches } from "./testing/fake-caches";
 import {
   description,
+  getBacklinks,
   getEntities,
   getLabels,
   label,
@@ -19,6 +20,25 @@ import {
 const fetch = vi.fn(async (input: string | URL) => {
   const url = new URL(input);
   const params = url.searchParams;
+  if (params.get("generator") === "backlinks")
+    return Response.json(
+      params.get("gblcontinue")
+        ? { query: { pages: [{ ns: 146, title: "Lexeme:L1" }] } }
+        : {
+            query: {
+              pages: [
+                {
+                  ns: 0,
+                  title: "Q1",
+                  entityterms: { label: ["one"], description: ["first"] },
+                },
+                { ns: 120, title: "Property:P2" },
+                { ns: 4, title: "Wikidata:Sandbox" },
+              ],
+            },
+            continue: { gblcontinue: "0|2", continue: "gblcontinue||" },
+          },
+    );
   if (params.get("action") === "wbsearchentities")
     return Response.json({
       search: [{ id: "Q1735", label: params.get("search") }],
@@ -152,5 +172,28 @@ describe("getLabels", () => {
     await getLabels([], "en", onLabels);
     expect(onLabels).not.toHaveBeenCalled();
     expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("getBacklinks", () => {
+  it("returns entity IDs, terms and other pages, then continues", async () => {
+    const first = await getBacklinks("Q42", "de");
+    expect(params(0).get("gbltitle")).toBe("Q42");
+    expect(params(0).get("wbetlanguage")).toBe("de");
+    expect(first.pages).toEqual([
+      { title: "Q1", id: "Q1", label: "one", description: "first" },
+      { title: "Property:P2", id: "P2" },
+      { title: "Wikidata:Sandbox" },
+    ]);
+    const second = await getBacklinks("Q42", "de", first.next);
+    expect(params(1).get("gblcontinue")).toBe("0|2");
+    expect(second).toEqual({ pages: [{ title: "Lexeme:L1", id: "L1" }] });
+  });
+
+  it("uses the page title of properties and lexemes", async () => {
+    await getBacklinks("P31", "en");
+    await getBacklinks("L7", "en");
+    expect(params(0).get("gbltitle")).toBe("Property:P31");
+    expect(params(1).get("gbltitle")).toBe("Lexeme:L7");
   });
 });
