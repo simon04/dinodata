@@ -550,10 +550,8 @@ function thumb(file: string) {
   display: inline-flex;
   align-items: baseline;
 }
+/* Codex minimum target size for small buttons (24px) */
 .dd-qualifier-remove {
-  min-height: 1rem;
-  min-width: 1rem;
-  padding: 0;
   align-self: center;
 }
 .dd-qualifiers .dd-edit {
