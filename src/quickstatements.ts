@@ -51,9 +51,9 @@ export function snakValue(snak: Snak): string {
   return quote(JSON.stringify(value));
 }
 
-type StatementEdit = Extract<Edit, { type: "statement" }>;
+export type StatementEdit = Extract<Edit, { type: "statement" }>;
 
-const snakKey = (snak: Snak) => `${snak.property}|${snakValue(snak)}`;
+export const snakKey = (snak: Snak) => `${snak.property}|${snakValue(snak)}`;
 
 /** Snaks of `a` not in `b` (as multisets). */
 function without(a: Snak[], b: Snak[]): Snak[] {
