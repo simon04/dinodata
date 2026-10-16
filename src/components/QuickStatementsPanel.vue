@@ -38,14 +38,16 @@ import {
   useToast,
 } from "@wikimedia/codex";
 import { cdxIconCopy } from "@wikimedia/codex-icons";
+import { useSharedClipboard } from "../clipboard";
 import { toQuickStatements, type Edit } from "../quickstatements";
 
 const props = defineProps<{ id: string; edits: Edit[] }>();
 const toast = useToast();
+const clipboard = useSharedClipboard();
 const commands = computed(() => toQuickStatements(props.id, props.edits));
 
 async function copy() {
-  await navigator.clipboard.writeText(commands.value);
+  await clipboard.copy(commands.value);
   toast.success(t("qs-copied"), { autoDismiss: true });
 }
 </script>

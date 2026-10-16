@@ -12,12 +12,14 @@
 <script setup lang="ts">
 import { t } from "../i18n";
 import { useToast } from "@wikimedia/codex";
+import { useSharedClipboard } from "../clipboard";
 
 const props = defineProps<{ id: string }>();
 const toast = useToast();
+const clipboard = useSharedClipboard();
 
 async function copyId() {
-  await navigator.clipboard.writeText(props.id);
+  await clipboard.copy(props.id);
   toast.success(t("copied-id", props.id), { autoDismiss: true });
 }
 </script>

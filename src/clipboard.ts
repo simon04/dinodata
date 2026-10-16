@@ -1,3 +1,4 @@
+import { createSharedComposable, useClipboard } from "@vueuse/core";
 import { t } from "./i18n";
 import { toQuickStatements, type Edit } from "./quickstatements";
 import { FORMAT_EXAMPLES, parseValue } from "./values";
@@ -8,6 +9,14 @@ import type { Claim, Snak } from "./wikidata";
  * as the final export — as plain text, so it works across tabs and browsers.
  * https://meta.wikimedia.org/wiki/QuickStatements_3.0/Documentation/User_guide
  */
+
+/**
+ * Clipboard with a fallback without the Clipboard API (e.g. over http),
+ * shared as each instance queries the clipboard permissions.
+ */
+export const useSharedClipboard = createSharedComposable(() =>
+  useClipboard({ legacy: true }),
+);
 
 type StatementEdit = Extract<Edit, { type: "statement" }>;
 type TermEdit = Exclude<Edit, StatementEdit>;
