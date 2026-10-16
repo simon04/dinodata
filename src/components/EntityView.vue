@@ -756,6 +756,10 @@ watch(
 .dd-identifiers :deep(.dd-statement-group) {
   break-inside: avoid;
 }
+/* identifier values one below the other, not side by side */
+.dd-identifiers :deep(.dd-values) {
+  grid-template-columns: 1fr;
+}
 .dd-toolbar {
   display: flex;
   flex-wrap: wrap;
