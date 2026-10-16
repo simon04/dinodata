@@ -51,7 +51,8 @@
     <section v-else class="dd-home">
       <div>
         <h1>{{ t("app-welcome") }}</h1>
-        <p>{{ t("app-intro") }}</p>
+        <p class="dd-intro">{{ t("app-intro") }}</p>
+        <p>{{ t("app-try") }}</p>
         <ul>
           <li v-for="[id, name] in EXAMPLES" :key="id">
             <a :href="`#${id}`">{{ examples[id]?.label ?? name }}</a>
@@ -286,6 +287,9 @@ samp {
 }
 .dd-home li + li {
   margin-top: 0.5rem;
+}
+.dd-intro {
+  max-width: 40rem;
 }
 .dd-example-description {
   color: var(--color-subtle);
