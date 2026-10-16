@@ -40,7 +40,12 @@
               {{ alias.value }}
               <button
                 class="dd-alias-action"
-                :title="alias.added || alias.removed ? t('undo') : t('remove')"
+                :aria-label="
+                  alias.added || alias.removed ? t('undo') : t('remove')
+                "
+                v-tooltip="
+                  alias.added || alias.removed ? t('undo') : t('remove')
+                "
                 @click="toggleAlias(row.language, alias.value, alias)"
               >
                 {{ alias.added || alias.removed ? "↺" : "×" }}

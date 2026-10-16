@@ -15,7 +15,7 @@
           action="progressive"
           size="small"
           :aria-label="t('add-value')"
-          :title="t('add-value')"
+          v-tooltip="t('add-value')"
           @click="adding = true"
         >
           <cdx-icon :icon="cdxIconAdd" size="small" />
@@ -25,7 +25,7 @@
           weight="quiet"
           size="small"
           :aria-label="t('copy-statements', claims.length)"
-          :title="t('copy-statements', claims.length)"
+          v-tooltip="t('copy-statements', claims.length)"
           @click="
             emit(
               'copy',
@@ -166,7 +166,7 @@
               weight="quiet"
               size="small"
               :aria-label="t('edit')"
-              :title="t('edit')"
+              v-tooltip="t('edit')"
               @click="startEdit(claim)"
             >
               <cdx-icon :icon="cdxIconEdit" size="small" />
@@ -177,7 +177,7 @@
               weight="quiet"
               size="small"
               :aria-label="t('add-qualifier')"
-              :title="t('add-qualifier')"
+              v-tooltip="t('add-qualifier')"
               @click="addingQualifier = claim.id"
             >
               <cdx-icon :icon="cdxIconAdd" size="small" />
@@ -187,7 +187,7 @@
               weight="quiet"
               size="small"
               :aria-label="t('copy-statement')"
-              :title="t('copy-statement')"
+              v-tooltip="t('copy-statement')"
               @click="emit('copy', [claim])"
             >
               <cdx-icon :icon="cdxIconCopy" size="small" />
@@ -201,7 +201,7 @@
               weight="quiet"
               size="small"
               :aria-label="t('undo')"
-              :title="t('undo')"
+              v-tooltip="t('undo')"
               @click="emit('undo', claim)"
             >
               <cdx-icon :icon="cdxIconUndo" size="small" />
@@ -213,7 +213,7 @@
               action="destructive"
               size="small"
               :aria-label="t('remove')"
-              :title="t('remove')"
+              v-tooltip="t('remove')"
               @click="emit('remove', claim)"
             >
               <cdx-icon :icon="cdxIconTrash" size="small" />
@@ -281,7 +281,7 @@
                   weight="quiet"
                   size="small"
                   :aria-label="t('edit-qualifier')"
-                  :title="t('edit-qualifier')"
+                  v-tooltip="t('edit-qualifier')"
                   @click="startEditQualifier(claim, String(qualifier), i)"
                 >
                   <cdx-icon :icon="cdxIconEdit" size="small" />
@@ -293,7 +293,7 @@
                   action="destructive"
                   size="small"
                   :aria-label="t('remove-qualifier')"
-                  :title="t('remove-qualifier')"
+                  v-tooltip="t('remove-qualifier')"
                   @click="setQualifier(claim, String(qualifier), i)"
                 >
                   <cdx-icon :icon="cdxIconTrash" size="small" />

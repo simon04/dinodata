@@ -1,7 +1,7 @@
 <template>
   <button
     class="dd-entity-id"
-    :title="t('copy-id', id)"
+    v-tooltip="t('copy-id', id)"
     :aria-label="t('copy-id', id)"
     @click.prevent="copy(id)"
   >

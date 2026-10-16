@@ -30,7 +30,7 @@
           weight="quiet"
           size="small"
           :aria-label="t('undo')"
-          :title="t('undo')"
+          v-tooltip="t('undo')"
           @click="undo(row.site)"
         >
           <cdx-icon :icon="cdxIconUndo" size="small" />
@@ -42,7 +42,7 @@
           action="destructive"
           size="small"
           :aria-label="t('remove')"
-          :title="t('remove')"
+          v-tooltip="t('remove')"
           @click="setSitelink(row.site, '')"
         >
           <cdx-icon :icon="cdxIconTrash" size="small" />
