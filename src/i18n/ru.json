@@ -28,6 +28,8 @@
   "sitelinks-title": "Название",
   "add-statement": "Добавить утверждение",
   "add-value": "Добавить значение",
+  "add-qualifier": "Добавить квалификатор",
+  "remove-qualifier": "Удалить квалификатор",
   "suggested-properties": "Рекомендуется для этого типа:",
   "add-label": "Добавить метку",
   "add-sitelink": "Добавить ссылку",

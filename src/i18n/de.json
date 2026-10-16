@@ -27,6 +27,8 @@
   "sitelinks-title": "Titel",
   "add-statement": "Aussage hinzufügen",
   "add-value": "Wert hinzufügen",
+  "add-qualifier": "Qualifikator hinzufügen",
+  "remove-qualifier": "Qualifikator entfernen",
   "suggested-properties": "Vorschläge für diesen Typ:",
   "add-label": "Bezeichnung hinzufügen",
   "add-sitelink": "Sitelink hinzufügen",

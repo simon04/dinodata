@@ -30,6 +30,8 @@
   "sitelinks-title": "Title",
   "add-statement": "Add statement",
   "add-value": "Add value",
+  "add-qualifier": "Add qualifier",
+  "remove-qualifier": "Remove qualifier",
   "suggested-properties": "Suggested for this type:",
   "add-label": "Add label",
   "add-sitelink": "Add sitelink",

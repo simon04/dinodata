@@ -61,6 +61,9 @@
         :class="[
           `dd-rank-${claim.rank}`,
           {
+            'dd-value-wide':
+              addingQualifier === claim.id ||
+              editingQualifier?.claimId === claim.id,
             'dd-pending': pending.has(claim.id),
             'dd-changed': changed.has(claim.id),
             'dd-removed': removed.has(claim.id),
@@ -168,14 +171,78 @@
             </a>
             <template v-for="(snak, i) in snaks" :key="i">
               <span v-if="i">,</span>
-              <SnakValue
-                :snak="snak"
-                :labels="labels"
-                :formatter-urls="formatterUrls"
-              />
+              <span
+                v-if="
+                  editingQualifier?.claimId === claim.id &&
+                  editingQualifier.property === qualifier &&
+                  editingQualifier.index === i
+                "
+                class="dd-edit"
+              >
+                <ValueInput
+                  :property="String(qualifier)"
+                  :datatype="
+                    snak.datatype ?? byId[qualifier]?.datatype ?? 'string'
+                  "
+                  :language="language"
+                  :original="snak"
+                  :label="labels[qualifier] ?? String(qualifier)"
+                  @submit="
+                    (value, label) => {
+                      setQualifier(claim, String(qualifier), i, value, label);
+                      editingQualifier = undefined;
+                    }
+                  "
+                  @keydown.esc="editingQualifier = undefined"
+                />
+                <cdx-button
+                  weight="quiet"
+                  size="small"
+                  :aria-label="t('cancel')"
+                  @click="editingQualifier = undefined"
+                >
+                  <cdx-icon :icon="cdxIconClose" size="small" />
+                </cdx-button>
+              </span>
+              <span v-else class="dd-qualifier-value">
+                <SnakValue
+                  :snak="snak"
+                  :labels="labels"
+                  :formatter-urls="formatterUrls"
+                  @dblclick="startEditQualifier(claim, String(qualifier), i)"
+                />
+                <cdx-button
+                  v-if="!removed.has(claim.id)"
+                  class="dd-hover dd-qualifier-remove"
+                  weight="quiet"
+                  action="destructive"
+                  size="small"
+                  :aria-label="t('remove-qualifier')"
+                  :title="t('remove-qualifier')"
+                  @click="setQualifier(claim, String(qualifier), i)"
+                >
+                  <cdx-icon :icon="cdxIconClose" size="x-small" />
+                </cdx-button>
+              </span>
             </template>
           </span>
         </div>
+        <AddStatement
+          v-if="addingQualifier === claim.id"
+          class="dd-add-qualifier"
+          :language="language"
+          @add="
+            (snak, label) =>
+              setQualifier(
+                claim,
+                snak.property,
+                claim.qualifiers?.[snak.property]?.length ?? 0,
+                snak,
+                label,
+              )
+          "
+          @close="addingQualifier = undefined"
+        />
         <span v-if="editing !== claim.id" class="dd-actions">
           <cdx-button
             v-if="!removed.has(claim.id)"
@@ -187,6 +254,17 @@
             @click="startEdit(claim)"
           >
             <cdx-icon :icon="cdxIconEdit" size="small" />
+          </cdx-button>
+          <cdx-button
+            v-if="!removed.has(claim.id)"
+            class="dd-hover"
+            weight="quiet"
+            size="small"
+            :aria-label="t('add-qualifier')"
+            :title="t('add-qualifier')"
+            @click="addingQualifier = claim.id"
+          >
+            <cdx-icon :icon="cdxIconAdd" size="small" />
           </cdx-button>
           <cdx-button
             class="dd-hover"
@@ -278,6 +356,12 @@ const emit = defineEmits<{
   undo: [claim: Claim];
   copy: [claims: Claim[]];
   change: [claim: Claim, snak: Snak, label?: string];
+  qualifiers: [
+    claim: Claim,
+    qualifiers: Record<string, Snak[]>,
+    snak?: Snak,
+    label?: string,
+  ];
 }>();
 
 const { byId } = useProperties();
@@ -288,6 +372,36 @@ function startEdit(claim: Claim) {
   if (props.removed.has(claim.id) || claim.mainsnak.snaktype !== "value")
     return;
   editing.value = claim.id;
+}
+
+const addingQualifier = ref<string>();
+const editingQualifier = ref<{
+  claimId: string;
+  property: string;
+  index: number;
+}>();
+
+function startEditQualifier(claim: Claim, property: string, index: number) {
+  const snak = claim.qualifiers?.[property]?.[index];
+  if (props.removed.has(claim.id) || snak?.snaktype !== "value") return;
+  editingQualifier.value = { claimId: claim.id, property, index };
+}
+
+/** Replace (or add at the end) the qualifier at `index`; without `snak`, remove it. */
+function setQualifier(
+  claim: Claim,
+  property: string,
+  index: number,
+  snak?: Snak,
+  label?: string,
+) {
+  const qualifiers = { ...claim.qualifiers };
+  const snaks = [...(qualifiers[property] ?? [])];
+  if (snak) snaks.splice(index, 1, snak);
+  else snaks.splice(index, 1);
+  if (snaks.length) qualifiers[property] = snaks;
+  else delete qualifiers[property];
+  emit("qualifiers", claim, qualifiers, snak, label);
 }
 
 /** From the cache, or derived from existing statements while it loads. */
@@ -414,6 +528,26 @@ function thumb(file: string) {
   column-gap: 0.75rem;
   font-size: 0.8125em;
   color: var(--color-subtle);
+}
+.dd-qualifier-value {
+  display: inline-flex;
+  align-items: baseline;
+}
+.dd-qualifier-remove {
+  min-height: 1rem;
+  min-width: 1rem;
+  padding: 0;
+  align-self: center;
+}
+.dd-qualifiers .dd-edit {
+  flex-basis: 100%;
+  font-size: var(--font-size-medium);
+}
+.dd-value-wide {
+  grid-column: 1 / -1;
+}
+.dd-add-qualifier {
+  margin: 0.375rem 0 0;
 }
 .dd-qualifier-property {
   color: var(--color-subtle);

@@ -96,6 +96,7 @@
             @undo="undo"
             @copy="copy"
             @change="changeStatement"
+            @qualifiers="changeQualifiers"
           />
         </div>
       </cdx-tab>
@@ -150,6 +151,7 @@
             @undo="undo"
             @copy="copy"
             @change="changeStatement"
+            @qualifiers="changeQualifiers"
           />
         </div>
       </cdx-tab>
@@ -194,7 +196,7 @@ import {
   type Entity,
   type Snak,
 } from "../wikidata";
-import { snakValue, type Edit } from "../quickstatements";
+import { snakValue, toQuickStatements, type Edit } from "../quickstatements";
 import { consumeReloadBypass } from "../cache";
 import {
   claimToEdit,
@@ -292,16 +294,21 @@ const removed = computed(
 
 function claimsOf(property: string): Claim[] {
   const replaced = new Map(
-    statementEdits.value
-      .filter((e) => e.replace)
-      .map((e) => [e.claimId, e.snak]),
+    statementEdits.value.filter((e) => e.replace).map((e) => [e.claimId, e]),
   );
   return [
-    ...(entity.value?.claims[property] ?? []).map((claim) =>
-      replaced.has(claim.id)
-        ? { ...claim, mainsnak: replaced.get(claim.id)! }
-        : claim,
-    ),
+    ...(entity.value?.claims[property] ?? []).map((claim) => {
+      const edit = replaced.get(claim.id);
+      return edit
+        ? {
+            ...claim,
+            mainsnak: edit.snak,
+            qualifiers: edit.qualifiers?.length
+              ? groupSnaks(edit.qualifiers)
+              : undefined,
+          }
+        : claim;
+    }),
     ...statementEdits.value
       .filter((e) => !e.remove && !e.replace && e.snak.property === property)
       .map((e) => ({
@@ -417,28 +424,63 @@ function addStatement(snak: Snak, valueLabel?: string) {
   edits.value.push({ type: "statement", claimId: `new-${++counter}`, snak });
 }
 
+function rememberLabel(snak: Snak | undefined, valueLabel?: string) {
+  const id = (snak?.datavalue?.value as { id?: string })?.id;
+  if (id && valueLabel) labels.value[id] = valueLabel;
+}
+
 /** Change the main value; qualifiers and references are kept. */
 function changeStatement(claim: Claim, snak: Snak, valueLabel?: string) {
-  const id = (snak.datavalue?.value as { id?: string })?.id;
-  if (id && valueLabel) labels.value[id] = valueLabel;
+  rememberLabel(snak, valueLabel);
+  updateStatement({ ...claim, mainsnak: snak });
+}
+
+/** Change the qualifiers; the main value and references are kept. */
+function changeQualifiers(
+  claim: Claim,
+  qualifiers: Record<string, Snak[]>,
+  snak?: Snak,
+  valueLabel?: string,
+) {
+  rememberLabel(snak, valueLabel);
+  updateStatement({
+    ...claim,
+    qualifiers: Object.keys(qualifiers).length ? qualifiers : undefined,
+  });
+}
+
+/**
+ * Pending statements are changed in place; existing ones are replaced
+ * (removed by ID and re-added), unless the change was reverted.
+ */
+function updateStatement(updated: Claim) {
   const pendingEdit = statementEdits.value.find(
-    (e) => e.claimId === claim.id && !e.remove && !e.replace,
+    (e) => e.claimId === updated.id && !e.remove && !e.replace,
   );
   if (pendingEdit) {
-    pendingEdit.snak = snak;
+    pendingEdit.snak = updated.mainsnak;
+    pendingEdit.qualifiers = Object.values(updated.qualifiers ?? {}).flat();
     return;
   }
-  const original = entity.value?.claims[claim.mainsnak.property]?.find(
-    (c) => c.id === claim.id,
+  const original = entity.value?.claims[updated.mainsnak.property]?.find(
+    (c) => c.id === updated.id,
   );
   edits.value = edits.value.filter(
-    (e) => e.type !== "statement" || e.claimId !== claim.id,
+    (e) => e.type !== "statement" || e.claimId !== updated.id,
   );
-  if (!original || snakValue(original.mainsnak) === snakValue(snak)) return;
-  edits.value.push({
-    ...claimToEdit({ ...original, mainsnak: snak }, claim.id),
-    replace: true,
-  });
+  if (!original) return;
+  const edit = claimToEdit(
+    {
+      ...original,
+      mainsnak: updated.mainsnak,
+      qualifiers: updated.qualifiers,
+    },
+    updated.id,
+  );
+  const unchanged =
+    toQuickStatements(props.id, [edit]) ===
+    toQuickStatements(props.id, [claimToEdit(original, updated.id)]);
+  if (!unchanged) edits.value.push({ ...edit, replace: true });
 }
 
 function removeStatement(claim: Claim) {
@@ -476,6 +518,10 @@ const allLabels = computed(() => {
     ...propertyIds.value,
     ...properties.value,
     ...typeProperties.value,
+    // qualifiers added in the editor
+    ...statementEdits.value.flatMap((e) =>
+      (e.qualifiers ?? []).map((q) => q.property),
+    ),
   ]) {
     result[property] ??=
       propertyLabel(byId.value[property], props.language) ?? property;
