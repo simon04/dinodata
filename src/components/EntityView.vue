@@ -36,6 +36,16 @@
             <cdx-icon :icon="cdxIconLogoWikipedia" size="small" />
             {{ t("entity-wikipedia") }}
           </a>
+          <a
+            v-if="commons"
+            :class="LINK_BUTTON"
+            :href="`https://commons.wikimedia.org/wiki/${encodeURIComponent(commons)}`"
+            target="_blank"
+            rel="external noopener"
+          >
+            <cdx-icon :icon="cdxIconLogoWikimediaCommons" size="small" />
+            {{ t("entity-commons") }}
+          </a>
         </p>
       </div>
       <img v-if="image" class="dd-image" :src="image" alt="" />
@@ -188,6 +198,7 @@ import {
 import {
   cdxIconAdd,
   cdxIconLogoWikidata,
+  cdxIconLogoWikimediaCommons,
   cdxIconLogoWikipedia,
   cdxIconPaste,
 } from "@wikimedia/codex-icons";
@@ -574,6 +585,14 @@ const suggested = computed(() => {
     statements: missing.filter((p) => !external(p)),
     identifiers: missing.filter(external),
   };
+});
+
+/** Commons category (P373), or the Commons sitelink (usually a category) */
+const commons = computed(() => {
+  const category = entity.value?.claims.P373?.[0]?.mainsnak.datavalue?.value;
+  return category
+    ? `Category:${category}`
+    : entity.value?.sitelinks?.commonswiki?.title;
 });
 
 const image = computed(() => {

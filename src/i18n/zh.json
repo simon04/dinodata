@@ -14,6 +14,7 @@
   "language-no-results": "没有匹配的语言。",
   "loading": "正在加载",
   "entity-no-description": "无描述",
+  "entity-commons": "维基共享资源",
   "tab-statements": "声明（$1）",
   "tab-identifiers": "标识符（$1）",
   "tab-languages": "语言（$1）",

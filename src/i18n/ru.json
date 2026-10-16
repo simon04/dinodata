@@ -14,6 +14,7 @@
   "language-no-results": "Подходящий язык не найден.",
   "loading": "Загрузка",
   "entity-no-description": "Нет описания",
+  "entity-commons": "Викисклад",
   "tab-statements": "Утверждения ($1)",
   "tab-identifiers": "Идентификаторы ($1)",
   "tab-languages": "Языки ($1)",

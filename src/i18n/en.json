@@ -16,6 +16,7 @@
   "entity-no-description": "No description",
   "entity-wikidata": "Wikidata",
   "entity-wikipedia": "Wikipedia",
+  "entity-commons": "Commons",
   "tab-statements": "Statements ($1)",
   "tab-identifiers": "Identifiers ($1)",
   "tab-languages": "Languages ($1)",
