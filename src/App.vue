@@ -53,13 +53,10 @@
         <h1>{{ t("app-welcome") }}</h1>
         <p>{{ t("app-intro") }}</p>
         <ul>
-          <li><a href="#Q40">Austria (Q40)</a></li>
-          <li><a href="#Q1735">Innsbruck (Q1735)</a></li>
-          <li><a href="#Q96694010">Marktplatz, Innsbruck (Q96694010)</a></li>
-          <li><a href="#Q357751">Serles (Q357751)</a></li>
-          <li><a href="#Q42">Douglas Adams (Q42)</a></li>
-          <li><a href="#Q430">Dinosaur (Q430)</a></li>
-          <li><a href="#Q14384">Tyrannosaurus (Q14384)</a></li>
+          <li v-for="[id, name] in EXAMPLES" :key="id">
+            <a :href="`#${id}`">{{ name }}</a>
+            <code class="dd-id-chip">{{ id }}</code>
+          </li>
         </ul>
       </div>
       <aside class="dd-hackathon">
@@ -143,6 +140,16 @@ import { loadProperties } from "./properties";
 import LanguageSelector from "./components/LanguageSelector.vue";
 import HeaderSearch from "./components/HeaderSearch.vue";
 import EntityView from "./components/EntityView.vue";
+
+const EXAMPLES = [
+  ["Q40", "Austria"],
+  ["Q1735", "Innsbruck"],
+  ["Q96694010", "Marktplatz, Innsbruck"],
+  ["Q357751", "Serles"],
+  ["Q42", "Douglas Adams"],
+  ["Q430", "Dinosaur"],
+  ["Q14384", "Tyrannosaurus"],
+];
 
 watchEffect(() => {
   document.documentElement.lang = language.value;
@@ -235,6 +242,9 @@ samp {
   gap: 2rem;
   justify-content: space-between;
   align-items: flex-start;
+}
+.dd-home li + li {
+  margin-top: 0.5rem;
 }
 .dd-hackathon {
   display: flex;
