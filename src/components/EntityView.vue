@@ -235,7 +235,6 @@ const LINK_BUTTON = [
   "cdx-button",
   "cdx-button--fake-button",
   "cdx-button--fake-button--enabled",
-  "cdx-button--size-small",
 ];
 
 const entity = ref<Entity>();
