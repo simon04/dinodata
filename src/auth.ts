@@ -65,12 +65,14 @@ export const useAuth = createGlobalState(() => {
   const user = shallowRef<User | null>(null);
   if (loginAvailable) {
     const m = userManager();
-    m.getUser().then(async (u) => {
-      // expired since the last visit: renew with the refresh token
-      if (u?.expired && u.refresh_token)
-        u = await m.signinSilent().catch(() => null);
-      user.value = u && !u.expired ? u : null;
-    });
+    m.getUser()
+      .then(async (u) => {
+        // expired since the last visit: renew with the refresh token
+        if (u?.expired && u.refresh_token)
+          u = await m.signinSilent().catch(() => null);
+        user.value = u && !u.expired ? u : null;
+      })
+      .catch(console.warn);
     m.events.addUserLoaded((u) => {
       user.value = u;
     });

@@ -124,7 +124,7 @@ async function fetchTerms(
       next = json.continue;
     }
   };
-  const prefixes = [..."123456789"].map((d) => `P${d}`);
+  const prefixes = "123456789".split("").map((d) => `P${d}`);
   await Promise.all(
     Array.from({ length: CONCURRENCY }, async () => {
       for (let prefix; (prefix = prefixes.shift());) await chain(prefix);

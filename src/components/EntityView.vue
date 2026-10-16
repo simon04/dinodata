@@ -197,7 +197,13 @@
       </cdx-tab>
     </cdx-tabs>
 
-    <QuickStatementsPanel :id="entity.id" :edits="edits" />
+    <QuickStatementsPanel
+      :id="entity.id"
+      :edits="edits"
+      :saving="saving"
+      :saved-revision="savedRevision"
+      @save="save"
+    />
   </article>
 </template>
 
@@ -221,6 +227,8 @@ import {
   cdxIconPaste,
 } from "@wikimedia/codex-icons";
 import {
+  ApiError,
+  editEntity,
   getEntities,
   getLabels,
   label,
@@ -230,6 +238,8 @@ import {
 } from "../wikidata";
 import { snakValue, toQuickStatements, type Edit } from "../quickstatements";
 import { consumeReloadBypass } from "../cache";
+import { useAuth } from "../auth";
+import { toEntityData } from "../edit";
 import {
   claimToEdit,
   copyClaims,
@@ -694,6 +704,51 @@ function referencedIds(e: Entity): string[] {
   return [...ids];
 }
 
+const { username, accessToken } = useAuth();
+const saving = ref(false);
+const savedRevision = ref<number>();
+
+/** Save all pending edits in one revision. */
+async function save(summary: string) {
+  const e = entity.value;
+  if (!e?.lastrevid || !username.value || !accessToken.value) return;
+  saving.value = true;
+  try {
+    const { lastrevid } = await editEntity(e.id, toEntityData(e, edits.value), {
+      baserevid: e.lastrevid,
+      summary: summary ? `${summary} (via DinoData)` : "via DinoData",
+      auth: { accessToken: accessToken.value, username: username.value },
+    });
+    edits.value = [];
+    savedRevision.value = lastrevid;
+    await reload();
+  } catch (err) {
+    toast.error(
+      err instanceof ApiError && err.code === "editconflict"
+        ? t("save-conflict")
+        : t("save-failed", err instanceof Error ? err.message : String(err)),
+    );
+  } finally {
+    saving.value = false;
+  }
+}
+
+/** Fetch the saved entity, bypassing the cache, without the skeleton. */
+async function reload() {
+  const e = (await getEntities([props.id], undefined, undefined, true))[
+    props.id
+  ];
+  if (!e) return;
+  const referenced = referencedIds(e);
+  propertyIds.value = referenced.filter((i) => i.startsWith("P"));
+  entity.value = e;
+  await getLabels(
+    referenced.filter((i) => !i.startsWith("P") && !labels.value[i]),
+    props.language,
+    addLabels,
+  );
+}
+
 watch(
   () => [props.id, props.language],
   async ([id], old) => {
@@ -702,6 +757,7 @@ watch(
     error.value = undefined;
     if (id !== oldId) {
       edits.value = [];
+      savedRevision.value = undefined;
       typeProperties.value = [];
       closeAdding();
     }
