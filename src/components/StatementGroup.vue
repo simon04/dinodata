@@ -311,10 +311,36 @@ const propertyInfo = computed<Property | undefined>(() => {
 const COLLAPSE_ABOVE = 12;
 const COLLAPSED = 8;
 const expanded = ref(false);
+
+const RANK_ORDER: Record<Claim["rank"], number> = {
+  preferred: 0,
+  normal: 1,
+  deprecated: 2,
+};
+
+/** Point in time (P585) or publication date (P577) qualifier as [year, "-MM-DDThh:mm:ssZ"]. */
+function pointInTime(claim: Claim): [number, string] | undefined {
+  const snak = claim.qualifiers?.P585?.[0] ?? claim.qualifiers?.P577?.[0];
+  const value = snak?.datavalue?.value as { time?: string } | undefined;
+  const match = value?.time?.match(/^([+-]\d+)(.*)$/);
+  return match ? [Number(match[1]), match[2]] : undefined;
+}
+
+/** Preferred first, deprecated last; within a rank, newest P585/P577 first. */
+const sortedClaims = computed(() =>
+  [...props.claims].sort((a, b) => {
+    const byRank = RANK_ORDER[a.rank] - RANK_ORDER[b.rank];
+    if (byRank) return byRank;
+    const ta = pointInTime(a);
+    const tb = pointInTime(b);
+    if (!ta || !tb) return ta ? -1 : tb ? 1 : 0;
+    return tb[0] - ta[0] || tb[1].localeCompare(ta[1]);
+  }),
+);
 const visibleClaims = computed(() =>
-  expanded.value || props.claims.length <= COLLAPSE_ABOVE
-    ? props.claims
-    : props.claims.slice(0, COLLAPSED),
+  expanded.value || sortedClaims.value.length <= COLLAPSE_ABOVE
+    ? sortedClaims.value
+    : sortedClaims.value.slice(0, COLLAPSED),
 );
 const hidden = computed(() => props.claims.length - visibleClaims.value.length);
 
