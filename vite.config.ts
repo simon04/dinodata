@@ -17,6 +17,10 @@ export default defineConfig({
       typeCheck: false,
     },
   },
+  test: {
+    // browser APIs (sessionStorage, navigator, DOM) for the modules under test
+    environment: "happy-dom",
+  },
   staged: {
     "*": "vp check --fix",
   },

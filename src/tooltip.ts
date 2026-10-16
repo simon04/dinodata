@@ -1,5 +1,5 @@
 import { CdxTooltip } from "@wikimedia/codex";
-import type { Directive, DirectiveBinding, ObjectDirective } from "vue";
+import type { DirectiveBinding, ObjectDirective } from "vue";
 
 interface Tooltip {
   show(): void;
@@ -23,7 +23,7 @@ const HOVER_DELAY = 500;
  * every tooltip eagerly, each with a DOM node and floating-ui `autoUpdate`
  * (scroll/resize listeners), which adds up to thousands for large items.
  */
-export const lazyTooltip: Directive<Element, string> = {
+export const lazyTooltip: ObjectDirective<Element, string> = {
   mounted(el, binding) {
     el.tooltipText = binding.value;
     const create = () => {

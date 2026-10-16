@@ -129,7 +129,8 @@ export function formatInput(datavalue: Snak["datavalue"]): string {
     case "time": {
       const m = v.time.match(/^([+-])(\d+)-(\d\d)-(\d\d)/);
       if (!m) return v.time;
-      const year = `${m[1] === "-" ? "-" : ""}${m[2]}`;
+      // without the padding of the Wikibase format, e.g. -0044 → -44
+      const year = `${m[1] === "-" ? "-" : ""}${m[2].replace(/^0+(?=\d)/, "")}`;
       const precision = Number(v.precision);
       if (precision >= 11) return `${year}-${m[3]}-${m[4]}`;
       if (precision === 10) return `${year}-${m[3]}`;

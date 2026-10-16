@@ -82,6 +82,7 @@ pnpm install   # also installs the Git pre-commit hook (vp config)
 pnpm dev       # development server with hot reload
 pnpm build     # type-check (vue-tsc) and build to dist/
 pnpm preview   # serve the production build from dist/
+pnpm test      # unit tests (Vitest, happy-dom); also run in CI
 pnpm vp check  # format, lint and type checks
 pnpm vp fmt    # format all files
 pnpm vp lint   # lint only

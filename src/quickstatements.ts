@@ -122,8 +122,8 @@ export function toQuickStatements(id: string, edits: Edit[]): string {
           ];
           // one line per reference, QuickStatements merges the statements
           const references = edit.references?.length ? edit.references : [[]];
-          return [
-            ...references.map((reference) =>
+          return references
+            .map((reference) =>
               [
                 ...statement,
                 ...reference.flatMap((r) => [
@@ -131,8 +131,8 @@ export function toQuickStatements(id: string, edits: Edit[]): string {
                   snakValue(r),
                 ]),
               ].join("|"),
-            ),
-          ].join("\n");
+            )
+            .join("\n");
       }
     })
     .join("\n");
