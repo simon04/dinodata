@@ -18,7 +18,14 @@ const { copy, copied } = useClipboard({ copiedDuring: 800 });
 </script>
 
 <style>
-.dd-entity-id {
+/* Also used for IDs in search results; CdxTypeaheadSearch has no slot for
+   results, so its ID (`match`) is styled via Codex's classes */
+.dd-entity-id,
+.dd-id-chip,
+.cdx-typeahead-search
+  .cdx-menu-item__text
+  > .cdx-search-result-title
+  + .cdx-search-result-title {
   border: 1px solid var(--border-color-subtle);
   font: inherit;
   line-height: inherit;
@@ -29,8 +36,14 @@ const { copy, copied } = useClipboard({ copiedDuring: 800 });
   color: var(--color-subtle);
   font-size: 0.75em;
   font-weight: normal;
-  cursor: copy;
   white-space: nowrap;
+}
+.dd-entity-id {
+  cursor: copy;
+}
+.dd-id-chip,
+.cdx-typeahead-search .cdx-search-result-title + .cdx-search-result-title {
+  font-family: var(--font-family-monospace);
 }
 .dd-entity-id code {
   all: unset;

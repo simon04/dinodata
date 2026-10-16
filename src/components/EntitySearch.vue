@@ -9,6 +9,22 @@
     @input="onInput"
     @update:selected="onSelected"
   >
+    <template #menu-item="{ menuItem }">
+      <span class="cdx-menu-item__content">
+        <span class="cdx-menu-item__text">
+          <span class="cdx-menu-item__text__label">
+            <bdi>{{ menuItem.label }}</bdi>
+          </span>
+          <code class="dd-id-chip">{{ menuItem.value }}</code>
+          <span
+            v-if="menuItem.description"
+            class="cdx-menu-item__text__description"
+          >
+            <bdi>{{ menuItem.description }}</bdi>
+          </span>
+        </span>
+      </span>
+    </template>
     <template #no-results>{{ t("search-no-results") }}</template>
   </cdx-lookup>
 </template>
@@ -43,7 +59,6 @@ const onInput = useDebounceFn(async (value: string) => {
     value: r.id,
     label: r.label ?? r.id,
     description: r.description,
-    match: r.id,
   }));
 }, 200);
 
