@@ -25,6 +25,8 @@ export interface Claim {
 
 export interface Entity {
   id: string;
+  /** revision ID, for edit conflict detection */
+  lastrevid?: number;
   labels: Record<string, { value: string }>;
   descriptions: Record<string, { value: string }>;
   aliases: Record<string, { value: string }[]>;
@@ -71,7 +73,7 @@ export async function searchEntities(
 /** Fetch full entities (cached for an hour unless `bypass`). */
 export async function getEntities(
   ids: string[],
-  props = "labels|descriptions|aliases|claims|sitelinks",
+  props = "info|labels|descriptions|aliases|claims|sitelinks",
   languages?: string[],
   bypass = false,
 ): Promise<Record<string, Entity>> {
@@ -217,4 +219,102 @@ export async function getBacklinks(
     };
   });
   return { pages, next: json.continue };
+}
+
+/** Error reported by the Action API, e.g. `editconflict` or `permissiondenied`. */
+export class ApiError extends Error {
+  constructor(
+    readonly code: string,
+    info: string,
+  ) {
+    super(info);
+    this.name = "ApiError";
+  }
+}
+
+/** retries while the database replicas lag (`maxlag`) */
+const MAXLAG_RETRIES = 3;
+
+/**
+ * Authenticated POST to the Action API with an OAuth 2.0 access token.
+ * `crossorigin` (instead of `origin=*`) keeps the request authenticated;
+ * `assertuser` fails instead of editing anonymously.
+ */
+export async function apiPost<T>(
+  params: Record<string, string>,
+  auth: { accessToken: string; username: string },
+): Promise<T> {
+  const url = new URL(API);
+  url.search = new URLSearchParams({ crossorigin: "" }).toString();
+  const body = new URLSearchParams({
+    format: "json",
+    formatversion: "2",
+    errorformat: "plaintext",
+    maxlag: "5",
+    assertuser: auth.username,
+    ...params,
+  });
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${auth.accessToken}` },
+      body,
+    });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const json = await res.json();
+    const error = json.errors?.[0] as
+      | { code: string; text: string }
+      | undefined;
+    if (!error) return json as T;
+    if (error.code === "maxlag" && attempt < MAXLAG_RETRIES) {
+      const seconds = Number(res.headers.get("retry-after")) || 5;
+      await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+      continue;
+    }
+    throw new ApiError(error.code, error.text);
+  }
+}
+
+/** CSRF token for edits by the authenticated user. */
+export async function getCsrfToken(auth: {
+  accessToken: string;
+  username: string;
+}): Promise<string> {
+  const json = await apiPost<{ query: { tokens: { csrftoken: string } } }>(
+    { action: "query", meta: "tokens", type: "csrf" },
+    auth,
+  );
+  return json.query.tokens.csrftoken;
+}
+
+/**
+ * Edit an entity in one revision (`wbeditentity`). `baserevid` makes
+ * concurrent edits fail with `editconflict` instead of being overwritten.
+ */
+export async function editEntity(
+  id: string,
+  data: object,
+  {
+    baserevid,
+    summary,
+    auth,
+  }: {
+    baserevid: number;
+    summary: string;
+    auth: { accessToken: string; username: string };
+  },
+): Promise<{ lastrevid: number }> {
+  const token = await getCsrfToken(auth);
+  const json = await apiPost<{ entity: { lastrevid: number } }>(
+    {
+      action: "wbeditentity",
+      id,
+      data: JSON.stringify(data),
+      baserevid: String(baserevid),
+      summary,
+      token,
+    },
+    auth,
+  );
+  return { lastrevid: json.entity.lastrevid };
 }
