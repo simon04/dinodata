@@ -6,6 +6,8 @@ export default defineConfig({
   // relative paths: served from GitHub Pages (/dinodata/) and Toolforge (/)
   base: "./",
   plugins: [vue()],
+  // the OAuth callback of the dev consumer is http://localhost:5173/oauth-callback
+  server: { port: 5173, strictPort: true },
   fmt: {
     htmlWhitespaceSensitivity: "ignore",
     printWidth: 80,

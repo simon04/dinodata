@@ -95,5 +95,8 @@
   "footer-source": "الشيفرة المصدرية على GitHub",
   "footer-license": "الرخصة: $1",
   "footer-data": "البيانات من ويكي بيانات (CC0)",
-  "search-wikidata": "ابحث عن «$1» في ويكي بيانات"
+  "search-wikidata": "ابحث عن «$1» في ويكي بيانات",
+  "login": "دخول",
+  "logout": "خروج",
+  "login-failed": "فشل الدخول: $1"
 }

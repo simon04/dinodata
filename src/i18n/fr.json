@@ -94,5 +94,8 @@
   "search-wikidata": "Rechercher « $1 » sur Wikidata",
   "media-enlarge": "Agrandir l’image",
   "media-loading": "Chargement de l’image…",
-  "media-commons": "Voir sur Commons"
+  "media-commons": "Voir sur Commons",
+  "login": "Se connecter",
+  "logout": "Se déconnecter",
+  "login-failed": "Échec de la connexion : $1"
 }

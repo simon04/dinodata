@@ -95,5 +95,8 @@
   "footer-source": "Исходный код на GitHub",
   "footer-license": "Лицензия: $1",
   "footer-data": "Данные из Викиданных (CC0)",
-  "search-wikidata": "Искать «$1» в Викиданных"
+  "search-wikidata": "Искать «$1» в Викиданных",
+  "login": "Войти",
+  "logout": "Выйти",
+  "login-failed": "Не удалось войти: $1"
 }

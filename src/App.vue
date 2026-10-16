@@ -14,6 +14,7 @@
       </span>
       <HeaderSearch class="dd-search" :language="language" @select="go" />
       <LanguageSelector v-model="language" />
+      <UserMenu />
     </div>
   </div>
 
@@ -151,6 +152,7 @@ import { CdxDialog, CdxToastContainer } from "@wikimedia/codex";
 import { loadProperties } from "./properties";
 import { description, getEntities, label } from "./wikidata";
 import LanguageSelector from "./components/LanguageSelector.vue";
+import UserMenu from "./components/UserMenu.vue";
 import HeaderSearch from "./components/HeaderSearch.vue";
 import EntityView from "./components/EntityView.vue";
 import MediaDialog from "./components/MediaDialog.vue";

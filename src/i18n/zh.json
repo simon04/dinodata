@@ -95,5 +95,8 @@
   "footer-source": "GitHub 上的源代码",
   "footer-license": "许可证：$1",
   "footer-data": "数据来自维基数据（CC0）",
-  "search-wikidata": "在维基数据上搜索“$1”"
+  "search-wikidata": "在维基数据上搜索“$1”",
+  "login": "登录",
+  "logout": "退出",
+  "login-failed": "登录失败：$1"
 }

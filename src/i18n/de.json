@@ -93,5 +93,8 @@
   "search-wikidata": "Auf Wikidata nach „$1“ suchen",
   "media-enlarge": "Bild vergrößern",
   "media-loading": "Bild wird geladen …",
-  "media-commons": "Auf Commons ansehen"
+  "media-commons": "Auf Commons ansehen",
+  "login": "Anmelden",
+  "logout": "Abmelden",
+  "login-failed": "Anmeldung fehlgeschlagen: $1"
 }

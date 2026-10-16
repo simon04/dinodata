@@ -94,5 +94,8 @@
   "search-wikidata": "Buscar «$1» en Wikidata",
   "media-enlarge": "Ampliar imagen",
   "media-loading": "Cargando imagen…",
-  "media-commons": "Ver en Commons"
+  "media-commons": "Ver en Commons",
+  "login": "Iniciar sesión",
+  "logout": "Cerrar sesión",
+  "login-failed": "Error al iniciar sesión: $1"
 }
