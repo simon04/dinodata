@@ -232,13 +232,12 @@ export class ApiError extends Error {
   }
 }
 
-/** retries while the database replicas lag (`maxlag`) */
-const MAXLAG_RETRIES = 3;
-
 /**
  * Authenticated POST to the Action API with an OAuth 2.0 access token.
  * `crossorigin` (instead of `origin=*`) keeps the request authenticated;
- * `assertuser` fails instead of editing anonymously.
+ * `assertuser` fails instead of editing anonymously. No `maxlag`: it is meant
+ * for bots, and on Wikidata includes the query service lag, which can block
+ * interactive edits for long.
  */
 export async function apiPost<T>(
   params: Record<string, string>,
@@ -246,33 +245,22 @@ export async function apiPost<T>(
 ): Promise<T> {
   const url = new URL(API);
   url.search = new URLSearchParams({ crossorigin: "" }).toString();
-  const body = new URLSearchParams({
-    format: "json",
-    formatversion: "2",
-    errorformat: "plaintext",
-    maxlag: "5",
-    assertuser: auth.username,
-    ...params,
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${auth.accessToken}` },
+    body: new URLSearchParams({
+      format: "json",
+      formatversion: "2",
+      errorformat: "plaintext",
+      assertuser: auth.username,
+      ...params,
+    }),
   });
-  for (let attempt = 0; ; attempt++) {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${auth.accessToken}` },
-      body,
-    });
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    const json = await res.json();
-    const error = json.errors?.[0] as
-      | { code: string; text: string }
-      | undefined;
-    if (!error) return json as T;
-    if (error.code === "maxlag" && attempt < MAXLAG_RETRIES) {
-      const seconds = Number(res.headers.get("retry-after")) || 5;
-      await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
-      continue;
-    }
-    throw new ApiError(error.code, error.text);
-  }
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  const json = await res.json();
+  const error = json.errors?.[0] as { code: string; text: string } | undefined;
+  if (error) throw new ApiError(error.code, error.text);
+  return json as T;
 }
 
 /** CSRF token for edits by the authenticated user. */

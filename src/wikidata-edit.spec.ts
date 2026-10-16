@@ -5,15 +5,12 @@ const auth = { accessToken: "secret", username: "Simon04" };
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  vi.useRealTimers();
 });
 
 function stubFetch(...responses: object[]) {
   const fetch = vi.fn(
     async (_url: URL, _init: RequestInit) =>
-      new Response(JSON.stringify(responses.shift()), {
-        headers: { "retry-after": "1" },
-      }),
+      new Response(JSON.stringify(responses.shift())),
   );
   vi.stubGlobal("fetch", fetch);
   return fetch;
@@ -30,7 +27,8 @@ describe("apiPost", () => {
     expect(init.method).toBe("POST");
     expect(init.headers).toEqual({ Authorization: "Bearer secret" });
     expect(body(init).get("assertuser")).toBe("Simon04");
-    expect(body(init).get("maxlag")).toBe("5");
+    // no maxlag for interactive edits
+    expect(body(init).has("maxlag")).toBe(false);
   });
 
   it("throws API errors with their code", async () => {
@@ -43,18 +41,6 @@ describe("apiPost", () => {
       code: "editconflict",
       message: "Edit conflict.",
     });
-  });
-
-  it("retries on maxlag after Retry-After", async () => {
-    vi.useFakeTimers();
-    const fetch = stubFetch(
-      { errors: [{ code: "maxlag", text: "Waiting" }] },
-      { ok: true },
-    );
-    const result = apiPost({ action: "query" }, auth);
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(await result).toEqual({ ok: true });
-    expect(fetch).toHaveBeenCalledTimes(2);
   });
 });
 
