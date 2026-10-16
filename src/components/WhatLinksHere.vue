@@ -47,9 +47,10 @@
 </template>
 
 <script setup lang="ts">
-import { t } from "../i18n";
+import { locale, t } from "../i18n";
 import { computed, ref } from "vue";
 import { CdxButton, CdxMessage, CdxProgressIndicator } from "@wikimedia/codex";
+import { useSorted } from "@vueuse/core";
 import { getBacklinks, type Backlink } from "../wikidata";
 import EntityId from "./EntityId.vue";
 
@@ -60,8 +61,20 @@ const next = ref<Record<string, string>>();
 const loading = ref(false);
 const error = ref<string>();
 
-/** items, properties and lexemes, linking via statements */
-const entities = computed(() => pages.value.filter((p) => p.id));
+// the language is fixed, the component is recreated on changes
+const collator = new Intl.Collator(locale(props.language), { numeric: true });
+/** items, properties and lexemes, linking via statements; by label, unlabeled last by ID */
+const entities = useSorted(
+  computed(() => pages.value.filter((p) => p.id)),
+  (a, b) =>
+    a.label && b.label
+      ? collator.compare(a.label, b.label)
+      : a.label
+        ? -1
+        : b.label
+          ? 1
+          : collator.compare(a.id!, b.id!),
+);
 /** project, user and talk pages */
 const others = computed(() => pages.value.filter((p) => !p.id));
 
