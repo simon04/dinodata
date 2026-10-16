@@ -55,6 +55,8 @@
         <ul>
           <li><a href="#Q40">Austria (Q40)</a></li>
           <li><a href="#Q1735">Innsbruck (Q1735)</a></li>
+          <li><a href="#Q96694010">Marktplatz, Innsbruck (Q96694010)</a></li>
+          <li><a href="#Q357751">Serles (Q357751)</a></li>
           <li><a href="#Q42">Douglas Adams (Q42)</a></li>
           <li><a href="#Q430">Dinosaur (Q430)</a></li>
           <li><a href="#Q14384">Tyrannosaurus (Q14384)</a></li>
