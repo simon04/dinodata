@@ -187,7 +187,7 @@
 
 <script setup lang="ts">
 import { t } from "../i18n";
-import { computed, onUnmounted, ref, watch, watchEffect } from "vue";
+import { computed, ref, watch } from "vue";
 import {
   CdxButton,
   CdxIcon,
@@ -220,11 +220,13 @@ import {
   parseEntityJson,
   parseStatements,
 } from "../clipboard";
-import { until, useEventListener } from "@vueuse/core";
+import { until, useEventListener, useTitle } from "@vueuse/core";
 import {
   propertyDescription,
   propertyLabel,
-  useProperties, type Property } from "../properties";
+  useProperties,
+  type Property,
+} from "../properties";
 import AddStatement from "./AddStatement.vue";
 import EntityId from "./EntityId.vue";
 import EntitySkeleton from "./EntitySkeleton.vue";
@@ -259,13 +261,15 @@ const loading = ref(false);
 const error = ref<string>();
 const tab = ref("statements");
 
-watchEffect(() => {
-  const e = entity.value;
-  document.title = e
-    ? [e.id, label(e, props.language), "DinoData"].filter(Boolean).join(" · ")
-    : `${props.id} · DinoData`;
-});
-onUnmounted(() => (document.title = "DinoData"));
+// restores "DinoData" on unmount
+useTitle(
+  computed(() => {
+    const e = entity.value;
+    return e
+      ? [e.id, label(e, props.language), "DinoData"].filter(Boolean).join(" · ")
+      : `${props.id} · DinoData`;
+  }),
+);
 const adding = ref(false);
 const addingIdentifier = ref(false);
 /** property chosen from the suggestions */
