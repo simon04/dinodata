@@ -140,11 +140,11 @@
 
 <script setup lang="ts">
 import { isRTL, language, t } from "./i18n";
-import { ref, watch, watchEffect } from "vue";
-import { useEventListener } from "@vueuse/core";
+import { ref, watchEffect } from "vue";
+import { computedAsync, useEventListener } from "@vueuse/core";
 import { CdxDialog, CdxToastContainer } from "@wikimedia/codex";
 import { loadProperties } from "./properties";
-import { getEntities, label } from "./wikidata";
+import { description, getEntities, label } from "./wikidata";
 import LanguageSelector from "./components/LanguageSelector.vue";
 import HeaderSearch from "./components/HeaderSearch.vue";
 import EntityView from "./components/EntityView.vue";
@@ -162,11 +162,6 @@ const EXAMPLES = [
   ["Q463190", "Wawel Dragon"],
   ["Q141746631", "DinoData"],
 ];
-/** labels and descriptions in the selected language (English names until loaded) */
-const examples = ref<Record<string, { label?: string; description?: string }>>(
-  {},
-);
-
 watchEffect(() => {
   document.documentElement.lang = language.value;
   document.documentElement.dir = isRTL() ? "rtl" : "ltr";
@@ -182,31 +177,29 @@ useEventListener(window, "hashchange", () => {
   window.scrollTo(0, 0);
 });
 
-watch(
-  [language, id],
-  ([lang, entityId]) => {
-    if (entityId) return;
+/**
+ * Labels and descriptions in the selected language (English names until
+ * loaded), only fetched while shown on the home page.
+ */
+const examples = computedAsync(
+  async () => {
+    const lang = language.value;
     const ids = EXAMPLES.map(([example]) => example);
-    getEntities(ids, "labels|descriptions", [...new Set([lang, "en"])])
-      .then((entities) => {
-        if (lang !== language.value) return;
-        examples.value = Object.fromEntries(
-          ids.map((example) => {
-            const e = entities[example];
-            return [
-              example,
-              {
-                label: label(e, lang),
-                description: (e?.descriptions[lang] ?? e?.descriptions.en)
-                  ?.value,
-              },
-            ];
-          }),
-        );
-      })
-      .catch(console.warn);
+    const entities = await getEntities(ids, "labels|descriptions", [
+      ...new Set([lang, "en"]),
+    ]);
+    return Object.fromEntries(
+      ids.map((example) => [
+        example,
+        {
+          label: label(entities[example], lang),
+          description: description(entities[example], lang),
+        },
+      ]),
+    );
   },
-  { immediate: true },
+  {} as Record<string, { label?: string; description?: string }>,
+  { lazy: true, onError: console.warn },
 );
 
 function go(entityId: string) {
