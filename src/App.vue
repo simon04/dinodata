@@ -54,8 +54,14 @@
         <p>{{ t("app-intro") }}</p>
         <ul>
           <li v-for="[id, name] in EXAMPLES" :key="id">
-            <a :href="`#${id}`">{{ exampleLabels[id] ?? name }}</a>
+            <a :href="`#${id}`">{{ examples[id]?.label ?? name }}</a>
             <code class="dd-id-chip">{{ id }}</code>
+            <span
+              v-if="examples[id]?.description"
+              class="dd-example-description"
+            >
+              {{ examples[id].description }}
+            </span>
           </li>
         </ul>
       </div>
@@ -137,7 +143,7 @@ import { ref, watch, watchEffect } from "vue";
 import { useEventListener } from "@vueuse/core";
 import { CdxDialog, CdxToastContainer } from "@wikimedia/codex";
 import { loadProperties } from "./properties";
-import { getLabels } from "./wikidata";
+import { getEntities, label } from "./wikidata";
 import LanguageSelector from "./components/LanguageSelector.vue";
 import HeaderSearch from "./components/HeaderSearch.vue";
 import EntityView from "./components/EntityView.vue";
@@ -151,8 +157,10 @@ const EXAMPLES = [
   ["Q430", "Dinosaur"],
   ["Q14332", "Tyrannosaurus"],
 ];
-/** example labels in the selected language, the English names until loaded */
-const exampleLabels = ref<Record<string, string>>({});
+/** labels and descriptions in the selected language (English names until loaded) */
+const examples = ref<Record<string, { label?: string; description?: string }>>(
+  {},
+);
 
 watchEffect(() => {
   document.documentElement.lang = language.value;
@@ -174,11 +182,24 @@ watch(
   ([lang, entityId]) => {
     if (entityId) return;
     const ids = EXAMPLES.map(([example]) => example);
-    getLabels(ids, lang, (labels) => {
-      // without a label, getLabels returns the ID: keep the English name
-      for (const [example, label] of Object.entries(labels))
-        if (label !== example) exampleLabels.value[example] = label;
-    }).catch(console.warn);
+    getEntities(ids, "labels|descriptions", [...new Set([lang, "en"])])
+      .then((entities) => {
+        if (lang !== language.value) return;
+        examples.value = Object.fromEntries(
+          ids.map((example) => {
+            const e = entities[example];
+            return [
+              example,
+              {
+                label: label(e, lang),
+                description: (e?.descriptions[lang] ?? e?.descriptions.en)
+                  ?.value,
+              },
+            ];
+          }),
+        );
+      })
+      .catch(console.warn);
   },
   { immediate: true },
 );
@@ -262,6 +283,10 @@ samp {
 }
 .dd-home li + li {
   margin-top: 0.5rem;
+}
+.dd-example-description {
+  color: var(--color-subtle);
+  margin-inline-start: 0.25rem;
 }
 .dd-hackathon {
   display: flex;
