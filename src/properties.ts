@@ -13,7 +13,10 @@ export interface Property {
 }
 
 const SPARQL = "https://query.wikidata.org/sparql";
+const API = "https://www.wikidata.org/w/api.php";
 const MAX_AGE = 24 * 60 * 60 * 1000;
+/** parallel chains of API requests, more get rate limited */
+const CONCURRENCY = 3;
 
 // wikiba.se ontology type → Wikibase API datatype
 const DATATYPES: Record<string, string> = {
@@ -37,68 +40,96 @@ const DATATYPES: Record<string, string> = {
   WikibaseSense: "wikibase-sense",
 };
 
-function query(languages: string[]): string {
-  const values = languages.map((l) => JSON.stringify(l)).join(", ");
-  return `SELECT ?p ?type ?k ?t ?f WHERE {
+/** Datatypes and formatter URLs, independent of the language. */
+const TYPES_QUERY = `SELECT ?p ?type ?f WHERE {
   ?p wikibase:propertyType ?type .
-  OPTIONAL {
-    { ?p rdfs:label ?t BIND("l" AS ?k) }
-    UNION { ?p skos:altLabel ?t BIND("a" AS ?k) }
-    UNION { ?p schema:description ?t BIND("d" AS ?k) }
-    FILTER(LANG(?t) IN (${values}))
-  }
   OPTIONAL { ?p wdt:P1630 ?f }
 }`;
-}
 
 const unescape = (s: string) =>
   s.replace(/\\(.)/g, (_, c: string) =>
     c === "n" ? "\n" : c === "t" ? "\t" : c,
   );
 
+type Types = Map<string, { datatype: string; formatterUrl?: string }>;
+
 /** Parse the SPARQL TSV result (compact compared to JSON). */
-function parse(tsv: string): Property[] {
-  const map = new Map<string, Property>();
+function parseTypes(tsv: string): Types {
+  const types: Types = new Map();
   for (const line of tsv.split("\n").slice(1)) {
-    const [p, type, k, t, f] = line.split("\t");
+    const [p, type, f] = line.split("\t");
     if (!type) continue;
     const id = p.slice(p.lastIndexOf("/") + 1, -1);
-    let property = map.get(id);
-    if (!property) {
-      const name = type.slice(type.lastIndexOf("#") + 1, -1);
-      property = {
-        id,
-        datatype: DATATYPES[name] ?? name,
-        labels: {},
-        descriptions: {},
-        aliases: {},
-      };
-      map.set(id, property);
-    }
-    if (f && !property.formatterUrl)
-      property.formatterUrl = unescape(f.slice(1, -1));
-    const m = t?.match(/^"(.*)"@([\w-]+)$/);
-    if (!m) continue;
-    const text = unescape(m[1]);
-    const lang = m[2];
-    if (k === '"l"') property.labels[lang] = text;
-    else if (k === '"d"') property.descriptions[lang] = text;
-    else if (k === '"a"') (property.aliases[lang] ??= []).push(text);
+    const name = type.slice(type.lastIndexOf("#") + 1, -1);
+    const entry = types.get(id) ?? { datatype: DATATYPES[name] ?? name };
+    if (f && !entry.formatterUrl) entry.formatterUrl = unescape(f.slice(1, -1));
+    types.set(id, entry);
   }
-  return [...map.values()].sort(
-    (a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)),
-  );
+  return types;
 }
 
-async function fetchProperties(languages: string[]): Promise<Property[]> {
-  const url = `${SPARQL}?query=${encodeURIComponent(query(languages))}`;
+async function fetchTypes(): Promise<Types> {
+  const url = `${SPARQL}?query=${encodeURIComponent(TYPES_QUERY)}`;
   const body = await cachedFetch(url, {
-    cacheName: "properties-v3",
+    cacheName: "properties-v4",
     maxAge: MAX_AGE,
     staleWhileRevalidate: true,
     init: { headers: { Accept: "text/tab-separated-values" } },
   });
-  return parse(body);
+  return parseTypes(body);
+}
+
+interface TermsPage {
+  title: string;
+  entityterms?: { label?: string[]; description?: string[]; alias?: string[] };
+}
+
+/**
+ * Labels, descriptions and aliases of all properties (with language
+ * fallback), 500 per request. Titles sort as strings, so the property pages
+ * are split by their first digit into chains, a few of them run in parallel.
+ */
+async function fetchTerms(
+  language: string,
+  onPages: (pages: TermsPage[]) => void,
+): Promise<void> {
+  const chain = async (prefix: string) => {
+    let next: Record<string, string> | undefined = {};
+    while (next) {
+      const params = new URLSearchParams({
+        action: "query",
+        format: "json",
+        formatversion: "2",
+        origin: "*",
+        generator: "allpages",
+        gapnamespace: "120",
+        gapprefix: prefix,
+        gaplimit: "max",
+        prop: "entityterms",
+        wbetterms: "label|description|alias",
+        wbetlanguage: language,
+        ...next,
+      });
+      const json = JSON.parse(
+        await cachedFetch(`${API}?${params}`, {
+          cacheName: "properties-v4",
+          maxAge: MAX_AGE,
+          staleWhileRevalidate: true,
+        }),
+      ) as {
+        query?: { pages: TermsPage[] };
+        continue?: Record<string, string>;
+      };
+      onPages(json.query?.pages ?? []);
+      next = json.continue;
+    }
+  };
+  const prefixes = [..."123456789"].map((d) => `P${d}`);
+  await Promise.all(
+    Array.from({ length: CONCURRENCY }, async () => {
+      for (let prefix; (prefix = prefixes.shift());) await chain(prefix);
+    }),
+  );
 }
 
 const properties = ref<Property[]>([]);
@@ -108,7 +139,41 @@ let index: { p: Property; labels: string[]; aliases: string[] }[] = [];
 const loading = ref(false);
 const error = ref<string>();
 
-/** Preload all Wikidata properties in English and the user language. */
+/** all properties with terms loaded so far, kept across language changes */
+const all = new Map<string, Property>();
+let types: Types | undefined;
+
+function getProperty(id: string): Property {
+  let p = all.get(id);
+  if (!p) {
+    p = { id, datatype: "", labels: {}, descriptions: {}, aliases: {} };
+    all.set(id, p);
+  }
+  return p;
+}
+
+/** Expose the properties with a known datatype, and index them for search. */
+function publish(language: string) {
+  if (!types) return;
+  const result = [...all.values()]
+    .filter((p) => p.datatype)
+    .sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)));
+  properties.value = result;
+  byId.value = Object.fromEntries(result.map((p) => [p.id, p]));
+  const languages = [...new Set([language, "en"])];
+  index = result.map((p) => ({
+    p,
+    labels: languages.flatMap((l) => p.labels[l]?.toLowerCase() ?? []),
+    aliases: languages.flatMap(
+      (l) => p.aliases[l]?.map((a) => a.toLowerCase()) ?? [],
+    ),
+  }));
+}
+
+/**
+ * Preload all Wikidata properties in the user language and English, made
+ * available as each batch arrives.
+ */
 export function loadProperties(language: Ref<string>) {
   watch(
     language,
@@ -116,17 +181,31 @@ export function loadProperties(language: Ref<string>) {
       loading.value = true;
       error.value = undefined;
       try {
-        const result = await fetchProperties([...new Set(["en", lang])]);
-        properties.value = result;
-        byId.value = Object.fromEntries(result.map((p) => [p.id, p]));
-        const languages = [...new Set([lang, "en"])];
-        index = result.map((p) => ({
-          p,
-          labels: languages.flatMap((l) => p.labels[l]?.toLowerCase() ?? []),
-          aliases: languages.flatMap(
-            (l) => p.aliases[l]?.map((a) => a.toLowerCase()) ?? [],
-          ),
-        }));
+        const terms = (l: string) =>
+          fetchTerms(l, (pages) => {
+            for (const page of pages) {
+              const id = page.title.slice(page.title.indexOf(":") + 1);
+              const p = getProperty(id);
+              const { label, description, alias } = page.entityterms ?? {};
+              if (label?.[0]) p.labels[l] = label[0];
+              if (description?.[0]) p.descriptions[l] = description[0];
+              if (alias?.length) p.aliases[l] = alias;
+            }
+            publish(language.value);
+          });
+        await Promise.all([
+          fetchTypes().then((t) => {
+            types = t;
+            for (const [id, { datatype, formatterUrl }] of t) {
+              const p = getProperty(id);
+              p.datatype = datatype;
+              if (formatterUrl) p.formatterUrl = formatterUrl;
+            }
+            publish(language.value);
+          }),
+          // the user language first, then English for search and fallback
+          terms(lang).then(() => (lang === "en" ? undefined : terms("en"))),
+        ]);
       } catch (e) {
         error.value = String(e);
       } finally {

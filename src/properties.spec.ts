@@ -11,35 +11,66 @@ import { fakeCaches } from "./testing/fake-caches";
 
 const E = "http://www.wikidata.org/entity";
 const O = "http://wikiba.se/ontology#";
-/** SPARQL TSV rows: property, type, kind of text, text, formatter URL */
+/** SPARQL TSV rows: property, type, formatter URL */
 const rows = [
-  [`<${E}/P31>`, `<${O}WikibaseItem>`, '"l"', '"instance of"@en', ""],
-  [`<${E}/P31>`, `<${O}WikibaseItem>`, '"a"', '"is a"@en', ""],
-  [`<${E}/P31>`, `<${O}WikibaseItem>`, '"l"', '"ist ein(e)"@de', ""],
-  [`<${E}/P31>`, `<${O}WikibaseItem>`, '"d"', '"type of"@en', ""],
-  [`<${E}/P279>`, `<${O}WikibaseItem>`, '"l"', '"subclass of"@en', ""],
-  [`<${E}/P279>`, `<${O}WikibaseItem>`, '"a"', '"is a type of"@en', ""],
-  [`<${E}/P1082>`, `<${O}Quantity>`, '"l"', '"population"@en', ""],
-  [
-    `<${E}/P214>`,
-    `<${O}ExternalId>`,
-    '"l"',
-    '"VIAF ID"@en',
-    '"https://viaf.org/viaf/$1"',
-  ],
-  [`<${E}/P9>`, `<${O}SomethingNew>`, '"l"', '"tab\\there"@en', ""],
-  [`<${E}/P10>`, `<${O}Url>`, "", "", ""],
+  [`<${E}/P31>`, `<${O}WikibaseItem>`, ""],
+  [`<${E}/P279>`, `<${O}WikibaseItem>`, ""],
+  [`<${E}/P1082>`, `<${O}Quantity>`, ""],
+  [`<${E}/P214>`, `<${O}ExternalId>`, '"https://viaf.org/viaf/$1"'],
+  [`<${E}/P214>`, `<${O}ExternalId>`, '"https://viaf.org/other/$1"'],
+  [`<${E}/P9>`, `<${O}SomethingNew>`, '"tab\\there"'],
+  [`<${E}/P10>`, `<${O}Url>`, ""],
 ];
-const tsv = ["?p\t?type\t?k\t?t\t?f", ...rows.map((r) => r.join("\t"))].join(
-  "\n",
-);
+const tsv = ["?p\t?type\t?f", ...rows.map((r) => r.join("\t"))].join("\n");
+
+/** API terms by language and property */
+const terms: Record<string, Record<string, Record<string, string[]>>> = {
+  en: {
+    P31: { label: ["instance of"], description: ["type of"], alias: ["is a"] },
+    P279: { label: ["subclass of"], alias: ["is a type of"] },
+    P1082: { label: ["population"] },
+    P214: { label: ["VIAF ID"] },
+    P9: { label: ["something new"] },
+    P10: { label: ["video"] },
+    // a property without datatype is not exposed
+    P99: { label: ["no type"] },
+  },
+  de: { P31: { label: ["ist ein(e)"] }, P1082: { label: ["Einwohnerzahl"] } },
+};
+
+/** Fake API: one page per request, filtered by prefix. */
+function api(params: URLSearchParams) {
+  const prefix = params.get("gapprefix")!;
+  const ids = Object.keys(terms[params.get("wbetlanguage")!])
+    .filter((id) => id.startsWith(prefix))
+    .sort();
+  const from = params.get("gapcontinue");
+  const pages = (from ? ids.filter((id) => id >= from) : ids)
+    .slice(0, 1)
+    .map((id) => ({
+      title: `Property:${id}`,
+      entityterms: terms[params.get("wbetlanguage")!][id],
+    }));
+  const last = pages[0]?.title.slice("Property:".length) ?? "";
+  const rest = ids.filter((id) => id > last);
+  return Response.json({
+    query: { pages },
+    ...(rest.length && { continue: { gapcontinue: rest[0] } }),
+  });
+}
 
 /** requests made, kept across tests */
 const requests: [string, RequestInit | undefined][] = [];
 const fetch = async (url: string, init?: RequestInit) => {
   requests.push([url, init]);
-  return new Response(tsv);
+  const { searchParams } = new URL(url);
+  return searchParams.has("query") ? new Response(tsv) : api(searchParams);
 };
+const sparql = () => requests.filter(([url]) => url.includes("sparql"));
+const apiRequests = (language: string) =>
+  requests
+    .map(([url]) => new URL(url).searchParams)
+    .filter((p) => p.get("wbetlanguage") === language);
 const language = ref("de");
 const { properties, byId, loading } = useProperties();
 
@@ -47,14 +78,14 @@ beforeAll(async () => {
   vi.stubGlobal("fetch", fetch);
   vi.stubGlobal("caches", fakeCaches());
   loadProperties(language);
-  await vi.waitFor(() => expect(properties.value).toHaveLength(6));
+  await vi.waitFor(() => expect(loading.value).toBe(false));
 });
 afterAll(() => {
   vi.unstubAllGlobals();
 });
 
 describe("loadProperties", () => {
-  it("parses SPARQL TSV, sorted numerically by ID", () => {
+  it("merges types and terms, sorted numerically by ID", () => {
     expect(properties.value.map((p) => p.id)).toEqual([
       "P9",
       "P10",
@@ -81,14 +112,21 @@ describe("loadProperties", () => {
     expect(byId.value.P10.datatype).toBe("url");
     // unknown types are kept as-is
     expect(byId.value.P9.datatype).toBe("SomethingNew");
-    expect(byId.value.P9.labels.en).toBe("tab\there");
+    expect(byId.value.P9.formatterUrl).toBe("tab\there");
   });
 
-  it("queries English and the user language as TSV", () => {
-    const [url, init] = requests[0];
-    expect(decodeURIComponent(url)).toContain('IN ("en", "de")');
-    expect(init?.headers).toEqual({ Accept: "text/tab-separated-values" });
-    expect(loading.value).toBe(false);
+  it("queries types as TSV and terms per prefix, following continuation", () => {
+    expect(sparql()).toHaveLength(1);
+    expect(sparql()[0][1]?.headers).toEqual({
+      Accept: "text/tab-separated-values",
+    });
+    const en = apiRequests("en");
+    // P10, continued with P1082
+    expect(en.filter((p) => p.get("gapprefix") === "P1")).toHaveLength(2);
+    expect(en.map((p) => p.get("gapprefix"))).toEqual(
+      expect.arrayContaining(["P2", "P3", "P9"]),
+    );
+    expect(apiRequests("de")).toHaveLength(9);
   });
 });
 
@@ -146,9 +184,11 @@ describe("searchProperties", () => {
   });
 
   it("reloads for another language", async () => {
+    const before = requests.length;
     language.value = "en";
-    await vi.waitFor(() => expect(requests).toHaveLength(2));
     await vi.waitFor(() => expect(ids("ist ein")).toEqual([]));
-    expect(decodeURIComponent(requests[1][0])).toContain('IN ("en")');
+    await vi.waitFor(() => expect(loading.value).toBe(false));
+    // types and English terms come from the cache
+    expect(requests).toHaveLength(before);
   });
 });
