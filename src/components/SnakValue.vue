@@ -7,7 +7,7 @@
       {{ t("snak-somevalue") }}
     </span>
     <template v-else-if="entityId">
-      <a :href="`#${entityId}`" :title="entityId">
+      <a :href="`#${entityId}`" v-tooltip="descriptions?.[entityId]">
         {{ labels[entityId] ?? entityId }}
       </a>
       <EntityId :id="entityId" />
@@ -29,6 +29,7 @@ import { formatNumber, formatTime } from "../format";
 const props = defineProps<{
   snak: Snak;
   labels: Record<string, string>;
+  descriptions?: Record<string, string>;
   formatterUrls?: Record<string, string>;
 }>();
 

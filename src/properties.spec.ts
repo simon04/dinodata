@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vite-plus/test";
 import { ref } from "vue";
 import {
   loadProperties,
+  propertyDescription,
   propertyLabel,
   searchProperties,
   useProperties,
@@ -96,6 +97,13 @@ describe("propertyLabel", () => {
     expect(propertyLabel(byId.value.P31, "de")).toBe("ist ein(e)");
     expect(propertyLabel(byId.value.P31, "fr")).toBe("instance of");
     expect(propertyLabel(undefined, "de")).toBeUndefined();
+  });
+});
+
+describe("propertyDescription", () => {
+  it("falls back to English", () => {
+    expect(propertyDescription(byId.value.P31, "de")).toBe("type of");
+    expect(propertyDescription(undefined, "de")).toBeUndefined();
   });
 });
 

@@ -148,6 +148,13 @@ export function propertyLabel(
   return p?.labels[language] ?? p?.labels.en;
 }
 
+export function propertyDescription(
+  p: Property | undefined,
+  language: string,
+): string | undefined {
+  return p?.descriptions[language] ?? p?.descriptions.en;
+}
+
 /**
  * Search properties locally by ID (P31, 31), URL (…/Property:P31,
  * …/entity/P31, …/prop/direct/P31), label or alias in English or the user

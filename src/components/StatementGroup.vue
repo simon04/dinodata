@@ -2,7 +2,7 @@
   <div class="dd-statement-group">
     <div class="dd-property">
       <span class="dd-property-label">
-        <a :href="`#${property}`" :title="property">
+        <a :href="`#${property}`" v-tooltip="descriptions[property]">
           {{ labels[property] ?? property }}
         </a>
         <EntityId :id="property" />
@@ -127,6 +127,7 @@
             class="dd-snak"
             :snak="claim.mainsnak"
             :labels="labels"
+            :descriptions="descriptions"
             :formatter-urls="formatterUrls"
             @dblclick="startEdit(claim)"
           />
@@ -145,7 +146,11 @@
                 :key="refProperty"
                 class="dd-qualifier"
               >
-                <a :href="`#${refProperty}`" class="dd-qualifier-property">
+                <a
+                  :href="`#${refProperty}`"
+                  class="dd-qualifier-property"
+                  v-tooltip="descriptions[refProperty]"
+                >
                   {{ labels[refProperty] ?? refProperty }}
                 </a>
                 <template v-for="(snak, i) in snaks" :key="i">
@@ -153,6 +158,7 @@
                   <SnakValue
                     :snak="snak"
                     :labels="labels"
+                    :descriptions="descriptions"
                     :formatter-urls="formatterUrls"
                   />
                 </template>
@@ -229,7 +235,7 @@
             <a
               :href="`#${qualifier}`"
               class="dd-qualifier-property"
-              :title="qualifier"
+              v-tooltip="descriptions[qualifier]"
             >
               {{ labels[qualifier] ?? qualifier }}
             </a>
@@ -272,6 +278,7 @@
                 <SnakValue
                   :snak="snak"
                   :labels="labels"
+                  :descriptions="descriptions"
                   :formatter-urls="formatterUrls"
                   @dblclick="startEditQualifier(claim, String(qualifier), i)"
                 />
@@ -359,6 +366,8 @@ const props = defineProps<{
   property: string;
   claims: Claim[];
   labels: Record<string, string>;
+  /** shown as tooltips on properties and item values */
+  descriptions: Record<string, string>;
   formatterUrls: Record<string, string>;
   language: string;
   pending: Set<string>;

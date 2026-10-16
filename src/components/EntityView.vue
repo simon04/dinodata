@@ -84,7 +84,7 @@
             :key="property"
             weight="quiet"
             size="small"
-            :title="property"
+            v-tooltip="allDescriptions[property]"
             @click="addProperty(property)"
           >
             <cdx-icon :icon="cdxIconAdd" size="small" />
@@ -98,6 +98,7 @@
             :property="property"
             :claims="claimsOf(property)"
             :labels="allLabels"
+            :descriptions="allDescriptions"
             :formatter-urls="formatterUrls"
             :language="language"
             :pending="pending"
@@ -139,7 +140,7 @@
             :key="property"
             weight="quiet"
             size="small"
-            :title="property"
+            v-tooltip="allDescriptions[property]"
             @click="addProperty(property)"
           >
             <cdx-icon :icon="cdxIconAdd" size="small" />
@@ -153,6 +154,7 @@
             :property="property"
             :claims="claimsOf(property)"
             :labels="allLabels"
+            :descriptions="allDescriptions"
             :formatter-urls="formatterUrls"
             :language="language"
             :pending="pending"
@@ -219,7 +221,10 @@ import {
   parseStatements,
 } from "../clipboard";
 import { until, useEventListener } from "@vueuse/core";
-import { propertyLabel, useProperties, type Property } from "../properties";
+import {
+  propertyDescription,
+  propertyLabel,
+  useProperties, type Property } from "../properties";
 import AddStatement from "./AddStatement.vue";
 import EntityId from "./EntityId.vue";
 import EntitySkeleton from "./EntitySkeleton.vue";
@@ -239,6 +244,14 @@ const LINK_BUTTON = [
 
 const entity = ref<Entity>();
 const labels = ref<Record<string, string>>({});
+const descriptions = ref<Record<string, string>>({});
+function addLabels(
+  batch: Record<string, string>,
+  batchDescriptions: Record<string, string>,
+) {
+  Object.assign(labels.value, batch);
+  Object.assign(descriptions.value, batchDescriptions);
+}
 /** properties used in statements, qualifiers and references */
 const propertyIds = ref<string[]>([]);
 const edits = ref<Edit[]>([]);
@@ -390,9 +403,7 @@ async function pasteClaims(text: string | undefined): Promise<void> {
   } as unknown as Entity).filter(
     (id) => !id.startsWith("P") && !labels.value[id],
   );
-  getLabels(ids, props.language, (batch) =>
-    Object.assign(labels.value, batch),
-  ).catch(console.warn);
+  getLabels(ids, props.language, addLabels).catch(console.warn);
   const pasted = edits.value.slice(before);
   toast.show({
     type: data.invalid.length ? "warning" : "success",
@@ -557,6 +568,17 @@ const allLabels = computed(() => {
   return result;
 });
 
+/** Fetched descriptions, completed with locally preloaded property descriptions. */
+const allDescriptions = computed(() => {
+  const result = { ...descriptions.value };
+  for (const property of Object.keys(allLabels.value)) {
+    if (!property.startsWith("P")) continue;
+    const d = propertyDescription(byId.value[property], props.language);
+    if (d) result[property] ??= d;
+  }
+  return result;
+});
+
 const aliases = computed(
   () => entity.value?.aliases[props.language]?.map((a) => a.value) ?? [],
 );
@@ -671,6 +693,7 @@ watch(
       const referenced = referencedIds(e);
       propertyIds.value = referenced.filter((i) => i.startsWith("P"));
       labels.value = {};
+      descriptions.value = {};
       entity.value = e;
       loading.value = false;
       loadTypeProperties(e).catch(console.warn);
@@ -680,7 +703,7 @@ watch(
           ? referenced.filter((i) => !i.startsWith("P"))
           : referenced,
         props.language,
-        (batch) => Object.assign(labels.value, batch),
+        addLabels,
       );
     } catch (e) {
       error.value = String(e);

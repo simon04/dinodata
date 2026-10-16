@@ -7,7 +7,13 @@ import {
   vi,
 } from "vite-plus/test";
 import { fakeCaches } from "./testing/fake-caches";
-import { getEntities, getLabels, label, searchEntities } from "./wikidata";
+import {
+  description,
+  getEntities,
+  getLabels,
+  label,
+  searchEntities,
+} from "./wikidata";
 
 /** Fake API: every requested ID gets an English label "label of <id>". */
 const fetch = vi.fn(async (input: string | URL) => {
@@ -25,7 +31,12 @@ const fetch = vi.fn(async (input: string | URL) => {
         id,
         id === "Q404"
           ? { id, missing: "" }
-          : { id, labels: { en: { value: `label of ${id}` } } },
+          : {
+              id,
+              labels: { en: { value: `label of ${id}` } },
+              descriptions:
+                id === "Q2" ? { en: { value: `description of ${id}` } } : {},
+            },
       ]),
   );
   return Response.json({ entities });
@@ -92,23 +103,48 @@ describe("getEntities", () => {
   });
 });
 
+describe("description", () => {
+  it("falls back to English", () => {
+    const entity = { descriptions: { en: { value: "capital of Austria" } } };
+    expect(description(entity, "de")).toBe("capital of Austria");
+    expect(description({ descriptions: {} }, "de")).toBeUndefined();
+    expect(description(undefined, "de")).toBeUndefined();
+  });
+});
+
 describe("getLabels", () => {
   it("streams cached labels first, then fetched ones", async () => {
     sessionStorage.setItem("dinodata:label:de:Q1", "cached");
-    const batches: Record<string, string>[] = [];
-    await getLabels(["Q1", "Q2"], "de", (batch) => batches.push(batch));
-    expect(batches).toEqual([{ Q1: "cached" }, { Q2: "label of Q2" }]);
+    sessionStorage.setItem("dinodata:description:de:Q1", "");
+    const batches: Record<string, string>[][] = [];
+    await getLabels(["Q1", "Q2"], "de", (...batch) => batches.push(batch));
+    expect(batches).toEqual([
+      [{ Q1: "cached" }, {}],
+      [{ Q2: "label of Q2" }, { Q2: "description of Q2" }],
+    ]);
     expect(params(0).get("ids")).toBe("Q2");
+    expect(params(0).get("props")).toBe("labels|descriptions");
     expect(params(0).get("languages")).toBe("de|en");
-    // now cached in the session
-    await getLabels(["Q2"], "de", () => {});
+    // now cached in the session, including the description
+    const onLabels = vi.fn();
+    await getLabels(["Q2"], "de", onLabels);
     expect(fetch).toHaveBeenCalledTimes(1);
+    expect(onLabels).toHaveBeenCalledWith(
+      { Q2: "label of Q2" },
+      { Q2: "description of Q2" },
+    );
+  });
+
+  it("refetches labels cached without a description", async () => {
+    sessionStorage.setItem("dinodata:label:de:Q2", "cached");
+    await getLabels(["Q2"], "de", () => {});
+    expect(params(0).get("ids")).toBe("Q2");
   });
 
   it("uses the ID when an entity has no label", async () => {
     const onLabels = vi.fn();
     await getLabels(["Q404"], "en", onLabels);
-    expect(onLabels).toHaveBeenCalledWith({ Q404: "Q404" });
+    expect(onLabels).toHaveBeenCalledWith({ Q404: "Q404" }, {});
   });
 
   it("does not call back without anything cached", async () => {

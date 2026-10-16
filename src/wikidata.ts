@@ -100,24 +100,44 @@ export function label(
   return entity?.labels?.[language]?.value ?? entity?.labels?.en?.value;
 }
 
+export function description(
+  entity: Pick<Entity, "descriptions"> | undefined,
+  language: string,
+): string | undefined {
+  return (
+    entity?.descriptions?.[language]?.value ??
+    entity?.descriptions?.en?.value
+  );
+}
+
 /**
- * Fetch labels in parallel batches, calling `onLabels` as each batch arrives
- * so the UI can fill in progressively. Labels are cached in sessionStorage.
+ * Fetch labels and descriptions in parallel batches, calling `onLabels` as
+ * each batch arrives so the UI can fill in progressively. Both are cached in
+ * sessionStorage.
  */
 export async function getLabels(
   ids: string[],
   language: string,
-  onLabels: (labels: Record<string, string>) => void,
+  onLabels: (
+    labels: Record<string, string>,
+    descriptions: Record<string, string>,
+  ) => void,
 ): Promise<void> {
-  const key = (id: string) => `label:${language}:${id}`;
+  const labelKey = (id: string) => `label:${language}:${id}`;
+  const descriptionKey = (id: string) => `description:${language}:${id}`;
   const cached: Record<string, string> = {};
+  const cachedDescriptions: Record<string, string> = {};
   const missing: string[] = [];
   for (const id of ids) {
-    const l = sessionCache.get(key(id));
-    if (l === null) missing.push(id);
-    else cached[id] = l;
+    const l = sessionCache.get(labelKey(id));
+    const d = sessionCache.get(descriptionKey(id));
+    if (l === null || d === null) missing.push(id);
+    else {
+      cached[id] = l;
+      if (d) cachedDescriptions[id] = d;
+    }
   }
-  if (missing.length < ids.length) onLabels(cached);
+  if (missing.length < ids.length) onLabels(cached, cachedDescriptions);
   const languages = [...new Set([language, "en"])].join("|");
   const batches = [];
   for (let i = 0; i < missing.length; i += 50)
@@ -127,18 +147,19 @@ export async function getLabels(
       const json = await api<{ entities: Record<string, Entity> }>({
         action: "wbgetentities",
         ids: batch.join("|"),
-        props: "labels",
+        props: "labels|descriptions",
         languages,
       });
-      const labels = Object.fromEntries(
-        Object.entries(json.entities).map(([id, e]) => [
-          id,
-          label(e, language) ?? id,
-        ]),
-      );
-      for (const [id, l] of Object.entries(labels))
-        sessionCache.set(key(id), l);
-      onLabels(labels);
+      const labels: Record<string, string> = {};
+      const descriptions: Record<string, string> = {};
+      for (const [id, e] of Object.entries(json.entities)) {
+        labels[id] = label(e, language) ?? id;
+        const d = description(e, language);
+        if (d) descriptions[id] = d;
+        sessionCache.set(labelKey(id), labels[id]);
+        sessionCache.set(descriptionKey(id), d ?? "");
+      }
+      onLabels(labels, descriptions);
     }),
   );
 }
