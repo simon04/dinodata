@@ -160,6 +160,7 @@ const EXAMPLES = [
   ["Q430", "Dinosaur"],
   ["Q7559", "Dragon"],
   ["Q463190", "Wawel Dragon"],
+  ["Q141746631", "DinoData"],
 ];
 /** labels and descriptions in the selected language (English names until loaded) */
 const examples = ref<Record<string, { label?: string; description?: string }>>(
