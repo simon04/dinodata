@@ -627,6 +627,7 @@ function thumb(file: string) {
 .dd-actions {
   display: inline-flex;
   align-self: center;
+  margin-inline-start: 1rem;
 }
 .dd-actions .cdx-button {
   min-height: 1.5rem;
