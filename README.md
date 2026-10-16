@@ -15,11 +15,12 @@ A prototype of [Wikidata](https://www.wikidata.org/) with a nicer UX, built with
 - Open any item via search or URL hash, e.g. `#Q40` (Austria) or `#Q1735` (Innsbruck); the home page lists examples with their label and description in the selected language
 - Search results show the ID as a code chip next to the label
 - Header with label, description, aliases, image (P18) and buttons to Wikidata, Wikipedia and Wikimedia Commons (Commons category P373, or the Commons sitelink)
-- Tabs for statements, identifiers, languages (labels, descriptions, aliases) and sitelinks
-- Compact layout to minimize scrolling: values flow in columns, inline qualifiers, reference badges that expand on click, long value lists collapsed (“49 more”), identifiers and sitelinks in multiple columns
+- Tabs for statements, identifiers, languages (labels, descriptions, aliases), sitelinks and “What links here” (items, properties and other pages linking to the item, sorted by label)
+- Compact layout to minimize scrolling: values flow in columns, inline qualifiers, reference badges that expand on click, long value lists collapsed (“49 more”), sitelinks in multiple columns
 - Statement groups ordered by the “properties for this type” (P1963) of the item’s classes (P31); missing ones are suggested for adding
 - Values sorted by rank (preferred first, deprecated last), then by point in time (P585) or publication date (P577), newest first
-- Ranks (preferred/deprecated), linked values, image thumbnails, OpenStreetMap links for coordinates, formatter URLs (P1630) for identifiers
+- Descriptions of properties and linked items as tooltips
+- Ranks (preferred/deprecated), linked values, image thumbnails (click to enlarge, with author and license), OpenStreetMap links for coordinates, formatter URLs (P1630) for identifiers
 - Wikidata IDs shown as `<code>` after every link — click to copy
 - Numbers, dates and coordinates formatted for the selected language
 - Document title `Q40 · Austria · DinoData`
@@ -27,7 +28,7 @@ A prototype of [Wikidata](https://www.wikidata.org/) with a nicer UX, built with
 
 ### Editing
 
-Edits are collected locally and exported as [QuickStatements 3.0](https://meta.wikimedia.org/wiki/QuickStatements_3.0/Documentation/User_guide) commands to copy; nothing is written to Wikidata directly (yet).
+Edits are collected locally, then saved to Wikidata directly (after logging in) or exported as [QuickStatements 3.0](https://meta.wikimedia.org/wiki/QuickStatements_3.0/Documentation/User_guide) commands to copy.
 
 - **Add statements** (property + value) with a keyboard-friendly flow: Enter adds and focuses the next property; add values to existing properties with `+`
 - **Change values** of existing statements (pencil or double-click), e.g. a number or a photo, exported as `SWITCH_VALUE`, which keeps the statement with its ID, qualifiers, references and rank
@@ -40,6 +41,14 @@ Edits are collected locally and exported as [QuickStatements 3.0](https://meta.w
 - Suggested properties (P1963) that the item lacks, one click to add a value
 - Pending additions highlighted green, changes yellow, removals red
 - Actions appear on hover right after the value (fading in); always visible on touch devices
+
+### Saving
+
+- Log in with your Wikimedia account (OAuth 2.0 in a popup, so pending edits are kept); only on https://dinodata.toolforge.org/, where the registered callback is served
+- “Save to Wikidata” saves all pending edits of the item in one revision (`wbeditentity`), with an optional edit summary (“via DinoData” is appended), then reloads the item and links to the diff
+- Changed statements keep their ID, rank and references; removed ones are removed by ID
+- Edit conflicts are detected (`baserevid`) instead of overwriting changes made meanwhile
+- Runs entirely in the browser: public OAuth client with PKCE, the token is kept in sessionStorage and renewed with the refresh token
 
 ### Copy & paste
 
@@ -56,7 +65,7 @@ Edits are collected locally and exported as [QuickStatements 3.0](https://meta.w
 
 ### Speed
 
-- All ~14,000 Wikidata properties are preloaded (one SPARQL query) with English and user-language labels, aliases, descriptions, datatypes and formatter URLs
+- All ~14,000 Wikidata properties are preloaded: datatypes and formatter URLs with one SPARQL query, labels, aliases and descriptions in the user language and English via the API (`prop=entityterms`, 500 per request, three in parallel); properties become available as each batch arrives
 - Property search runs locally in a few milliseconds: by ID (`P31`, `31`), URL (`…/Property:P31`, `…/entity/P31`, `…/prop/direct/P31`), label or alias in English and the user language
 - Item renders immediately, value labels stream in progressively
 - Local cache: Cache API for properties (24 h, refreshed in the background) and entities (1 h), sessionStorage for labels. Browser refresh bypasses the cache for the current item; refreshing twice within 5 seconds drops all caches.
@@ -87,6 +96,8 @@ pnpm vp check  # format, lint and type checks
 pnpm vp fmt    # format all files
 pnpm vp lint   # lint only
 ```
+
+Logging in locally uses the OAuth 2.0 consumer “DinoData (dev)” with the callback `http://localhost:5173/oauth-callback`, so the dev server is fixed to port 5173. Client IDs are in `.env.development` and `.env.production` (public clients, no secrets).
 
 Tooling is [Vite+](https://viteplus.dev/) (`vp`), configured in `vite.config.ts` (`fmt`, `lint`, `staged`). The pre-commit hook (`.vite-hooks/`) runs `vp check --fix` on staged files, so commits are formatted and linted automatically.
 
