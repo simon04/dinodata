@@ -159,6 +159,66 @@
               </span>
             </div>
           </details>
+          <span v-if="editing !== claim.id" class="dd-actions">
+            <cdx-button
+              v-if="!removed.has(claim.id)"
+              class="dd-hover"
+              weight="quiet"
+              size="small"
+              :aria-label="t('edit')"
+              :title="t('edit')"
+              @click="startEdit(claim)"
+            >
+              <cdx-icon :icon="cdxIconEdit" size="small" />
+            </cdx-button>
+            <cdx-button
+              v-if="!removed.has(claim.id)"
+              class="dd-hover"
+              weight="quiet"
+              size="small"
+              :aria-label="t('add-qualifier')"
+              :title="t('add-qualifier')"
+              @click="addingQualifier = claim.id"
+            >
+              <cdx-icon :icon="cdxIconAdd" size="small" />
+            </cdx-button>
+            <cdx-button
+              class="dd-hover"
+              weight="quiet"
+              size="small"
+              :aria-label="t('copy-statement')"
+              :title="t('copy-statement')"
+              @click="emit('copy', [claim])"
+            >
+              <cdx-icon :icon="cdxIconCopy" size="small" />
+            </cdx-button>
+            <cdx-button
+              v-if="
+                pending.has(claim.id) ||
+                changed.has(claim.id) ||
+                removed.has(claim.id)
+              "
+              weight="quiet"
+              size="small"
+              :aria-label="t('undo')"
+              :title="t('undo')"
+              @click="emit('undo', claim)"
+            >
+              <cdx-icon :icon="cdxIconUndo" size="small" />
+            </cdx-button>
+            <cdx-button
+              v-else
+              class="dd-hover"
+              weight="quiet"
+              action="destructive"
+              size="small"
+              :aria-label="t('remove')"
+              :title="t('remove')"
+              @click="emit('remove', claim)"
+            >
+              <cdx-icon :icon="cdxIconTrash" size="small" />
+            </cdx-button>
+          </span>
         </div>
         <div v-if="claim.qualifiers" class="dd-qualifiers">
           <span
@@ -247,66 +307,6 @@
           "
           @close="addingQualifier = undefined"
         />
-        <span v-if="editing !== claim.id" class="dd-actions">
-          <cdx-button
-            v-if="!removed.has(claim.id)"
-            class="dd-hover"
-            weight="quiet"
-            size="small"
-            :aria-label="t('edit')"
-            :title="t('edit')"
-            @click="startEdit(claim)"
-          >
-            <cdx-icon :icon="cdxIconEdit" size="small" />
-          </cdx-button>
-          <cdx-button
-            v-if="!removed.has(claim.id)"
-            class="dd-hover"
-            weight="quiet"
-            size="small"
-            :aria-label="t('add-qualifier')"
-            :title="t('add-qualifier')"
-            @click="addingQualifier = claim.id"
-          >
-            <cdx-icon :icon="cdxIconAdd" size="small" />
-          </cdx-button>
-          <cdx-button
-            class="dd-hover"
-            weight="quiet"
-            size="small"
-            :aria-label="t('copy-statement')"
-            :title="t('copy-statement')"
-            @click="emit('copy', [claim])"
-          >
-            <cdx-icon :icon="cdxIconCopy" size="small" />
-          </cdx-button>
-          <cdx-button
-            v-if="
-              pending.has(claim.id) ||
-              changed.has(claim.id) ||
-              removed.has(claim.id)
-            "
-            weight="quiet"
-            size="small"
-            :aria-label="t('undo')"
-            :title="t('undo')"
-            @click="emit('undo', claim)"
-          >
-            <cdx-icon :icon="cdxIconUndo" size="small" />
-          </cdx-button>
-          <cdx-button
-            v-else
-            class="dd-hover"
-            weight="quiet"
-            action="destructive"
-            size="small"
-            :aria-label="t('remove')"
-            :title="t('remove')"
-            @click="emit('remove', claim)"
-          >
-            <cdx-icon :icon="cdxIconTrash" size="small" />
-          </cdx-button>
-        </span>
       </div>
       <AddStatement
         v-if="adding && propertyInfo"
@@ -524,7 +524,7 @@ function thumb(file: string) {
 .dd-value {
   position: relative;
   padding-block: 0.375rem;
-  padding-inline: 0.625rem 2rem;
+  padding-inline: 0.625rem;
   box-shadow:
     1px 0 0 var(--border-color-subtle),
     0 1px 0 var(--border-color-subtle);
@@ -576,8 +576,10 @@ function thumb(file: string) {
 .dd-references {
   font-size: 0.8125em;
 }
+/* opened references go below, the actions stay next to the value */
 .dd-references[open] {
   flex-basis: 100%;
+  order: 1;
 }
 .dd-references summary {
   display: inline-flex;
@@ -621,22 +623,14 @@ function thumb(file: string) {
 .dd-removed .dd-mainsnak {
   text-decoration: line-through;
 }
+/* right after the value, where the pointer usually is */
 .dd-actions {
-  position: absolute;
-  top: 0.125rem;
-  inset-inline-end: 0.125rem;
-  display: flex;
-  border-radius: var(--border-radius-base);
+  display: inline-flex;
+  align-self: center;
 }
-/* opaque only while hovering, so it never hides the value */
-.dd-value:hover .dd-actions {
-  background: var(--background-color-base);
-  box-shadow: var(--box-shadow-small);
-}
-.dd-pending .dd-actions,
-.dd-changed .dd-actions,
-.dd-removed .dd-actions {
-  background: none;
+.dd-actions .cdx-button {
+  min-height: 1.5rem;
+  min-width: 1.5rem;
 }
 /* reveal on hover; always visible on touch devices */
 @media (hover: hover) {
