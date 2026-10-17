@@ -58,12 +58,37 @@
     <section>
       <h2>{{ t("osm-tags", Object.keys(tags).length) }}</h2>
       <ul class="dd-tags">
-        <li v-for="(value, key) in tags" :key="key" class="dd-tag">
-          <span class="dd-tag-key">{{ key }}</span>
-          <span class="dd-tag-value">{{ value }}</span>
-        </li>
+        <TagRow
+          v-for="(value, key) in tags"
+          :key="key"
+          :tag-key="key"
+          :value="value"
+          :value-label="optionLabel(key, value)"
+          :description="
+            docs[`${key}=${value}`]?.description ?? docs[key]?.description
+          "
+          :discouraged="
+            docs[`${key}=${value}`]?.discouraged || docs[key]?.discouraged
+          "
+          @open="selected = key"
+        />
       </ul>
     </section>
+
+    <BottomSheet
+      :open="selected !== undefined"
+      :title="selected"
+      @update:open="(open) => !open && (selected = undefined)"
+    >
+      <TagInfo
+        v-if="selected !== undefined"
+        :tag-key="selected"
+        :value="tags[selected]"
+        :key-doc="docs[selected]"
+        :value-doc="docs[`${selected}=${tags[selected]}`]"
+        :item-labels="itemLabels"
+      />
+    </BottomSheet>
 
     <section v-if="parents.length">
       <h2>{{ t("osm-part-of") }}</h2>
@@ -103,12 +128,22 @@ import {
 } from "../../osm/osm";
 import type { Bounds } from "../../osm/geocoding";
 import { osmHash, shortRef, type OsmRef } from "../../osm/osm-ref";
-import { geometries, matchPreset, useSchema } from "../../osm/presets";
+import {
+  fieldMatchesKey,
+  geometries,
+  matchPreset,
+  presetFields,
+  useSchema,
+} from "../../osm/presets";
+import { useTagDocs } from "../../osm/osmwiki";
 import { useRecent } from "../../osm/recent";
 import EntityId from "../EntityId.vue";
 import EntitySkeleton from "../EntitySkeleton.vue";
 import PresetIcon from "./PresetIcon.vue";
 import StaticMap from "./StaticMap.vue";
+import BottomSheet from "./BottomSheet.vue";
+import TagInfo from "./TagInfo.vue";
+import TagRow from "./TagRow.vue";
 
 const props = defineProps<{ osmRef: OsmRef; language: string }>();
 
@@ -133,6 +168,31 @@ const preset = computed(() =>
     ? matchPreset(schema.value, tags.value, geometries(element.value))
     : undefined,
 );
+
+/** Fields of the preset, for translated labels of values. */
+const fields = computed(() => {
+  const e = element.value;
+  if (!schema.value || !e || !preset.value) return [];
+  const { fields, moreFields } = presetFields(
+    schema.value,
+    preset.value.id,
+    tags.value,
+    geometries(e),
+  );
+  return [...fields, ...moreFields];
+});
+
+/** Translated option of the field editing the key, e.g. "Asphalt". */
+function optionLabel(key: string, value: string): string | undefined {
+  const field = fields.value.find((f) => fieldMatchesKey(f, key));
+  return field?.options.find((o) => o.value === value)?.label;
+}
+
+const { docs, itemLabels, load: loadDocs } = useTagDocs(() => props.language);
+watch([tags, () => props.language], () => {
+  loadDocs(tags.value).catch(console.warn);
+});
+const selected = ref<string>();
 
 function presetOf(e: OsmElement) {
   return schema.value
@@ -259,26 +319,6 @@ watch(
   border: 1px solid var(--border-color-subtle);
   border-radius: var(--border-radius-base);
 }
-.dd-tag {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 1rem;
-  padding: 0.5rem 0.75rem;
-}
-.dd-tag + .dd-tag {
-  border-top: 1px solid var(--border-color-subtle);
-}
-.dd-tag-key {
-  flex: 0 0 14rem;
-  font-family: var(--font-family-monospace);
-  font-size: var(--font-size-small);
-  color: var(--color-subtle);
-  overflow-wrap: anywhere;
-}
-.dd-tag-value {
-  flex: 1;
-  overflow-wrap: anywhere;
-}
 .dd-osm-parents {
   margin: 0;
   padding-inline-start: 0;
@@ -307,9 +347,6 @@ watch(
   }
   .dd-osm-map {
     flex-basis: auto;
-  }
-  .dd-tag-key {
-    flex-basis: 100%;
   }
 }
 </style>

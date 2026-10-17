@@ -119,5 +119,10 @@
   "osm-last-edit": "Zuletzt bearbeitet $1 von $2 · Version $3",
   "osm-openstreetmap": "OpenStreetMap",
   "osm-tags": "Tags ($1)",
-  "osm-part-of": "Teil von"
+  "osm-part-of": "Teil von",
+  "close": "Schließen",
+  "osm-doc-none": "Keine Dokumentation im OSM-Wiki.",
+  "osm-doc-discouraged": "Nicht empfohlen: veraltet oder obsolet",
+  "osm-doc-replaced-by": "Ersetzt durch: $1",
+  "osm-doc-wiki": "Wiki: $1"
 }

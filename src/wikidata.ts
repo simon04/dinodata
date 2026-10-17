@@ -34,11 +34,13 @@ export interface Entity {
   sitelinks?: Record<string, { site: string; title: string }>;
 }
 
-async function api<T>(
+/** GET from the Action API of Wikidata, or another Wikibase via `endpoint`. */
+export async function api<T>(
   params: Record<string, string>,
   cache?: { maxAge: number; bypass?: boolean },
+  endpoint = API,
 ): Promise<T> {
-  const url = new URL(API);
+  const url = new URL(endpoint);
   url.search = new URLSearchParams({
     format: "json",
     formatversion: "2",
