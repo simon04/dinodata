@@ -1,18 +1,8 @@
 import { lookupBounds, type Bounds } from "./geocoding";
+import { OSM_API, OSM_URL } from "./config";
 import type { LatLon, OsmRef, OsmType } from "./osm-ref";
 
-/**
- * OpenStreetMap API 0.6 (CORS enabled). The website and API URL can be
- * switched to the dev server (`master.apis.dev.openstreetmap.org`) via
- * `VITE_OSM_URL`, e.g. for testing uploads.
- */
-export const OSM_URL = (
-  import.meta.env.VITE_OSM_URL || "https://www.openstreetmap.org"
-).replace(/\/$/, "");
-export const OSM_API =
-  OSM_URL === "https://www.openstreetmap.org"
-    ? "https://api.openstreetmap.org/api/0.6"
-    : `${OSM_URL}/api/0.6`;
+export { OSM_API, OSM_URL } from "./config";
 
 export type Tags = Record<string, string>;
 
@@ -137,4 +127,105 @@ export function boundsOf(points: LatLon[]): Bounds | undefined {
     maxlat: Math.max(...lats),
     maxlon: Math.max(...lons),
   };
+}
+
+const escapeXml = (text: string) =>
+  text.replace(
+    /[<>&"']/g,
+    (c) =>
+      ({
+        "<": "&lt;",
+        ">": "&gt;",
+        "&": "&amp;",
+        '"': "&quot;",
+        "'": "&apos;",
+      })[c]!,
+  );
+
+const tagsXml = (tags: Tags) =>
+  Object.entries(tags)
+    .map(([k, v]) => `<tag k="${escapeXml(k)}" v="${escapeXml(v)}"/>`)
+    .join("");
+
+/** `<osm><changeset>` with the changeset tags. */
+export function changesetXml(tags: Tags): string {
+  return `<osm><changeset>${tagsXml(tags)}</changeset></osm>`;
+}
+
+/**
+ * osmChange modifying the element: unchanged geometry (coordinates, nodes,
+ * members) and version, new tags.
+ */
+export function osmChangeXml(
+  element: OsmElement,
+  tags: Tags,
+  changeset: number,
+): string {
+  const { type, id, version } = element;
+  const attrs = [
+    `id="${id}"`,
+    `version="${version}"`,
+    `changeset="${changeset}"`,
+    ...(type === "node"
+      ? [`lat="${element.lat}"`, `lon="${element.lon}"`]
+      : []),
+  ].join(" ");
+  const children = [
+    ...(element.nodes ?? []).map((ref) => `<nd ref="${ref}"/>`),
+    ...(element.members ?? []).map(
+      (m) =>
+        `<member type="${m.type}" ref="${m.ref}" role="${escapeXml(m.role)}"/>`,
+    ),
+    tagsXml(tags),
+  ].join("");
+  return `<osmChange version="0.6" generator="DinoData"><modify><${type} ${attrs}>${children}</${type}></modify></osmChange>`;
+}
+
+/**
+ * Save new tags of an element in a new changeset: create, upload the
+ * osmChange, close. A changed version on the server fails with 409.
+ */
+export async function saveTags(
+  element: OsmElement,
+  tags: Tags,
+  changesetTags: Tags,
+  accessToken: string,
+): Promise<{ changeset: number; version: number }> {
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    "Content-Type": "text/xml; charset=utf-8",
+  };
+  const res = await request("/changeset/create", {
+    method: "PUT",
+    headers,
+    body: changesetXml(changesetTags),
+  });
+  const changeset = Number(await res.text());
+  try {
+    const diff = await request(`/changeset/${changeset}/upload`, {
+      method: "POST",
+      headers,
+      body: osmChangeXml(element, tags, changeset),
+    });
+    const xml = new DOMParser().parseFromString(
+      await diff.text(),
+      "application/xml",
+    );
+    const version = Number(
+      xml
+        .querySelector(`${element.type}[old_id="${element.id}"]`)
+        ?.getAttribute("new_version"),
+    );
+    return { changeset, version };
+  } finally {
+    await request(`/changeset/${changeset}/close`, {
+      method: "PUT",
+      headers,
+    }).catch(console.warn);
+  }
+}
+
+/** Changeset on the website. */
+export function changesetUrl(id: number): string {
+  return `${OSM_URL}/changeset/${id}`;
 }

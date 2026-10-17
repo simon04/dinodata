@@ -1,11 +1,7 @@
 <template>
-  <span v-if="loginAvailable" class="dd-user">
+  <span v-if="available" class="dd-user">
     <template v-if="username">
-      <a
-        :href="`https://www.wikidata.org/wiki/User:${encodeURIComponent(username)}`"
-        target="_blank"
-        rel="external noopener"
-      >
+      <a :href="profileUrl" target="_blank" rel="external noopener">
         <cdx-icon :icon="cdxIconUserAvatar" size="small" />
         {{ username }}
       </a>
@@ -27,20 +23,40 @@
 
 <script setup lang="ts">
 import { t } from "../i18n";
+import { computed } from "vue";
 import { CdxButton, CdxIcon, useToast } from "@wikimedia/codex";
 import {
   cdxIconLogIn,
   cdxIconLogOut,
   cdxIconUserAvatar,
 } from "@wikimedia/codex-icons";
-import { loginAvailable, useAuth } from "../auth";
+import { useAuth, useOsmAuth } from "../auth";
+import { OSM_URL } from "../osm/config";
 
-const { username, login, logout } = useAuth();
+/** Login of the current mode: Wikimedia account, or OpenStreetMap account. */
+const props = withDefaults(defineProps<{ mode?: "wikidata" | "osm" }>(), {
+  mode: "wikidata",
+});
+
+const wikimedia = useAuth();
+const osm = useOsmAuth();
+const auth = computed(() => (props.mode === "osm" ? osm : wikimedia));
+const available = computed(() => auth.value.available);
+const username = computed(() => auth.value.username.value);
+const profileUrl = computed(() =>
+  props.mode === "osm"
+    ? `${OSM_URL}/user/${encodeURIComponent(username.value ?? "")}`
+    : `https://www.wikidata.org/wiki/User:${encodeURIComponent(username.value ?? "")}`,
+);
 const toast = useToast();
+
+function logout() {
+  return auth.value.logout();
+}
 
 async function onLogin() {
   try {
-    await login();
+    await auth.value.login();
   } catch (e) {
     // closing the popup is not an error worth reporting
     if (!String(e).includes("closed"))

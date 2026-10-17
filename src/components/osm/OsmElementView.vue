@@ -135,7 +135,7 @@
       </ul>
     </section>
 
-    <div v-if="changes.length" class="dd-osm-bar">
+    <div v-if="changes.length || conflicts.length" class="dd-osm-bar">
       <cdx-button weight="quiet" @click="sheet = { kind: 'review' }">
         {{ t("osm-changes", changes.length) }}
       </cdx-button>
@@ -212,11 +212,51 @@
           spellcheck="false"
         />
       </template>
-      <OsmChanges
-        v-else-if="sheet?.kind === 'review'"
-        :changes="changes"
-        @undo="(key) => patch({ [key]: base[key] })"
-      />
+      <template v-else-if="sheet?.kind === 'review'">
+        <cdx-message v-if="conflicts.length" type="warning">
+          {{ t("osm-conflict") }}
+        </cdx-message>
+        <div
+          v-for="conflict in conflicts"
+          :key="conflict.key"
+          class="dd-osm-conflict"
+        >
+          <code>{{ conflict.key }}</code>
+          <ChoiceChips
+            :options="conflictOptions(conflict)"
+            :selected="[]"
+            :label="conflict.key"
+            @toggle="(v) => resolveConflict(conflict.key, v)"
+          />
+        </div>
+        <OsmChanges
+          :changes="changes"
+          @undo="(key) => patch({ [key]: base[key] })"
+        />
+        <form v-if="changes.length" class="dd-osm-save" @submit.prevent="save">
+          <cdx-field>
+            <template #label>{{ t("osm-comment") }}</template>
+            <template #help-text>{{ t("osm-comment-help") }}</template>
+            <cdx-text-input
+              v-model="comment"
+              :placeholder="defaultComment"
+              :disabled="saving"
+              enterkeyhint="send"
+            />
+          </cdx-field>
+          <cdx-message v-if="!osmAuth.available" class="dd-osm-save-note">
+            {{ t("osm-save-unavailable") }}
+          </cdx-message>
+          <cdx-field :is-fieldset="true">
+            <template #label>{{ t("osm-source") }}</template>
+            <ChoiceChips
+              :options="sourceOptions"
+              :selected="sources"
+              @toggle="toggleSource"
+            />
+          </cdx-field>
+        </form>
+      </template>
       <template #footer>
         <template v-if="sheet?.kind === 'tag'">
           <cdx-button
@@ -261,6 +301,25 @@
             <cdx-icon :icon="cdxIconCopy" />
             {{ t("osm-copy") }}
           </cdx-button>
+          <cdx-button
+            v-if="osmAuth.username.value"
+            action="progressive"
+            weight="primary"
+            :disabled="saving || !changes.length || !!conflicts.length"
+            @click="save"
+          >
+            <cdx-icon :icon="cdxIconUpload" />
+            {{ t("osm-save") }}
+          </cdx-button>
+          <cdx-button
+            v-else-if="osmAuth.available"
+            action="progressive"
+            weight="primary"
+            @click="login"
+          >
+            <cdx-icon :icon="cdxIconLogIn" />
+            {{ t("osm-save-login") }}
+          </cdx-button>
         </template>
       </template>
     </BottomSheet>
@@ -272,8 +331,10 @@ import { computed, ref, shallowRef, useTemplateRef, watch } from "vue";
 import { useEventListener, useTitle } from "@vueuse/core";
 import {
   CdxButton,
+  CdxField,
   CdxIcon,
   CdxMessage,
+  CdxTextInput,
   CdxTextArea,
   useToast,
 } from "@wikimedia/codex";
@@ -281,6 +342,7 @@ import {
   cdxIconAdd,
   cdxIconCopy,
   cdxIconEdit,
+  cdxIconLogIn,
   cdxIconLogoWikidata,
   cdxIconMapPin,
   cdxIconPaste,
@@ -289,19 +351,23 @@ import {
   cdxIconUndo,
   cdxIconUpload,
 } from "@wikimedia/codex-icons";
-import { t } from "../../i18n";
+import { t, type MessageKey } from "../../i18n";
 import { formatRelativeTime } from "../../format";
 import { sessionCache } from "../../cache";
 import { useSharedClipboard } from "../../clipboard";
 import {
+  changesetUrl,
   editUrl,
   elementUrl,
   getBounds,
   getElement,
   getParents,
+  OsmApiError,
+  saveTags,
   type OsmElement,
   type Tags,
 } from "../../osm/osm";
+import { useOsmAuth } from "../../auth";
 import type { Bounds } from "../../osm/geocoding";
 import { osmHash, shortRef, type OsmRef } from "../../osm/osm-ref";
 import {
@@ -320,15 +386,18 @@ import {
   applyPatch,
   diffTags,
   formatTagText,
+  mergeTags,
   parseTagText,
   patchTo,
   tagState,
+  type TagChange,
   type TagPatch,
 } from "../../osm/tags";
 import EntityId from "../EntityId.vue";
 import EntitySkeleton from "../EntitySkeleton.vue";
 import AddTag from "./AddTag.vue";
 import BottomSheet from "./BottomSheet.vue";
+import ChoiceChips from "./ChoiceChips.vue";
 import FieldEditor from "./FieldEditor.vue";
 import OsmChanges from "./OsmChanges.vue";
 import PresetIcon from "./PresetIcon.vue";
@@ -509,6 +578,127 @@ function applyText() {
     });
 }
 
+// saving
+const osmAuth = useOsmAuth();
+const SOURCES = ["survey", "local_knowledge", "website", "imagery"];
+const sourceOptions = computed(() =>
+  SOURCES.map((value) => ({
+    value,
+    label: t(`osm-source-${value}` as MessageKey),
+  })),
+);
+const comment = ref("");
+const sources = ref<string[]>([]);
+const saving = ref(false);
+/** keys changed meanwhile by someone else and by the user */
+const conflicts = ref<TagChange[]>([]);
+
+const defaultComment = computed(() =>
+  t("osm-comment-default", preset.value?.name ?? "", title.value),
+);
+
+function toggleSource(value: string) {
+  sources.value = sources.value.includes(value)
+    ? sources.value.filter((v) => v !== value)
+    : [...sources.value, value];
+}
+
+async function login() {
+  try {
+    await osmAuth.login();
+  } catch (e) {
+    if (!String(e).includes("closed"))
+      toast.error(t("login-failed", String(e)));
+  }
+}
+
+const SOURCE_TAGS: Record<string, string> = {
+  survey: "survey",
+  local_knowledge: "local knowledge",
+  website: "website",
+  imagery: "aerial imagery",
+};
+
+async function save() {
+  const e = element.value;
+  const token = osmAuth.accessToken.value;
+  if (!e || !token || !changes.value.length || conflicts.value.length) return;
+  saving.value = true;
+  try {
+    const { changeset } = await saveTags(
+      e,
+      current.value,
+      {
+        comment: comment.value.trim() || defaultComment.value,
+        created_by: "DinoData",
+        locale: props.language,
+        ...(sources.value.length && {
+          source: sources.value.map((s) => SOURCE_TAGS[s]).join(";"),
+        }),
+      },
+      token,
+    );
+    comment.value = "";
+    sheet.value = undefined;
+    const saved = await getElement(e);
+    current.value = { ...saved.tags };
+    element.value = saved;
+    toast.show({
+      type: "success",
+      message: t("osm-saved", changeset),
+      actionButton: {
+        label: t("osm-saved-show"),
+        onClick: () => window.open(changesetUrl(changeset), "_blank"),
+      },
+      autoDismiss: 10000,
+    });
+  } catch (err) {
+    if (err instanceof OsmApiError && err.status === 409) await merge(e);
+    else if (err instanceof OsmApiError && err.status === 401) {
+      await osmAuth.logout();
+      toast.error(t("osm-save-unauthorized"));
+    } else
+      toast.error(
+        t("save-failed", err instanceof Error ? err.message : String(err)),
+      );
+  } finally {
+    saving.value = false;
+  }
+}
+
+/**
+ * Edited meanwhile: merge with the current version; keys changed on both
+ * sides are shown to choose, the rest is saved right away.
+ */
+async function merge(old: OsmElement) {
+  const latest = await getElement(old);
+  const merged = mergeTags(old.tags ?? {}, current.value, latest.tags ?? {});
+  element.value = latest;
+  current.value = merged.tags;
+  conflicts.value = merged.conflicts;
+  if (merged.conflicts.length) {
+    sheet.value = { kind: "review" };
+    return;
+  }
+  toast.info(t("osm-merged", latest.user ?? "?"), { autoDismiss: 6000 });
+  if (changes.value.length) await save();
+}
+
+function conflictOptions(conflict: TagChange) {
+  const label = (v?: string) => v ?? t("osm-conflict-none");
+  return [
+    { value: "theirs", label: t("osm-conflict-theirs", label(conflict.old)) },
+    { value: "mine", label: t("osm-conflict-mine", label(conflict.new)) },
+  ];
+}
+
+function resolveConflict(key: string, choice: string) {
+  const conflict = conflicts.value.find((c) => c.key === key);
+  if (!conflict) return;
+  patch({ [key]: choice === "mine" ? conflict.new : conflict.old });
+  conflicts.value = conflicts.value.filter((c) => c.key !== key);
+}
+
 function discard() {
   current.value = { ...base.value };
   sheet.value = undefined;
@@ -653,6 +843,7 @@ watch(
     bounds.value = undefined;
     sheet.value = undefined;
     addedFields.value = [];
+    conflicts.value = [];
     try {
       const e = await getElement(osmRef);
       if (props.osmRef !== osmRef) return;
@@ -741,6 +932,19 @@ watch(
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.dd-osm-conflict {
+  margin: 0.5rem 0 1rem;
+}
+.dd-osm-conflict code {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+.dd-osm-save {
+  margin-top: 1rem;
+}
+.dd-osm-save-note {
   margin-top: 0.75rem;
 }
 .dd-osm-text {

@@ -26,7 +26,7 @@
         @select="go"
       />
       <LanguageSelector v-model="language" />
-      <UserMenu />
+      <UserMenu :mode="route.mode" />
     </div>
   </div>
 
