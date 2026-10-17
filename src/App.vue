@@ -11,8 +11,20 @@
           <img :src="dragons" alt="" />
         </button>
         <a href="#">DinoData</a>
+        <a v-if="route.mode === 'osm'" class="dd-mode" href="#osm">OSM</a>
       </span>
-      <HeaderSearch class="dd-search" :language="language" @select="go" />
+      <OsmHeaderSearch
+        v-if="route.mode === 'osm'"
+        class="dd-search"
+        :language="language"
+        @select="go"
+      />
+      <HeaderSearch
+        v-else
+        class="dd-search"
+        :language="language"
+        @select="go"
+      />
       <LanguageSelector v-model="language" />
       <UserMenu />
     </div>
@@ -48,7 +60,15 @@
   </cdx-dialog>
 
   <main class="mw-page-container">
-    <EntityView v-if="id" :id="id" :language="language" />
+    <template v-if="route.mode === 'osm'">
+      <OsmElementView
+        v-if="route.ref"
+        :osm-ref="route.ref"
+        :language="language"
+      />
+      <OsmHome v-else :language="language" :search="route.search" />
+    </template>
+    <EntityView v-else-if="route.id" :id="route.id" :language="language" />
     <section v-else class="dd-home">
       <div>
         <h1>{{ t("app-welcome") }}</h1>
@@ -66,6 +86,9 @@
             </span>
           </li>
         </ul>
+        <p class="dd-osm-teaser">
+          <a href="#osm">{{ t("osm-teaser") }}</a>
+        </p>
       </div>
       <aside class="dd-hackathon">
         <button class="dd-hackathon-image" @click="showDialog = true">
@@ -142,7 +165,7 @@
 
 <script setup lang="ts">
 import { isRTL, language, t } from "./i18n";
-import { ref, watchEffect } from "vue";
+import { defineAsyncComponent, ref, watch, watchEffect } from "vue";
 import {
   computedAsync,
   useEventListener,
@@ -157,6 +180,19 @@ import HeaderSearch from "./components/HeaderSearch.vue";
 import EntityView from "./components/EntityView.vue";
 import MediaDialog from "./components/MediaDialog.vue";
 import dragons from "./assets/dragons.svg";
+import { parseRoute } from "./route";
+import { useSchema } from "./osm/presets";
+
+// OSM mode is loaded on demand
+const OsmElementView = defineAsyncComponent(
+  () => import("./components/osm/OsmElementView.vue"),
+);
+const OsmHome = defineAsyncComponent(
+  () => import("./components/osm/OsmHome.vue"),
+);
+const OsmHeaderSearch = defineAsyncComponent(
+  () => import("./components/osm/OsmHeaderSearch.vue"),
+);
 
 const EXAMPLES = [
   ["Q40", "Austria"],
@@ -176,16 +212,31 @@ watchEffect(() => {
   document.documentElement.lang = language.value;
   dir.value = isRTL() ? "rtl" : "ltr";
 });
-loadProperties(language);
-
 const showDialog = ref(false);
 
-const parseHash = () => location.hash.match(/^#([LPQ]\d+)$/)?.[1];
-const id = ref(parseHash());
+const route = ref(parseRoute(location.hash));
 useEventListener(window, "hashchange", () => {
-  id.value = parseHash();
+  route.value = parseRoute(location.hash);
   window.scrollTo(0, 0);
 });
+
+// preload what the mode needs, once: Wikidata properties, or OSM presets
+let propertiesLoading = false;
+let schemaLoading = false;
+watch(
+  () => route.value.mode,
+  (mode) => {
+    if (mode === "wikidata" && !propertiesLoading) {
+      propertiesLoading = true;
+      loadProperties(language);
+    }
+    if (mode === "osm" && !schemaLoading) {
+      schemaLoading = true;
+      useSchema().load(language);
+    }
+  },
+  { immediate: true },
+);
 
 /**
  * Labels and descriptions in the selected language (English names until
@@ -212,8 +263,9 @@ const examples = computedAsync(
   { lazy: true, onError: console.warn },
 );
 
-function go(entityId: string) {
-  location.hash = entityId;
+/** Navigate to an item ID (`Q42`) or hash (`#osm/way/1`). */
+function go(target: string) {
+  location.hash = target;
 }
 </script>
 
@@ -365,6 +417,15 @@ samp {
 }
 .dd-logo a {
   color: inherit;
+}
+.dd-mode {
+  padding: 0.15em 0.4em;
+  border-radius: var(--border-radius-base);
+  background: var(--background-color-progressive-subtle);
+  font-size: 0.6em;
+}
+.dd-osm-teaser {
+  margin-top: 1.5rem;
 }
 .dd-dino {
   display: flex;

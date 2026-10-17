@@ -108,5 +108,22 @@
   "search-wikidata": "Search for “$1” on Wikidata",
   "login": "Log in",
   "logout": "Log out",
-  "login-failed": "Login failed: $1"
+  "login-failed": "Login failed: $1",
+  "osm-teaser": "New: edit OpenStreetMap tags →",
+  "osm-welcome": "OpenStreetMap tag editor",
+  "osm-intro": "Open any OpenStreetMap node, way or relation by URL, ID (like w123) or search, see what its tags mean in your language, and edit them comfortably – also on your phone. Geometry is not edited.",
+  "osm-search": "Search",
+  "osm-search-placeholder": "Search OSM: place, URL or ID like w123",
+  "osm-search-nominatim": "Search for “$1” with Nominatim",
+  "osm-search-results": "Results for “$1”",
+  "osm-nearby": "Near me",
+  "osm-nearby-results": "Objects nearby",
+  "osm-nearby-failed": "Location unavailable: $1",
+  "osm-recent": "Recently opened",
+  "osm-recent-clear": "Clear",
+  "osm-map-open": "Open the map on OpenStreetMap",
+  "osm-last-edit": "Last edited $1 by $2 · version $3",
+  "osm-openstreetmap": "OpenStreetMap",
+  "osm-tags": "Tags ($1)",
+  "osm-part-of": "Part of"
 }

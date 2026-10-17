@@ -102,5 +102,22 @@
   "media-commons": "Auf Commons ansehen",
   "login": "Anmelden",
   "logout": "Abmelden",
-  "login-failed": "Anmeldung fehlgeschlagen: $1"
+  "login-failed": "Anmeldung fehlgeschlagen: $1",
+  "osm-teaser": "Neu: OpenStreetMap-Tags bearbeiten →",
+  "osm-welcome": "OpenStreetMap-Tag-Editor",
+  "osm-intro": "Öffne beliebige OpenStreetMap-Knoten, -Wege und -Relationen per URL, ID (wie w123) oder Suche, sieh, was ihre Tags in deiner Sprache bedeuten, und bearbeite sie bequem – auch am Handy. Die Geometrie wird nicht bearbeitet.",
+  "osm-search": "Suchen",
+  "osm-search-placeholder": "OSM durchsuchen: Ort, URL oder ID wie w123",
+  "osm-search-nominatim": "Mit Nominatim nach „$1“ suchen",
+  "osm-search-results": "Ergebnisse für „$1“",
+  "osm-nearby": "In meiner Nähe",
+  "osm-nearby-results": "Objekte in der Nähe",
+  "osm-nearby-failed": "Standort nicht verfügbar: $1",
+  "osm-recent": "Zuletzt geöffnet",
+  "osm-recent-clear": "Leeren",
+  "osm-map-open": "Karte auf OpenStreetMap öffnen",
+  "osm-last-edit": "Zuletzt bearbeitet $1 von $2 · Version $3",
+  "osm-openstreetmap": "OpenStreetMap",
+  "osm-tags": "Tags ($1)",
+  "osm-part-of": "Teil von"
 }

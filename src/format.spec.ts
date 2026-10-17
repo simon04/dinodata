@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { formatNumber, formatTime } from "./format";
+import { formatNumber, formatRelativeTime, formatTime } from "./format";
 
 describe("formatNumber", () => {
   it("groups digits per locale", () => {
@@ -58,5 +58,21 @@ describe("formatTime", () => {
 
   it("returns unparsable values unchanged", () => {
     expect(formatTime("yesterday", 11, "en")).toBe("yesterday");
+  });
+});
+
+describe("formatRelativeTime", () => {
+  const now = Date.parse("2026-10-17T12:00:00Z");
+
+  it("picks the largest unit", () => {
+    expect(formatRelativeTime("2026-07-10T12:00:00Z", "en", now)).toBe(
+      "3 months ago",
+    );
+    expect(formatRelativeTime("2026-10-17T11:58:00Z", "en", now)).toBe(
+      "2 minutes ago",
+    );
+    expect(formatRelativeTime("2026-10-16T12:00:00Z", "de", now)).toBe(
+      "gestern",
+    );
   });
 });
