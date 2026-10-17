@@ -18,6 +18,7 @@ export type Geometry = "point" | "vertex" | "line" | "area" | "relation";
 export interface RawPreset {
   tags: Tags;
   addTags?: Tags;
+  removeTags?: Tags;
   geometry: Geometry[];
   fields?: string[];
   moreFields?: string[];
@@ -61,6 +62,7 @@ interface FieldStrings {
   terms?: string;
   options?: Record<string, string | { title: string; description?: string }>;
   placeholders?: Record<string, string>;
+  labels?: Record<string, string>;
   types?: Record<string, string>;
 }
 
@@ -112,7 +114,8 @@ export interface Field {
   /** free values besides the options */
   customValues: boolean;
   raw: RawField;
-  /** placeholders per sub-key of address fields, e.g. `street` → Street */
+  /** labels and placeholders per sub-key of address fields */
+  labels?: Record<string, string>;
   placeholders?: Record<string, string>;
 }
 
@@ -369,6 +372,7 @@ function toField(schema: Schema, id: string): Field | undefined {
       raw.customValues !== false &&
       !["check", "defaultCheck", "onewayCheck", "radio"].includes(raw.type),
     raw,
+    labels: str?.labels,
     placeholders: str?.placeholders,
   };
 }
@@ -509,4 +513,47 @@ export function deprecations(schema: Schema, tags: Tags): Deprecation[] {
       v === "*" ? k in tags : tags[k] === v,
     ),
   );
+}
+
+/**
+ * Change the preset like iD: remove the tags of the old preset (its
+ * `removeTags`, `addTags` or `tags`), add those of the new one; `*` keeps an
+ * existing value or sets `yes`.
+ */
+export function changePresetPatch(
+  schema: Schema,
+  oldId: string,
+  newId: string,
+  tags: Tags,
+): Record<string, string | undefined> {
+  const patch: Record<string, string | undefined> = {};
+  const old = schema.presets[oldId];
+  const remove = old?.removeTags ?? old?.addTags ?? old?.tags ?? {};
+  for (const [key, value] of Object.entries(remove))
+    if (value === "*" || tags[key] === value) patch[key] = undefined;
+  const add = schema.presets[newId]?.addTags ?? schema.presets[newId]?.tags;
+  for (const [key, value] of Object.entries(add ?? {}))
+    patch[key] = value === "*" ? (tags[key] ?? "yes") : value;
+  return patch;
+}
+
+const keyFields = new WeakMap<Schema, Map<string, string>>();
+
+/**
+ * A field of the schema for a key, for translated options of tags shown
+ * without their preset field (e.g. `surface` on a building).
+ */
+export function fieldForKey(schema: Schema, key: string): Field | undefined {
+  let map = keyFields.get(schema);
+  if (!map) {
+    map = new Map();
+    for (const [id, f] of Object.entries(schema.fields))
+      for (const k of f.keys ?? (f.key ? [f.key] : []))
+        // prefer fields with options, e.g. "surface" over "surface/paved"
+        if (!map.has(k) || (f.options && !schema.fields[map.get(k)!]?.options))
+          map.set(k, id);
+  }
+  keyFields.set(schema, map);
+  const id = map.get(key);
+  return id ? toField(schema, id) : undefined;
 }
