@@ -167,5 +167,18 @@
   "osm-conflict-theirs": "Aktuell: $1",
   "osm-conflict-mine": "Deiner: $1",
   "osm-conflict-none": "(entfernt)",
-  "osm-save-unavailable": "Speichern in OpenStreetMap ist nur auf dinodata.toolforge.org möglich; kopiere stattdessen die Änderungen."
+  "osm-save-unavailable": "Speichern in OpenStreetMap ist nur auf dinodata.toolforge.org möglich; kopiere stattdessen die Änderungen.",
+  "osm-issues": "{{PLURAL:$1|Problem|Probleme}} ($1)",
+  "osm-issue-fix": "Beheben",
+  "osm-issue-info": "Details",
+  "osm-issue-deprecated": "$1 ist veraltet, verwende $2.",
+  "osm-issue-deprecated-remove": "$1 ist veraltet und sollte entfernt werden.",
+  "osm-issue-discouraged": "$1 ist im OSM-Wiki als „$2“ markiert.",
+  "osm-issue-discouraged-replace": "$1 ist im OSM-Wiki als „$2“ markiert, verwende $3.",
+  "osm-issue-format": "Der Wert von $1 sieht nicht wie erwartet aus: $2",
+  "osm-issue-too-long": "$1 ist länger als $2 Zeichen, das OSM-Limit.",
+  "osm-issue-type-node": "$1 ist nicht für Knoten (Punkte) gedacht.",
+  "osm-issue-type-way": "$1 ist nicht für Wege gedacht.",
+  "osm-issue-type-relation": "$1 ist nicht für Relationen gedacht.",
+  "osm-issue-incompatible": "$1 sollte nicht mit $2 kombiniert werden."
 }

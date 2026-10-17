@@ -62,6 +62,12 @@
       />
     </header>
 
+    <OsmIssues
+      :issues="issues"
+      @fix="patch"
+      @info="(key) => (sheet = { kind: 'info', key })"
+    />
+
     <section v-if="visibleFields.length">
       <h2>{{ t("osm-fields") }}</h2>
       <div class="dd-osm-box">
@@ -400,6 +406,8 @@ import BottomSheet from "./BottomSheet.vue";
 import ChoiceChips from "./ChoiceChips.vue";
 import FieldEditor from "./FieldEditor.vue";
 import OsmChanges from "./OsmChanges.vue";
+import OsmIssues from "./OsmIssues.vue";
+import { validate } from "../../osm/validate";
 import PresetIcon from "./PresetIcon.vue";
 import PresetPicker from "./PresetPicker.vue";
 import StaticMap from "./StaticMap.vue";
@@ -775,6 +783,18 @@ const { docs, itemLabels, load: loadDocs } = useTagDocs(() => props.language);
 watch([current, () => props.language], () => {
   loadDocs(current.value).catch(console.warn);
 });
+const issues = computed(() =>
+  element.value
+    ? validate(
+        element.value,
+        current.value,
+        docs.value,
+        itemLabels.value,
+        schema.value?.deprecated ?? [],
+      )
+    : [],
+);
+
 const describe = (key: string, value: string) =>
   docs.value[`${key}=${value}`]?.description ?? docs.value[key]?.description;
 const isDiscouraged = (key: string, value: string) =>

@@ -50,6 +50,19 @@ Edits are collected locally, then saved to Wikidata directly (after logging in) 
 - Edit conflicts are detected (`baserevid`) instead of overwriting changes made meanwhile
 - Runs entirely in the browser: public OAuth client with PKCE, the token is kept in sessionStorage and renewed with the refresh token
 
+### OpenStreetMap tag editor
+
+A second mode at `#osm` edits the tags of OpenStreetMap nodes, ways and relations (no geometry), designed for phones first. See [the concept](docs/osm-concept.md).
+
+- Open objects by URL (openstreetmap.org, iD, JOSM remote control), short ID (`w123`, `way 123`) or route `#osm/way/123`; search places with Photon while typing and Nominatim on Enter; “Near me” lists tagged objects around your location (Overpass); recently opened objects on the OSM home page
+- What the object is (“Cafe”) with icon, from the presets of the [iD tagging schema](https://github.com/openstreetmap/id-tagging-schema), translated; tap to change the type
+- Fields of the preset with the matching input: yes/no and radio chips, a value picker with translated options and the most used values from taginfo, multi-value chips (`cuisine=pizza;pasta`), `diet:*`-style toggles, names per language, address, access, Wikidata search, phone/URL/number keyboards
+- Every tag explained from the Wikibase of the OSM wiki: description in your language, status, image, wiki page, Wikidata concept; deprecated tags marked
+- Issues with one-tap fixes: deprecated tags (schema and wiki), values not matching the wiki's format, tags not meant for the element type, incompatible tags
+- Add fields or tags (key suggestions from taginfo, or `key=value`), text view, copy and paste tags (Ctrl+V), undo per field or tag; pending edits survive reloads
+- Static map preview of the location, parent ways and relations, links to openstreetmap.org, iD and Wikidata
+- Save with your OpenStreetMap account (OAuth 2.0 with PKCE in a popup): review the changes, changeset comment and source, one changeset per save; if someone edited the object meanwhile, the tags are merged and only keys changed on both sides need a choice
+
 ### Copy & paste
 
 - Copy one statement or all statements of a property (copy icons on hover / in the property column)
@@ -96,6 +109,8 @@ pnpm vp check  # format, lint and type checks
 pnpm vp fmt    # format all files
 pnpm vp lint   # lint only
 ```
+
+OpenStreetMap logins use an OAuth 2.0 application registered on openstreetmap.org (public client, same callback URL), configured as `VITE_OSM_OAUTH_CLIENT_ID`; `VITE_OSM_URL=https://master.apis.dev.openstreetmap.org` switches viewing and saving to the OSM dev server for testing (with an application registered there).
 
 Logging in locally uses the OAuth 2.0 consumer “DinoData (dev)” with the callback `http://localhost:5173/oauth-callback`, so the dev server is fixed to port 5173. Client IDs are in `.env.development` and `.env.production` (public clients, no secrets).
 

@@ -2,7 +2,7 @@
 
 A mobile-first tag editor for OpenStreetMap nodes, ways and relations, living next to the Wikidata editor in DinoData. No geometry editing: open an object, see what it is, edit its tags comfortably, save as a changeset.
 
-Status: concept, nothing implemented yet.
+Status: milestones 1–5 implemented (see the README); the OpenStreetMap OAuth applications still need to be registered.
 
 ## Goals and non-goals
 
