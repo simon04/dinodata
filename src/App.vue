@@ -97,17 +97,6 @@
             :alt="t('app-dialog-title')"
           />
         </button>
-        <div class="dd-hackathon-text">
-          <strong>🦕 {{ t("app-dialog-title") }}</strong>
-          <p>{{ t("app-hackathon") }}</p>
-          <a
-            href="https://wikimania.wikimedia.org/wiki/2024:Hackathon"
-            target="_blank"
-            rel="external noopener"
-          >
-            {{ t("app-hackathon-link") }}
-          </a>
-        </div>
       </aside>
     </section>
   </main>
@@ -370,12 +359,6 @@ samp {
 .dd-hackathon-image img {
   display: block;
   width: 100%;
-}
-.dd-hackathon-text {
-  padding: 0.75rem 1rem;
-}
-.dd-hackathon-text p {
-  margin: 0.5rem 0;
 }
 .dd-credit {
   font-size: 0.8125em;
