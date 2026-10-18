@@ -195,6 +195,7 @@ const OsmHeaderSearch = defineAsyncComponent(
 );
 
 const EXAMPLES = [
+  ["Q113654417", "The Dragons in Love"],
   ["Q40", "Austria"],
   ["Q1741", "Vienna"],
   ["Q18559623", "Wikimedia Austria"],
