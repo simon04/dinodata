@@ -223,6 +223,26 @@ export async function getLabels(
   );
 }
 
+/**
+ * Properties often used together with the entity's statements, by Wikidata's
+ * PropertySuggester (as in its "add statement" form), most relevant first.
+ */
+export async function getPropertySuggestions(
+  id: string,
+  language: string,
+): Promise<string[]> {
+  const json = await api<{ search?: { id: string }[] }>(
+    {
+      action: "wbsgetsuggestions",
+      entity: id,
+      language,
+      limit: "50",
+    },
+    { maxAge: 60 * 60 * 1000 },
+  );
+  return (json.search ?? []).map((s) => s.id);
+}
+
 export interface Backlink {
   title: string;
   /** item, property or lexeme ID, for entity pages */

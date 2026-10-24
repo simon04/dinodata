@@ -13,6 +13,7 @@ import {
   getEntities,
   fallbackLanguages,
   getLabels,
+  getPropertySuggestions,
   label,
   searchEntities,
 } from "./wikidata";
@@ -47,6 +48,8 @@ const fetch = vi.fn(async (input: string | URL) => {
           ? []
           : [{ id: "Q1735", label: params.get("search") }],
     });
+  if (params.get("action") === "wbsgetsuggestions")
+    return Response.json({ search: [{ id: "P17" }, { id: "P580" }] });
   if (params.get("list") === "search")
     return Response.json({
       query: {
@@ -158,6 +161,19 @@ describe("searchEntities full-text fallback", () => {
       { id: "P2", label: "label of P2", description: undefined },
     ]);
     expect(params(1).get("srnamespace")).toBe("120");
+  });
+});
+
+describe("getPropertySuggestions", () => {
+  it("returns the suggested property IDs for the entity, cached", async () => {
+    expect(await getPropertySuggestions("Q1", "de")).toEqual(["P17", "P580"]);
+    expect(Object.fromEntries(params(0))).toMatchObject({
+      action: "wbsgetsuggestions",
+      entity: "Q1",
+      language: "de",
+    });
+    await getPropertySuggestions("Q1", "de");
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -26,22 +26,40 @@ import {
   type Property,
 } from "../properties";
 
-const props = defineProps<{ language: string; autofocus?: boolean }>();
+const props = defineProps<{
+  language: string;
+  autofocus?: boolean;
+  /** property IDs offered before typing */
+  suggestions?: string[];
+  /** labels of the suggestions, until all properties are loaded */
+  labels?: Record<string, string>;
+}>();
 const emit = defineEmits<{ select: [property: Property] }>();
 
 const { byId, loading } = useProperties();
 const selected = ref<string | null>(null);
 const inputValue = ref("");
-const menuItems = ref<MenuItemData[]>([]);
+const toMenuItem = (p: Property): MenuItemData => ({
+  value: p.id,
+  label: propertyLabel(p, props.language) ?? props.labels?.[p.id] ?? p.id,
+  match: `${p.id} · ${p.datatype}`,
+  description: propertyDescription(p, props.language),
+});
+
+const menuItems = ref<MenuItemData[]>(suggestionItems());
 const lookup = useTemplateRef<{ $el: HTMLElement }>("lookup");
 
+/** The suggestions, shown by Codex on focus if present when mounted. */
+function suggestionItems(): MenuItemData[] {
+  return (props.suggestions ?? []).flatMap((id) =>
+    byId.value[id] ? [toMenuItem(byId.value[id])] : [],
+  );
+}
+
 function onInput(value: string) {
-  menuItems.value = searchProperties(value).map((p) => ({
-    value: p.id,
-    label: propertyLabel(p, props.language) ?? p.id,
-    match: `${p.id} · ${p.datatype}`,
-    description: propertyDescription(p, props.language),
-  }));
+  menuItems.value = value.trim()
+    ? searchProperties(value).map(toMenuItem)
+    : suggestionItems();
 }
 
 function onSelected(id: string | null) {
@@ -52,7 +70,7 @@ function onSelected(id: string | null) {
 function reset() {
   selected.value = null;
   inputValue.value = "";
-  menuItems.value = [];
+  menuItems.value = suggestionItems();
   focus();
 }
 

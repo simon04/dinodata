@@ -85,6 +85,8 @@
             :key="addingProperty?.id"
             :language="language"
             :fixed-property="addingProperty"
+            :suggestions="suggested.menu.statements"
+            :labels="allLabels"
             @add="addStatement"
             @close="closeAdding"
           />
@@ -106,10 +108,10 @@
             {{ t(`sort-${sort}`) }}
           </cdx-menu-button>
         </div>
-        <p v-if="suggested.statements.length" class="dd-suggested">
-          {{ t("suggested-properties") }}
+        <p v-if="suggested.statements.properties.length" class="dd-suggested">
+          {{ suggested.statements.label }}
           <cdx-button
-            v-for="property in suggested.statements"
+            v-for="property in suggested.statements.properties"
             :key="property"
             weight="quiet"
             size="small"
@@ -151,6 +153,8 @@
           :key="addingProperty?.id"
           :language="language"
           :fixed-property="addingProperty"
+          :suggestions="suggested.menu.identifiers"
+          :labels="allLabels"
           @add="addStatement"
           @close="closeAdding"
         />
@@ -162,10 +166,10 @@
           <cdx-icon :icon="cdxIconAdd" />
           {{ t("add-statement") }}
         </cdx-button>
-        <p v-if="suggested.identifiers.length" class="dd-suggested">
-          {{ t("suggested-properties") }}
+        <p v-if="suggested.identifiers.properties.length" class="dd-suggested">
+          {{ suggested.identifiers.label }}
           <cdx-button
-            v-for="property in suggested.identifiers"
+            v-for="property in suggested.identifiers.properties"
             :key="property"
             weight="quiet"
             size="small"
@@ -258,6 +262,7 @@ import {
   editEntity,
   getEntities,
   getLabels,
+  getPropertySuggestions,
   label,
   type Claim,
   type Entity,
@@ -636,6 +641,7 @@ const allLabels = computed(() => {
     ...propertyIds.value,
     ...properties.value,
     ...typeProperties.value,
+    ...commonProperties.value,
     // qualifiers added in the editor
     ...statementEdits.value.flatMap((e) =>
       (e.qualifiers ?? []).map((q) => q.property),
@@ -721,14 +727,49 @@ const identifiers = computed(() =>
   orderedProperties.value.filter(isIdentifier),
 );
 /** Properties for this type (P1963) the item does not have yet. */
-const suggested = computed(() => {
-  const missing = typeProperties.value.filter(
-    (p) => byId.value[p] && !properties.value.includes(p),
+/** properties often used with the item's statements (PropertySuggester) */
+const commonProperties = ref<string[]>([]);
+
+async function loadCommonProperties(e: Entity) {
+  const ids = await getPropertySuggestions(e.id, props.language);
+  if (toRaw(entity.value) !== e) return;
+  commonProperties.value = ids;
+  // names of the suggested properties, before the preload of all properties
+  await getLabels(
+    ids.filter((p) => !labels.value[p]),
+    props.language,
+    addLabels,
   );
+}
+
+/**
+ * Properties the item does not have yet: for its type (P1963), otherwise
+ * those often used with its statements; the property menu offers both.
+ */
+const suggested = computed(() => {
   const external = (p: string) => byId.value[p].datatype === "external-id";
+  const split = (ids: string[]) => {
+    const missing = ids.filter(
+      (p) => byId.value[p] && !properties.value.includes(p),
+    );
+    return {
+      statements: missing.filter((p) => !external(p)),
+      identifiers: missing.filter(external),
+    };
+  };
+  const type = split(typeProperties.value);
+  const common = split(commonProperties.value);
+  const row = (kind: "statements" | "identifiers") =>
+    type[kind].length
+      ? { label: t("suggested-properties"), properties: type[kind] }
+      : { label: t("suggested-common"), properties: common[kind].slice(0, 10) };
   return {
-    statements: missing.filter((p) => !external(p)),
-    identifiers: missing.filter(external),
+    statements: row("statements"),
+    identifiers: row("identifiers"),
+    menu: {
+      statements: [...new Set([...type.statements, ...common.statements])],
+      identifiers: [...new Set([...type.identifiers, ...common.identifiers])],
+    },
   };
 });
 
@@ -855,6 +896,7 @@ watch(
       edits.value = [];
       savedRevision.value = undefined;
       typeProperties.value = [];
+      commonProperties.value = [];
       closeAdding();
     }
     try {
@@ -873,6 +915,7 @@ watch(
       entity.value = e;
       loading.value = false;
       loadTypeProperties(e).catch(console.warn);
+      loadCommonProperties(e).catch(console.warn);
       // the item's properties first: the preload of all properties (for
       // search and editing) may take a while on the first visit
       await getLabels(

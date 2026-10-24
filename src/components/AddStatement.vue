@@ -4,6 +4,8 @@
       v-if="!fixedProperty"
       ref="propertyLookup"
       :language="language"
+      :suggestions="suggestions"
+      :labels="labels"
       autofocus
       @select="property = $event"
     />
@@ -32,7 +34,13 @@ import type { Snak } from "../wikidata";
 import PropertyLookup from "./PropertyLookup.vue";
 import ValueInput from "./ValueInput.vue";
 
-const props = defineProps<{ language: string; fixedProperty?: Property }>();
+const props = defineProps<{
+  language: string;
+  fixedProperty?: Property;
+  /** property IDs offered before typing */
+  suggestions?: string[];
+  labels?: Record<string, string>;
+}>();
 const emit = defineEmits<{
   add: [snak: Snak, label?: string];
   close: [];
