@@ -11,7 +11,7 @@
         {{ t("save-diff") }}
       </a>
     </cdx-message>
-    <cdx-message v-else-if="!edits.length">
+    <p v-else-if="!edits.length" class="dd-qs-empty">
       <template
         v-for="(part, i) in t('qs-empty', '\u0000').split('\u0000')"
         :key="i"
@@ -26,7 +26,7 @@
         </a>
         {{ part }}
       </template>
-    </cdx-message>
+    </p>
     <template v-else>
       <cdx-text-area :model-value="commands" readonly rows="6" />
       <div class="dd-qs-actions">
@@ -126,6 +126,11 @@ async function copy() {
   margin-top: 2rem;
   padding-top: 1rem;
   border-top: 1px solid var(--border-color-subtle);
+}
+/* a hint, not a notice */
+.dd-qs-empty {
+  margin: 0;
+  color: var(--color-subtle);
 }
 .dd-qs .cdx-text-area {
   font-family: monospace;
