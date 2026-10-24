@@ -237,6 +237,15 @@
           @swap="swapCompared"
         />
       </cdx-tab>
+      <cdx-tab name="history" :label="t('tab-history')">
+        <!-- loaded when shown -->
+        <HistoryView
+          v-if="tab === 'history'"
+          :key="`${entity.id}:${language}:${savedRevision}`"
+          :id="entity.id"
+          :language="language"
+        />
+      </cdx-tab>
       <cdx-tab name="backlinks" :label="t('tab-backlinks')">
         <!-- loaded when shown, the tab content is only hidden otherwise -->
         <WhatLinksHere
@@ -326,6 +335,7 @@ import SitelinksTable from "./SitelinksTable.vue";
 import WhatLinksHere from "./WhatLinksHere.vue";
 import CompareView from "./CompareView.vue";
 import CommonsGallery from "./CommonsGallery.vue";
+import HistoryView from "./HistoryView.vue";
 import { entityHash } from "../route";
 import TermsTable from "./TermsTable.vue";
 import StatementGroup from "./StatementGroup.vue";

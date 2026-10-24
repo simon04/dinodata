@@ -25,7 +25,7 @@ export type Edit =
       references?: Snak[][];
     };
 
-const quote = (s: string) => `"${s.replace(/"/g, '\\"')}"`;
+export const quote = (s: string) => `"${s.replace(/"/g, '\\"')}"`;
 
 export function snakValue(snak: Snak): string {
   if (snak.snaktype !== "value") return snak.snaktype;
