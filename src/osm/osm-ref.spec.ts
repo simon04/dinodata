@@ -57,6 +57,16 @@ describe("parseRoute", () => {
   it("parses Wikidata routes", () => {
     expect(parseRoute("#Q40")).toEqual({ mode: "wikidata", id: "Q40" });
     expect(parseRoute("")).toEqual({ mode: "wikidata", id: undefined });
+    expect(parseRoute("#Q40?compare=Q41")).toEqual({
+      mode: "wikidata",
+      id: "Q40",
+      compare: "Q41",
+    });
+    // invalid comparisons are ignored
+    expect(parseRoute("#Q40?compare=foo")).toEqual({
+      mode: "wikidata",
+      id: "Q40",
+    });
   });
 
   it("parses OSM routes", () => {

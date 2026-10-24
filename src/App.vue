@@ -68,7 +68,12 @@
       />
       <OsmHome v-else :language="language" :search="route.search" />
     </template>
-    <EntityView v-else-if="route.id" :id="route.id" :language="language" />
+    <EntityView
+      v-else-if="route.id"
+      :id="route.id"
+      :compare="route.compare"
+      :language="language"
+    />
     <section v-else class="dd-home">
       <div>
         <h1>{{ t("app-welcome") }}</h1>

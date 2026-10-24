@@ -316,11 +316,17 @@ import EntitySkeleton from "./EntitySkeleton.vue";
 import SitelinksTable from "./SitelinksTable.vue";
 import WhatLinksHere from "./WhatLinksHere.vue";
 import CompareView from "./CompareView.vue";
+import { entityHash } from "../route";
 import TermsTable from "./TermsTable.vue";
 import StatementGroup from "./StatementGroup.vue";
 import QuickStatementsPanel from "./QuickStatementsPanel.vue";
 
-const props = defineProps<{ id: string; language: string }>();
+const props = defineProps<{
+  id: string;
+  /** item compared with (from the URL), opens the Compare tab */
+  compare?: string;
+  language: string;
+}>();
 
 /** Codex link styled as a button ("fake button") */
 const LINK_BUTTON = [
@@ -344,7 +350,7 @@ const propertyIds = ref<string[]>([]);
 const edits = ref<Edit[]>([]);
 const loading = ref(false);
 const error = ref<string>();
-const tab = ref("statements");
+const tab = ref(props.compare ? "compare" : "statements");
 /** height of the sticky title, property labels stick below it */
 const { height: titleHeight } = useElementSize(
   useTemplateRef("title"),
@@ -556,14 +562,40 @@ useEventListener(document, "paste", (event: ClipboardEvent) => {
   pasteClaims(event.clipboardData?.getData("text/plain"));
 });
 
-/** item compared with in the Compare tab */
-const compareId = ref<string>();
+/** item compared with in the Compare tab, in the URL while shown */
+const compareId = ref(props.compare);
+// from the URL: links and history navigation
+watch(
+  () => props.compare,
+  (compare) => {
+    if (compare) {
+      compareId.value = compare;
+      tab.value = "compare";
+    } else if (tab.value === "compare") tab.value = "statements";
+  },
+);
+// to the URL: the user's choices; after the watcher above, so changes from
+// the URL are not written back half-applied
+watch(
+  [tab, compareId],
+  ([shown, compare], [, oldCompare]) => {
+    const hash = entityHash(
+      props.id,
+      shown === "compare" ? compare : undefined,
+    );
+    if (location.hash === hash) return;
+    // a new comparison is a history entry, switching tabs is not; both via
+    // the hash, so the route (and with it the props) stays in sync
+    if (compare !== oldCompare) location.hash = hash;
+    else location.replace(hash);
+  },
+  { flush: "post" },
+);
 
 /** Open the compared item, comparing it with this one (unsaved edits are lost). */
 function swapCompared(other: string) {
   if (edits.value.length && !confirm(t("compare-swap-discard"))) return;
-  compareId.value = props.id;
-  location.hash = other;
+  location.hash = entityHash(other, props.id);
 }
 
 /** Copy statements of the compared item to this one, as edits. */
