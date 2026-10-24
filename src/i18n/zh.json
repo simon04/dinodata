@@ -44,6 +44,7 @@
   "compare-swap": "交换",
   "compare-swap-discard": "交换将打开另一项并放弃未保存的更改。是否继续？",
   "terms-caption": "标签、描述和别名",
+  "terms-captions": "说明",
   "terms-language": "语言",
   "terms-label": "标签",
   "terms-description": "描述",
@@ -130,6 +131,7 @@
   "footer-license": "许可证：$1",
   "footer-data": "数据来自维基数据（CC0）",
   "search-wikidata": "在维基数据上搜索“$1”",
+  "search-commons-file": "共享资源上文件的结构化数据",
   "login": "登录",
   "logout": "退出",
   "login-failed": "登录失败：$1"

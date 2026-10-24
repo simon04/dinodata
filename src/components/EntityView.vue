@@ -9,10 +9,14 @@
     <header class="dd-entity-header">
       <div class="dd-entity-title">
         <h1 ref="title">
-          {{ label(entity, language) ?? entity.id }}
+          {{ label(entity, language) ?? fileName ?? entity.id }}
           <EntityId :id="entity.id" />
         </h1>
-        <p class="dd-description">
+        <!-- the file name, unless already the title (without caption) -->
+        <p v-if="mediaInfo" class="dd-description">
+          {{ label(entity, language) ? fileName : "" }}
+        </p>
+        <p v-else class="dd-description">
           {{ description(entity, language) ?? t("entity-no-description") }}
         </p>
         <p v-if="aliases.length" class="dd-aliases">
@@ -20,7 +24,18 @@
             {{ alias }}
           </cdx-info-chip>
         </p>
-        <p class="dd-links">
+        <p v-if="mediaInfo" class="dd-links">
+          <a
+            :class="LINK_BUTTON"
+            :href="`https://commons.wikimedia.org/wiki/${encodeURIComponent(entity.title ?? entity.id)}`"
+            target="_blank"
+            rel="external noopener"
+          >
+            <cdx-icon :icon="cdxIconLogoWikimediaCommons" size="small" />
+            {{ t("entity-commons") }}
+          </a>
+        </p>
+        <p v-else class="dd-links">
           <a
             :class="LINK_BUTTON"
             :href="`https://www.wikidata.org/wiki/${entity.id}`"
@@ -207,9 +222,14 @@
           v-model:edits="edits"
           :entity="entity"
           :language="language"
+          :captions="mediaInfo"
         />
       </cdx-tab>
-      <cdx-tab name="sitelinks" :label="t('tab-sitelinks', sitelinks.length)">
+      <cdx-tab
+        v-if="!mediaInfo"
+        name="sitelinks"
+        :label="t('tab-sitelinks', sitelinks.length)"
+      >
         <SitelinksTable v-model:edits="edits" :entity="entity" />
       </cdx-tab>
       <cdx-tab v-if="commonsCategory" name="gallery" :label="t('tab-gallery')">
@@ -237,7 +257,8 @@
           @swap="swapCompared"
         />
       </cdx-tab>
-      <cdx-tab name="history" :label="t('tab-history')">
+      <!-- history and links of Wikidata, not (yet) of Commons -->
+      <cdx-tab v-if="!mediaInfo" name="history" :label="t('tab-history')">
         <!-- loaded when shown -->
         <HistoryView
           v-if="tab === 'history'"
@@ -246,7 +267,7 @@
           :language="language"
         />
       </cdx-tab>
-      <cdx-tab name="backlinks" :label="t('tab-backlinks')">
+      <cdx-tab v-if="!mediaInfo" name="backlinks" :label="t('tab-backlinks')">
         <!-- loaded when shown, the tab content is only hidden otherwise -->
         <WhatLinksHere
           v-if="tab === 'backlinks'"
@@ -307,6 +328,7 @@ import {
   getEntities,
   getLabels,
   getPropertySuggestions,
+  isMediaInfo,
   label,
   referencedIds,
   type Claim,
@@ -941,7 +963,15 @@ const uploadWizard = computed(() => {
   return `https://commons.wikimedia.org/wiki/Special:UploadWizard?${params}`;
 });
 
+/** structured data of a Commons file (MediaInfo) */
+const mediaInfo = computed(() => isMediaInfo(props.id));
+/** name of the Commons file, without `File:` */
+const fileName = computed(() =>
+  mediaInfo.value ? entity.value?.title?.replace(/^File:/, "") : undefined,
+);
+
 const imageFile = computed(() => {
+  if (fileName.value) return fileName.value;
   const file = entity.value?.claims.P18?.[0]?.mainsnak.datavalue?.value;
   return file ? String(file) : undefined;
 });
@@ -1042,7 +1072,8 @@ watch(
       entity.value = e;
       loading.value = false;
       loadTypeProperties(e).catch(console.warn);
-      loadCommonProperties(e).catch(console.warn);
+      // the PropertySuggester of Wikidata, not for Commons files
+      if (!isMediaInfo(e.id)) loadCommonProperties(e).catch(console.warn);
       // the item's properties first: the preload of all properties (for
       // search and editing) may take a while on the first visit
       await getLabels(

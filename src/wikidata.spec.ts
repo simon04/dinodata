@@ -48,6 +48,35 @@ const fetch = vi.fn(async (input: string | URL) => {
           ? []
           : [{ id: "Q1735", label: params.get("search") }],
     });
+  if (url.hostname === "commons.wikimedia.org")
+    return Response.json({
+      entities: {
+        M1: {
+          id: "M1",
+          type: "mediainfo",
+          title: "File:A.jpg",
+          labels: { en: { value: "caption" } },
+          statements: {
+            P180: [
+              {
+                id: "M1$1",
+                rank: "normal",
+                mainsnak: {
+                  snaktype: "value",
+                  property: "P180",
+                  datavalue: { type: "wikibase-entityid", value: { id: "Q5" } },
+                },
+              },
+            ],
+          },
+        },
+        M2: { id: "M2", type: "mediainfo", labels: [], statements: [] },
+      },
+    });
+  if (params.get("props") === "datatype")
+    return Response.json({
+      entities: { P180: { id: "P180", datatype: "wikibase-item" } },
+    });
   if (params.get("action") === "wbsgetsuggestions")
     return Response.json({ search: [{ id: "P17" }, { id: "P580" }] });
   if (params.get("list") === "search")
@@ -161,6 +190,27 @@ describe("searchEntities full-text fallback", () => {
       { id: "P2", label: "label of P2", description: undefined },
     ]);
     expect(params(1).get("srnamespace")).toBe("120");
+  });
+});
+
+describe("getEntities of Commons files", () => {
+  it("loads MediaInfo from Commons as entities with datatypes", async () => {
+    const entities = await getEntities(["M1", "M2", "Q1"]);
+    expect(new URL(fetch.mock.calls[0][0]).hostname).toBe(
+      "commons.wikimedia.org",
+    );
+    expect(params(0).get("ids")).toBe("M1|M2");
+    expect(entities.M1).toMatchObject({
+      title: "File:A.jpg",
+      labels: { en: { value: "caption" } },
+      descriptions: {},
+      aliases: {},
+      claims: { P180: [{ mainsnak: { datatype: "wikibase-item" } }] },
+    });
+    expect(entities.M1).not.toHaveProperty("statements");
+    // without captions and statements: empty arrays
+    expect(entities.M2).toMatchObject({ labels: {}, claims: {} });
+    expect(entities.Q1).toBeDefined();
   });
 });
 

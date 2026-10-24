@@ -44,6 +44,7 @@
   "compare-swap": "Поменять местами",
   "compare-swap-discard": "Будет открыт другой элемент, несохранённые изменения будут потеряны. Продолжить?",
   "terms-caption": "Метки, описания и псевдонимы",
+  "terms-captions": "Подписи",
   "terms-language": "Язык",
   "terms-label": "Метка",
   "terms-description": "Описание",
@@ -130,6 +131,7 @@
   "footer-license": "Лицензия: $1",
   "footer-data": "Данные из Викиданных (CC0)",
   "search-wikidata": "Искать «$1» в Викиданных",
+  "search-commons-file": "Структурированные данные файла на Викискладе",
   "login": "Войти",
   "logout": "Выйти",
   "login-failed": "Не удалось войти: $1"

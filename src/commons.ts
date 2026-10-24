@@ -173,5 +173,48 @@ export async function getFileInfos(
   );
 }
 
+/**
+ * File name from a Commons file page URL (`…/wiki/File:A.jpg`,
+ * `…?title=File:A.jpg`), an upload URL (also thumbnails) or `File:A.jpg`.
+ */
+export function parseCommonsFile(input: string): string | undefined {
+  const text = input.trim();
+  const title = text.match(/^(?:File|Image):(.+)$/i)?.[1];
+  if (title) return title.replace(/_/g, " ");
+  let url: URL;
+  try {
+    url = new URL(text);
+  } catch {
+    return undefined;
+  }
+  const decode = (s: string) => decodeURIComponent(s).replace(/_/g, " ");
+  if (url.hostname === "commons.wikimedia.org") {
+    const page =
+      url.searchParams.get("title") ??
+      url.pathname.match(/^\/wiki\/(.+)$/)?.[1];
+    const file = page && decode(page).match(/^(?:File|Image):(.+)$/i)?.[1];
+    return file || undefined;
+  }
+  if (url.hostname === "upload.wikimedia.org") {
+    // /wikipedia/commons/a/ab/A.jpg or …/thumb/a/ab/A.jpg/320px-A.jpg
+    const m = url.pathname.match(
+      /^\/wikipedia\/commons\/(?:thumb\/)?[0-9a-f]\/[0-9a-f]{2}\/([^/]+)/,
+    );
+    return m ? decode(m[1]) : undefined;
+  }
+  return undefined;
+}
+
+/** ID of the structured data (MediaInfo) of a Commons file: `M` + page ID. */
+export async function getMediaInfoId(
+  file: string,
+): Promise<string | undefined> {
+  const json = await query<{
+    query: { pages: { pageid?: number; missing?: boolean }[] };
+  }>({ titles: `File:${file}` });
+  const page = json.query.pages[0];
+  return page?.pageid && !page.missing ? `M${page.pageid}` : undefined;
+}
+
 /** Commons file shown enlarged in the media dialog (one for the whole app). */
 export const useMediaDialog = createGlobalState(() => ref<string>());

@@ -1,6 +1,13 @@
 import { cachedFetch, sessionCache } from "./cache";
 
 const API = "https://www.wikidata.org/w/api.php";
+const COMMONS_API = "https://commons.wikimedia.org/w/api.php";
+
+/** Structured data of a Commons file (MediaInfo), e.g. `M71804046`. */
+export const isMediaInfo = (id: string) => /^M\d+$/.test(id);
+
+/** The API of the wiki storing the entity: Commons for MediaInfo. */
+export const entityApi = (id: string) => (isMediaInfo(id) ? COMMONS_API : API);
 
 export interface SearchResult {
   id: string;
@@ -32,6 +39,9 @@ export interface Entity {
   aliases: Record<string, { value: string }[]>;
   claims: Record<string, Claim[]>;
   sitelinks?: Record<string, { site: string; title: string }>;
+  /** MediaInfo: `mediainfo`, with the file page title `File:…` */
+  type?: string;
+  title?: string;
 }
 
 /** GET from the Action API of Wikidata, or another Wikibase via `endpoint`. */
@@ -124,7 +134,13 @@ export async function getEntities(
   bypass = false,
 ): Promise<Record<string, Entity>> {
   const batches = [];
-  for (let i = 0; i < ids.length; i += 50) batches.push(ids.slice(i, i + 50));
+  // MediaInfo entities from Commons, the others from Wikidata
+  for (const group of [
+    ids.filter(isMediaInfo),
+    ids.filter((id) => !isMediaInfo(id)),
+  ])
+    for (let i = 0; i < group.length; i += 50)
+      batches.push(group.slice(i, i + 50));
   const results = await Promise.all(
     batches.map((batch) =>
       api<{ entities: Record<string, Entity> }>(
@@ -135,10 +151,54 @@ export async function getEntities(
           ...(languages && { languages: languages.join("|") }),
         },
         { maxAge: 60 * 60 * 1000, bypass },
+        entityApi(batch[0]),
       ),
     ),
   );
-  return Object.assign({}, ...results.map((r) => r.entities));
+  const entities: Record<string, Entity> = Object.assign(
+    {},
+    ...results.map((r) => r.entities),
+  );
+  for (const [id, e] of Object.entries(entities))
+    if (isMediaInfo(id) && !("missing" in e))
+      entities[id] = await normalizeMediaInfo(e);
+  return entities;
+}
+
+/**
+ * MediaInfo as an entity like on Wikidata: `statements` as `claims` (an
+ * empty array without any), no aliases, and snaks with their datatype
+ * (which Commons omits) from the Wikidata properties.
+ */
+async function normalizeMediaInfo(
+  e: Entity & { statements?: Record<string, Claim[]> | [] },
+): Promise<Entity> {
+  const { statements, ...rest } = e;
+  const claims = Array.isArray(statements)
+    ? {}
+    : (statements ?? e.claims ?? {});
+  const snaks = Object.values(claims)
+    .flat()
+    .flatMap((c) => [
+      c.mainsnak,
+      ...Object.values(c.qualifiers ?? {}).flat(),
+      ...(c.references ?? []).flatMap((r) => Object.values(r.snaks).flat()),
+    ]);
+  const properties = [...new Set(snaks.map((s) => s.property))];
+  if (properties.length) {
+    const types = await getEntities(properties, "datatype");
+    for (const snak of snaks)
+      snak.datatype ??= (
+        types[snak.property] as { datatype?: string }
+      )?.datatype;
+  }
+  return {
+    ...rest,
+    labels: Array.isArray(e.labels) ? {} : (e.labels ?? {}),
+    descriptions: {},
+    aliases: {},
+    claims,
+  };
 }
 
 /** The user language, then multilingual (`mul`), then English. */
@@ -367,8 +427,9 @@ export class ApiError extends Error {
 export async function apiPost<T>(
   params: Record<string, string>,
   auth: { accessToken: string; username: string },
+  endpoint = API,
 ): Promise<T> {
-  const url = new URL(API);
+  const url = new URL(endpoint);
   url.search = new URLSearchParams({ crossorigin: "" }).toString();
   const res = await fetch(url, {
     method: "POST",
@@ -389,13 +450,14 @@ export async function apiPost<T>(
 }
 
 /** CSRF token for edits by the authenticated user. */
-export async function getCsrfToken(auth: {
-  accessToken: string;
-  username: string;
-}): Promise<string> {
+export async function getCsrfToken(
+  auth: { accessToken: string; username: string },
+  endpoint = API,
+): Promise<string> {
   const json = await apiPost<{ query: { tokens: { csrftoken: string } } }>(
     { action: "query", meta: "tokens", type: "csrf" },
     auth,
+    endpoint,
   );
   return json.query.tokens.csrftoken;
 }
@@ -417,7 +479,9 @@ export async function editEntity(
     auth: { accessToken: string; username: string };
   },
 ): Promise<{ lastrevid: number }> {
-  const token = await getCsrfToken(auth);
+  // MediaInfo on Commons: the OAuth token is valid on all Wikimedia wikis
+  const endpoint = entityApi(id);
+  const token = await getCsrfToken(auth, endpoint);
   const json = await apiPost<{ entity: { lastrevid: number } }>(
     {
       action: "wbeditentity",
@@ -428,6 +492,7 @@ export async function editEntity(
       token,
     },
     auth,
+    endpoint,
   );
   return { lastrevid: json.entity.lastrevid };
 }

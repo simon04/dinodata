@@ -31,6 +31,7 @@ import {
 import { useDebounceFn } from "@vueuse/core";
 import { t } from "../i18n";
 import { searchEntities } from "../wikidata";
+import { getMediaInfoId, parseCommonsFile } from "../commons";
 
 const props = defineProps<{ language: string }>();
 const emit = defineEmits<{ select: [id: string] }>();
@@ -43,6 +44,24 @@ const footerUrl = computed(
 );
 
 const search = useDebounceFn(async (value: string) => {
+  // a Commons file (URL or File:…): its structured data
+  const file = parseCommonsFile(value);
+  if (file) {
+    const id = await getMediaInfoId(file);
+    if (value !== query.value) return;
+    results.value = id
+      ? [
+          {
+            value: id,
+            label: file,
+            match: id,
+            description: t("search-commons-file"),
+            url: `#${id}`,
+          },
+        ]
+      : [];
+    return;
+  }
   const found = await searchEntities(value, props.language);
   // ignore responses for outdated input
   if (value !== query.value) return;
@@ -72,7 +91,7 @@ function onSubmit(event: SearchResultClickEvent) {
     query.value
       .trim()
       .toUpperCase()
-      .match(/^[LPQ]\d+$/)?.[0] ??
+      .match(/^[LMPQ]\d+$/)?.[0] ??
     results.value[0]?.value;
   if (id) emit("select", String(id));
 }

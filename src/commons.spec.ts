@@ -6,7 +6,12 @@ import {
   it,
   vi,
 } from "vite-plus/test";
-import { getCategoryFiles, getFileInfos, getImageInfo } from "./commons";
+import {
+  getCategoryFiles,
+  getFileInfos,
+  getImageInfo,
+  parseCommonsFile,
+} from "./commons";
 import { fakeCaches } from "./testing/fake-caches";
 
 afterEach(() => {
@@ -155,5 +160,28 @@ describe("getFileInfos", () => {
       artist: "Simon",
       date: "2020-02-09",
     });
+  });
+});
+
+describe("parseCommonsFile", () => {
+  it.each([
+    ["https://commons.wikimedia.org/wiki/File:Serles%20-BT-%2002.jpg"],
+    ["https://commons.wikimedia.org/wiki/File:Serles_-BT-_02.jpg"],
+    ["https://commons.wikimedia.org/w/index.php?title=File:Serles_-BT-_02.jpg"],
+    ["https://upload.wikimedia.org/wikipedia/commons/a/ab/Serles_-BT-_02.jpg"],
+    [
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Serles_-BT-_02.jpg/320px-Serles_-BT-_02.jpg",
+    ],
+    ["File:Serles -BT- 02.jpg"],
+  ])("finds the file in %s", (input) => {
+    expect(parseCommonsFile(input)).toBe("Serles -BT- 02.jpg");
+  });
+
+  it.each([
+    ["Serles"],
+    ["https://commons.wikimedia.org/wiki/Category:Serles"],
+    ["https://de.wikipedia.org/wiki/Datei:Serles.jpg"],
+  ])("ignores %s", (input) => {
+    expect(parseCommonsFile(input)).toBeUndefined();
   });
 });

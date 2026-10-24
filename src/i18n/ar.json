@@ -44,6 +44,7 @@
   "compare-swap": "تبديل",
   "compare-swap-discard": "سيفتح التبديل العنصر الآخر ويتجاهل تغييراتك غير المحفوظة. هل تريد المتابعة؟",
   "terms-caption": "التسميات والأوصاف والأسماء البديلة",
+  "terms-captions": "التسميات التوضيحية",
   "terms-language": "اللغة",
   "terms-label": "التسمية",
   "terms-description": "الوصف",
@@ -130,6 +131,7 @@
   "footer-license": "الرخصة: $1",
   "footer-data": "البيانات من ويكي بيانات (CC0)",
   "search-wikidata": "ابحث عن «$1» في ويكي بيانات",
+  "search-commons-file": "البيانات المهيكلة للملف في كومنز",
   "login": "دخول",
   "logout": "خروج",
   "login-failed": "فشل الدخول: $1"

@@ -19,10 +19,10 @@ export function parseRoute(hash: string): Route {
   const [entity, query = ""] = path.split("?", 2);
   const compare = new URLSearchParams(query)
     .get("compare")
-    ?.match(/^[LPQ]\d+$/)?.[0];
+    ?.match(/^[LMPQ]\d+$/)?.[0];
   return {
     mode: "wikidata",
-    id: entity.match(/^([LPQ]\d+)$/)?.[1],
+    id: entity.match(/^([LMPQ]\d+)$/)?.[1],
     ...(compare && { compare }),
   };
 }

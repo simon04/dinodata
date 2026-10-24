@@ -1,12 +1,14 @@
 <template>
   <table class="dd-table dd-terms-table">
-    <caption>{{ t("terms-caption") }}</caption>
+    <caption>{{ captions ? t("terms-captions") : t("terms-caption") }}</caption>
     <thead>
       <tr>
         <th scope="col">{{ t("terms-language") }}</th>
-        <th scope="col">{{ t("terms-label") }}</th>
-        <th scope="col">{{ t("terms-description") }}</th>
-        <th scope="col">{{ t("terms-aliases") }}</th>
+        <th scope="col">
+          {{ captions ? t("terms-captions") : t("terms-label") }}
+        </th>
+        <th v-if="!captions" scope="col">{{ t("terms-description") }}</th>
+        <th v-if="!captions" scope="col">{{ t("terms-aliases") }}</th>
       </tr>
     </thead>
     <tbody>
@@ -20,13 +22,13 @@
             @update:model-value="setTerm('label', row.language, $event)"
           />
         </td>
-        <td :class="{ 'dd-changed': row.descriptionChanged }">
+        <td v-if="!captions" :class="{ 'dd-changed': row.descriptionChanged }">
           <EditableText
             :model-value="row.description"
             @update:model-value="setTerm('description', row.language, $event)"
           />
         </td>
-        <td>
+        <td v-if="!captions">
           <div class="dd-aliases">
             <span
               v-for="alias in row.aliases"
@@ -62,7 +64,7 @@
         </td>
       </tr>
       <tr>
-        <td colspan="4">
+        <td :colspan="captions ? 2 : 4">
           <cdx-text-input
             v-model="newLanguage"
             class="dd-new-language"
@@ -89,7 +91,12 @@ import type { Edit } from "../quickstatements";
 import type { Entity } from "../wikidata";
 import EditableText from "./EditableText.vue";
 
-const props = defineProps<{ entity: Entity; language: string }>();
+const props = defineProps<{
+  entity: Entity;
+  language: string;
+  /** Commons files: only captions (labels), no descriptions and aliases */
+  captions?: boolean;
+}>();
 const edits = defineModel<Edit[]>("edits", { required: true });
 
 const extraLanguages = ref<string[]>([]);

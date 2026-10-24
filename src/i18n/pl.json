@@ -46,6 +46,7 @@
   "compare-swap": "Zamień",
   "compare-swap-discard": "Zamiana otworzy drugi element i odrzuci niezapisane zmiany. Kontynuować?",
   "terms-caption": "Etykiety, opisy i aliasy",
+  "terms-captions": "Podpisy",
   "terms-language": "Język",
   "terms-label": "Etykieta",
   "terms-description": "Opis",
@@ -133,6 +134,7 @@
   "footer-license": "Licencja: $1",
   "footer-data": "Dane z Wikidanych (CC0)",
   "search-wikidata": "Szukaj „$1” w Wikidanych",
+  "search-commons-file": "Dane strukturalne pliku w Commons",
   "login": "Zaloguj się",
   "logout": "Wyloguj się",
   "login-failed": "Nie udało się zalogować: $1"
