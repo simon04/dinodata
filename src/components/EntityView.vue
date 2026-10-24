@@ -1,10 +1,14 @@
 <template>
   <EntitySkeleton v-if="loading" />
   <cdx-message v-else-if="error" type="error">{{ error }}</cdx-message>
-  <article v-else-if="entity" class="dd-entity">
+  <article
+    v-else-if="entity"
+    class="dd-entity"
+    :style="{ '--dd-sticky-top': `${titleHeight}px` }"
+  >
     <header class="dd-entity-header">
       <div class="dd-entity-title">
-        <h1>
+        <h1 ref="title">
           {{ label(entity, language) ?? entity.id }}
           <EntityId :id="entity.id" />
         </h1>
@@ -207,7 +211,7 @@
 
 <script setup lang="ts">
 import { t } from "../i18n";
-import { computed, ref, watch } from "vue";
+import { computed, ref, useTemplateRef, watch } from "vue";
 import {
   CdxButton,
   CdxIcon,
@@ -245,7 +249,12 @@ import {
   parseEntityJson,
   parseStatements,
 } from "../clipboard";
-import { until, useEventListener, useTitle } from "@vueuse/core";
+import {
+  until,
+  useElementSize,
+  useEventListener,
+  useTitle,
+} from "@vueuse/core";
 import {
   propertyDescription,
   propertyLabel,
@@ -287,6 +296,14 @@ const edits = ref<Edit[]>([]);
 const loading = ref(false);
 const error = ref<string>();
 const tab = ref("statements");
+/** height of the sticky title, property labels stick below it */
+const { height: titleHeight } = useElementSize(
+  useTemplateRef("title"),
+  undefined,
+  {
+    box: "border-box",
+  },
+);
 
 // restores "DinoData" on unmount
 useTitle(
@@ -806,14 +823,34 @@ watch(
 </script>
 
 <style scoped>
-.dd-entity-header {
-  display: flex;
-  gap: 2rem;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
+/*
+ * The header is flattened into the article grid, so that the title sticks
+ * while scrolling through the whole entity, not just the header.
+ */
+.dd-entity {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto 1fr auto;
+  grid-template-areas:
+    "title title"
+    "description image"
+    "aliases image"
+    "tabs tabs";
+  column-gap: 2rem;
+}
+.dd-entity-header,
+.dd-entity-title {
+  display: contents;
+}
+.dd-entity > :deep(.cdx-tabs) {
+  grid-area: tabs;
+  margin-top: 1rem;
+  min-width: 0;
 }
 .dd-image {
+  grid-area: image;
+  align-self: start;
+  margin-top: 0.5rem;
   display: flex;
   border: none;
   padding: 0;
@@ -836,13 +873,22 @@ watch(
   gap: 0.25rem;
 }
 .dd-entity h1 {
-  margin: 0.25rem 0;
+  grid-area: title;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 0.25rem 0;
+  background: var(--background-color-base);
 }
 .dd-description {
+  grid-area: description;
   margin: 0 0 0.5rem;
 }
 .dd-aliases {
+  grid-area: aliases;
   align-items: center;
+  align-self: start;
   margin: 0;
 }
 /* many single-valued identifiers: flow them in columns */
@@ -872,8 +918,10 @@ watch(
   padding-top: 1rem;
 }
 @media (max-width: 640px) {
-  .dd-entity-header {
-    flex-direction: column-reverse;
+  .dd-entity {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    grid-template-areas: "image" "title" "description" "aliases" "tabs";
   }
   .dd-image {
     max-width: 100%;

@@ -1,60 +1,62 @@
 <template>
   <div class="dd-statement-group">
     <div class="dd-property">
-      <span class="dd-property-label">
-        <a :href="`#${property}`" v-tooltip="descriptions[property]">
-          {{ labels[property] ?? property }}
-        </a>
-        <EntityId :id="property" />
-      </span>
-      <span class="dd-property-buttons">
-        <cdx-button
-          v-if="propertyInfo && !adding"
-          class="dd-add-value-button"
-          weight="quiet"
-          action="progressive"
-          size="small"
-          :aria-label="t('add-value')"
-          v-tooltip="t('add-value')"
-          @click="adding = true"
-        >
-          <cdx-icon :icon="cdxIconAdd" size="small" />
-        </cdx-button>
-        <cdx-button
-          class="dd-add-value-button"
-          weight="quiet"
-          size="small"
-          :aria-label="t('copy-statements', claims.length)"
-          v-tooltip="t('copy-statements', claims.length)"
-          @click="
-            emit(
-              'copy',
-              claims.filter((c) => !removed.has(c.id)),
-            )
-          "
-        >
-          <cdx-icon :icon="cdxIconCopy" size="small" />
-        </cdx-button>
-      </span>
-      <div v-if="hidden > 0 || expanded" class="dd-property-actions">
-        <cdx-button
-          v-if="hidden > 0"
-          weight="quiet"
-          size="small"
-          @click="expanded = true"
-        >
-          <cdx-icon :icon="cdxIconExpand" size="small" />
-          {{ t("more", hidden) }}
-        </cdx-button>
-        <cdx-button
-          v-else-if="expanded"
-          weight="quiet"
-          size="small"
-          @click="expanded = false"
-        >
-          <cdx-icon :icon="cdxIconCollapse" size="small" />
-          {{ t("show-less") }}
-        </cdx-button>
+      <div class="dd-property-sticky">
+        <span class="dd-property-label">
+          <a :href="`#${property}`" v-tooltip="descriptions[property]">
+            {{ labels[property] ?? property }}
+          </a>
+          <EntityId :id="property" />
+        </span>
+        <span class="dd-property-buttons">
+          <cdx-button
+            v-if="propertyInfo && !adding"
+            class="dd-add-value-button"
+            weight="quiet"
+            action="progressive"
+            size="small"
+            :aria-label="t('add-value')"
+            v-tooltip="t('add-value')"
+            @click="adding = true"
+          >
+            <cdx-icon :icon="cdxIconAdd" size="small" />
+          </cdx-button>
+          <cdx-button
+            class="dd-add-value-button"
+            weight="quiet"
+            size="small"
+            :aria-label="t('copy-statements', claims.length)"
+            v-tooltip="t('copy-statements', claims.length)"
+            @click="
+              emit(
+                'copy',
+                claims.filter((c) => !removed.has(c.id)),
+              )
+            "
+          >
+            <cdx-icon :icon="cdxIconCopy" size="small" />
+          </cdx-button>
+        </span>
+        <div v-if="hidden > 0 || expanded" class="dd-property-actions">
+          <cdx-button
+            v-if="hidden > 0"
+            weight="quiet"
+            size="small"
+            @click="expanded = true"
+          >
+            <cdx-icon :icon="cdxIconExpand" size="small" />
+            {{ t("more", hidden) }}
+          </cdx-button>
+          <cdx-button
+            v-else-if="expanded"
+            weight="quiet"
+            size="small"
+            @click="expanded = false"
+          >
+            <cdx-icon :icon="cdxIconCollapse" size="small" />
+            {{ t("show-less") }}
+          </cdx-button>
+        </div>
       </div>
     </div>
     <div class="dd-values">
@@ -501,12 +503,18 @@ function thumb(file: string) {
   border-bottom: 1px solid var(--border-color-subtle);
 }
 .dd-property {
+  background: var(--background-color-neutral-subtle);
+}
+/* the property stays visible while scrolling through many values */
+.dd-property-sticky {
+  position: sticky;
+  top: var(--dd-sticky-top, 0);
+  z-index: 1;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   align-content: flex-start;
   gap: 0 0.25rem;
-  background: var(--background-color-neutral-subtle);
   padding: 0.375rem 0.625rem;
   font-weight: 600;
   line-height: 1.3;
@@ -707,6 +715,15 @@ function thumb(file: string) {
 @media (max-width: 640px) {
   .dd-statement-group {
     grid-template-columns: 1fr;
+  }
+  /* stacked above the values: stick the whole property row */
+  .dd-property {
+    position: sticky;
+    top: var(--dd-sticky-top, 0);
+    z-index: 1;
+  }
+  .dd-property-sticky {
+    position: static;
   }
 }
 </style>
