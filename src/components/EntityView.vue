@@ -15,10 +15,12 @@
         <p class="dd-description">
           {{ description(entity, language) ?? t("entity-no-description") }}
         </p>
-        <p class="dd-aliases">
+        <p v-if="aliases.length" class="dd-aliases">
           <cdx-info-chip v-for="alias in aliases" :key="alias">
             {{ alias }}
           </cdx-info-chip>
+        </p>
+        <p class="dd-links">
           <a
             :class="LINK_BUTTON"
             :href="`https://www.wikidata.org/wiki/${entity.id}`"
@@ -88,6 +90,7 @@
           <cdx-menu-button
             v-model:selected="sort"
             :menu-items="sortItems"
+            weight="normal"
             :aria-label="t('sort-statements')"
           >
             <cdx-icon :icon="cdxIconSortVertical" />
@@ -877,11 +880,12 @@ watch(
 .dd-entity {
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: auto auto auto 1fr auto;
   grid-template-areas:
     "title title"
     "description image"
     "aliases image"
+    "links image"
     "tabs tabs";
   column-gap: 2rem;
 }
@@ -914,7 +918,8 @@ watch(
   font-size: 1.2em;
   margin-top: 0;
 }
-.dd-aliases {
+.dd-aliases,
+.dd-links {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
@@ -934,6 +939,11 @@ watch(
 }
 .dd-aliases {
   grid-area: aliases;
+  align-items: center;
+  margin: 0 0 0.5rem;
+}
+.dd-links {
+  grid-area: links;
   align-items: center;
   align-self: start;
   margin: 0;
@@ -968,7 +978,7 @@ watch(
   .dd-entity {
     grid-template-columns: 1fr;
     grid-template-rows: none;
-    grid-template-areas: "image" "title" "description" "aliases" "tabs";
+    grid-template-areas: "image" "title" "description" "aliases" "links" "tabs";
   }
   .dd-image {
     max-width: 100%;
