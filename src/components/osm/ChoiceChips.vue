@@ -42,17 +42,17 @@ const emit = defineEmits<{ toggle: [value: string] }>();
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  min-height: 2.25rem;
-  padding: 0 0.875rem;
-  border: 1px solid var(--border-color-base);
-  border-radius: 1.125rem;
-  background: var(--background-color-base);
+  min-height: 2rem;
+  padding: 0 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 1rem;
+  background: var(--background-color-neutral-subtle);
   color: var(--color-base);
   font: inherit;
   cursor: pointer;
 }
 .dd-choice:hover {
-  background: var(--background-color-interactive-subtle);
+  background: var(--background-color-interactive);
 }
 .dd-choice:focus-visible {
   outline: 2px solid var(--outline-color-progressive--focus, #36c);

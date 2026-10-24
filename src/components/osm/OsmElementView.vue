@@ -2,58 +2,57 @@
   <EntitySkeleton v-if="loading" />
   <cdx-message v-else-if="error" type="error">{{ error }}</cdx-message>
   <article v-else-if="element" class="dd-osm">
+    <!-- like the entity header: flattened into the article grid -->
     <header class="dd-osm-header">
-      <div class="dd-osm-title">
-        <button
-          type="button"
-          class="dd-osm-preset"
-          :aria-label="t('osm-preset-change')"
-          v-tooltip="t('osm-preset-change')"
-          @click="sheet = { kind: 'preset' }"
+      <h1>
+        {{ title }}
+        <EntityId :id="shortRef(osmRef)" />
+      </h1>
+      <button
+        type="button"
+        class="dd-osm-preset"
+        :aria-label="t('osm-preset-change')"
+        v-tooltip="t('osm-preset-change')"
+        @click="sheet = { kind: 'preset' }"
+      >
+        <PresetIcon :icon="preset?.icon" />
+        {{ preset?.name ?? t("loading") }}
+        <cdx-icon :icon="cdxIconEdit" size="x-small" />
+      </button>
+      <p class="dd-osm-meta">
+        {{
+          t(
+            "osm-last-edit",
+            formatRelativeTime(element.timestamp, language),
+            element.user ?? "?",
+            element.version,
+          )
+        }}
+      </p>
+      <p class="dd-osm-links">
+        <a
+          :class="LINK_BUTTON"
+          :href="elementUrl(osmRef)"
+          target="_blank"
+          rel="external noopener"
         >
-          <PresetIcon :icon="preset?.icon" />
-          {{ preset?.name ?? t("loading") }}
-          <cdx-icon :icon="cdxIconEdit" size="x-small" />
-        </button>
-        <h1>
-          {{ title }}
-          <EntityId :id="shortRef(osmRef)" />
-        </h1>
-        <p class="dd-osm-meta">
-          {{
-            t(
-              "osm-last-edit",
-              formatRelativeTime(element.timestamp, language),
-              element.user ?? "?",
-              element.version,
-            )
-          }}
-        </p>
-        <p class="dd-osm-links">
-          <a
-            :class="LINK_BUTTON"
-            :href="elementUrl(osmRef)"
-            target="_blank"
-            rel="external noopener"
-          >
-            <cdx-icon :icon="cdxIconMapPin" size="small" />
-            {{ t("osm-openstreetmap") }}
-          </a>
-          <a
-            :class="LINK_BUTTON"
-            :href="editUrl(osmRef)"
-            target="_blank"
-            rel="external noopener"
-          >
-            <cdx-icon :icon="cdxIconEdit" size="small" />
-            iD
-          </a>
-          <a v-if="wikidataId" :class="LINK_BUTTON" :href="`#${wikidataId}`">
-            <cdx-icon :icon="cdxIconLogoWikidata" size="small" />
-            {{ t("entity-wikidata") }}
-          </a>
-        </p>
-      </div>
+          <cdx-icon :icon="cdxIconMapPin" size="small" />
+          {{ t("osm-openstreetmap") }}
+        </a>
+        <a
+          :class="LINK_BUTTON"
+          :href="editUrl(osmRef)"
+          target="_blank"
+          rel="external noopener"
+        >
+          <cdx-icon :icon="cdxIconEdit" size="small" />
+          iD
+        </a>
+        <a v-if="wikidataId" :class="LINK_BUTTON" :href="`#${wikidataId}`">
+          <cdx-icon :icon="cdxIconLogoWikidata" size="small" />
+          {{ t("entity-wikidata") }}
+        </a>
+      </p>
       <StaticMap
         v-if="bounds"
         class="dd-osm-map"
@@ -68,8 +67,22 @@
       @info="(key) => (sheet = { kind: 'info', key })"
     />
 
-    <section v-if="visibleFields.length">
-      <h2>{{ t("osm-fields") }}</h2>
+    <section class="dd-osm-tags">
+      <div class="dd-osm-actions">
+        <cdx-button action="progressive" @click="sheet = { kind: 'add' }">
+          <cdx-icon :icon="cdxIconAdd" />
+          {{ t("osm-add") }}
+        </cdx-button>
+        <cdx-button @click="pasteFromButton">
+          <cdx-icon :icon="cdxIconPaste" />
+          {{ t("osm-paste") }}
+        </cdx-button>
+        <cdx-button @click="openText">
+          <cdx-icon :icon="cdxIconTextFlow" />
+          {{ t("osm-text-view") }}
+        </cdx-button>
+      </div>
+      <!-- one list like the statements: preset fields, then the other tags -->
       <div class="dd-osm-box">
         <FieldEditor
           v-for="field in visibleFields"
@@ -81,49 +94,27 @@
           @patch="patch"
           @pick="(key, multi) => (sheet = { kind: 'pick', key, field, multi })"
           @info="(key) => (sheet = { kind: 'info', key })"
+          @copy="copyTags"
         />
-      </div>
-    </section>
-
-    <section>
-      <h2>
-        {{ t("osm-other-tags", otherKeys.length) }}
-        <cdx-button
-          weight="quiet"
-          size="small"
-          class="dd-osm-text-button"
-          @click="openText"
-        >
-          <cdx-icon :icon="cdxIconTextFlow" size="small" />
-          {{ t("osm-text-view") }}
-        </cdx-button>
-      </h2>
-      <ul v-if="otherKeys.length" class="dd-osm-box">
-        <TagRow
-          v-for="key in otherKeys"
-          :key="key"
-          :tag-key="key"
-          :value="current[key] ?? base[key]"
-          :value-label="optionLabel(key, current[key] ?? base[key])"
-          :description="describe(key, current[key] ?? base[key])"
-          :discouraged="isDiscouraged(key, current[key] ?? base[key])"
-          :state="tagState(base, current, key)"
-          @open="sheet = { kind: 'tag', key }"
-        />
-      </ul>
-      <div class="dd-osm-actions">
-        <cdx-button action="progressive" @click="sheet = { kind: 'add' }">
-          <cdx-icon :icon="cdxIconAdd" />
-          {{ t("osm-add") }}
-        </cdx-button>
-        <cdx-button @click="pasteFromButton">
-          <cdx-icon :icon="cdxIconPaste" />
-          {{ t("osm-paste") }}
-        </cdx-button>
-        <cdx-button @click="copyTags">
-          <cdx-icon :icon="cdxIconCopy" />
-          {{ t("osm-copy") }}
-        </cdx-button>
+        <template v-if="otherKeys.length">
+          <h2 v-if="visibleFields.length" class="dd-osm-box-heading">
+            {{ t("osm-other-tags", otherKeys.length) }}
+          </h2>
+          <ul>
+            <TagRow
+              v-for="key in otherKeys"
+              :key="key"
+              :tag-key="key"
+              :value="current[key] ?? base[key]"
+              :value-label="optionLabel(key, current[key] ?? base[key])"
+              :description="describe(key, current[key] ?? base[key])"
+              :discouraged="isDiscouraged(key, current[key] ?? base[key])"
+              :state="tagState(base, current, key)"
+              @open="sheet = { kind: 'tag', key }"
+              @copy="copyTags({ [key]: current[key] ?? base[key] })"
+            />
+          </ul>
+        </template>
       </div>
     </section>
 
@@ -290,6 +281,13 @@
           @click="picker?.submit()"
         >
           {{ t("osm-done") }}
+        </cdx-button>
+        <cdx-button
+          v-if="sheet?.kind === 'text'"
+          @click="copyTags(parseTagText(text).tags)"
+        >
+          <cdx-icon :icon="cdxIconCopy" />
+          {{ t("osm-copy") }}
         </cdx-button>
         <cdx-button
           v-if="sheet?.kind === 'text'"
@@ -714,9 +712,10 @@ function discard() {
 
 // copy & paste as key=value lines
 const clipboard = useSharedClipboard();
-async function copyTags() {
-  await clipboard.copy(formatTagText(current.value));
-  toast.success(t("osm-copied", Object.keys(current.value).length), {
+/** Copy tags, all by default, like the statements of a property. */
+async function copyTags(tags: Tags = current.value) {
+  await clipboard.copy(formatTagText(tags));
+  toast.success(t("osm-copied", Object.keys(tags).length), {
     autoDismiss: true,
   });
 }
@@ -887,31 +886,44 @@ watch(
 </script>
 
 <style scoped>
+/* the header is flattened into the article grid, like the entity view */
 .dd-osm {
-  max-width: 56rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "title title"
+    "preset map"
+    "meta map"
+    "links map";
+  grid-template-rows: auto auto auto 1fr;
+  column-gap: 2rem;
 }
-.dd-osm-header {
-  display: flex;
-  gap: 1rem 2rem;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-}
-.dd-osm-title {
+.dd-osm > :not(.dd-osm-header) {
+  grid-column: 1 / -1;
   min-width: 0;
 }
+.dd-osm-header {
+  display: contents;
+}
 .dd-osm h1 {
-  margin: 0.25rem 0;
+  grid-area: title;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 0.25rem 0;
+  background: var(--background-color-base);
   overflow-wrap: anywhere;
 }
 .dd-osm-preset {
   all: unset;
+  grid-area: preset;
+  justify-self: start;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   min-height: 2rem;
-  font-size: 1.1em;
-  color: var(--color-subtle);
+  font-size: 1.2em;
   cursor: pointer;
 }
 .dd-osm-preset:hover,
@@ -919,40 +931,54 @@ watch(
   color: var(--color-progressive);
 }
 .dd-osm-meta {
+  grid-area: meta;
   margin: 0 0 0.5rem;
   color: var(--color-subtle);
   font-size: 0.875em;
 }
 .dd-osm-links {
+  grid-area: links;
+  align-self: start;
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
   margin: 0;
 }
 .dd-osm-map {
-  flex: 0 0 22rem;
+  grid-area: map;
+  align-self: start;
+  width: 300px;
+  margin-top: 0.5rem;
 }
 .dd-osm h2 {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
   font-size: 1.1em;
   margin: 1.5rem 0 0.5rem;
 }
-.dd-osm-box {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  border: 1px solid var(--border-color-subtle);
-  border-radius: var(--border-radius-base);
-  overflow: hidden;
+.dd-osm-tags {
+  margin-top: 1rem;
 }
 .dd-osm-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+.dd-osm-box {
   margin-top: 0.75rem;
+  border: 1px solid var(--border-color-subtle);
+  border-bottom: none;
+  border-radius: var(--border-radius-base);
+}
+.dd-osm-box ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.dd-osm .dd-osm-box-heading {
+  margin: 0;
+  padding: 0.375rem 0.625rem;
+  border-bottom: 1px solid var(--border-color-subtle);
+  font-size: var(--font-size-small);
+  color: var(--color-subtle);
 }
 .dd-osm-conflict {
   margin: 0.5rem 0 1rem;
@@ -1008,12 +1034,13 @@ watch(
   box-shadow: 0 -2px 8px rgb(0 0 0 / 8%);
 }
 @media (max-width: 640px) {
-  .dd-osm-header {
-    flex-direction: column-reverse;
-    align-items: stretch;
+  .dd-osm {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    grid-template-areas: "map" "title" "preset" "meta" "links";
   }
   .dd-osm-map {
-    flex-basis: auto;
+    width: auto;
   }
 }
 </style>

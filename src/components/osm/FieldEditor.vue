@@ -5,206 +5,229 @@
       <button
         v-if="mainKey"
         type="button"
-        class="dd-field-key"
+        class="dd-field-key dd-id-chip"
         :aria-label="t('osm-doc-show', mainKey)"
         @click="emit('info', mainKey)"
       >
         {{ keyHint }}
       </button>
-      <cdx-button
-        v-if="changed"
-        weight="quiet"
-        size="small"
-        :aria-label="t('undo')"
-        v-tooltip="t('undo')"
-        @click="undo"
-      >
-        <cdx-icon :icon="cdxIconUndo" size="small" />
-      </cdx-button>
+      <span class="dd-field-buttons">
+        <cdx-button
+          v-if="changed"
+          weight="quiet"
+          size="small"
+          :aria-label="t('undo')"
+          v-tooltip="t('undo')"
+          @click="undo"
+        >
+          <cdx-icon :icon="cdxIconUndo" size="small" />
+        </cdx-button>
+        <cdx-button
+          v-if="fieldTagCount"
+          class="dd-field-copy"
+          weight="quiet"
+          size="small"
+          :aria-label="t('osm-copy-tags', fieldTagCount)"
+          v-tooltip="t('osm-copy-tags', fieldTagCount)"
+          @click="copy"
+        >
+          <cdx-icon :icon="cdxIconCopy" size="small" />
+        </cdx-button>
+      </span>
     </div>
 
-    <!-- yes/no and radio fields -->
-    <ChoiceChips
-      v-if="kind === 'choice'"
-      :options="choiceOptions"
-      :selected="value ? [value] : []"
-      :label="field.label"
-      @toggle="(v) => set(mainKey!, v === value ? undefined : v)"
-    />
+    <div class="dd-field-value">
+      <!-- yes/no and radio fields -->
+      <ChoiceChips
+        v-if="kind === 'choice'"
+        :options="choiceOptions"
+        :selected="value ? [value] : []"
+        :label="field.label"
+        @toggle="(v) => set(mainKey!, v === value ? undefined : v)"
+      />
 
-    <!-- diet:vegan=yes, diet:halal=yes, … -->
-    <ChoiceChips
-      v-else-if="kind === 'prefix'"
-      :options="field.options"
-      :selected="
-        field.options
-          .filter((o) => tags[`${field.key}${o.value}`] === 'yes')
-          .map((o) => o.value)
-      "
-      :label="field.label"
-      @toggle="togglePrefixed"
-    />
+      <!-- diet:vegan=yes, diet:halal=yes, … -->
+      <ChoiceChips
+        v-else-if="kind === 'prefix'"
+        :options="field.options"
+        :selected="
+          field.options
+            .filter((o) => tags[`${field.key}${o.value}`] === 'yes')
+            .map((o) => o.value)
+        "
+        :label="field.label"
+        @toggle="togglePrefixed"
+      />
 
-    <!-- cuisine=pizza;pasta -->
-    <div v-else-if="kind === 'semi'" class="dd-field-chips">
-      <span v-for="v in splitValues(value)" :key="v" class="dd-field-chip">
-        {{ optionLabel(v) }}
-        <button type="button" :aria-label="t('remove')" @click="removeValue(v)">
-          <cdx-icon :icon="cdxIconClose" size="x-small" />
-        </button>
-      </span>
-      <cdx-button size="small" @click="emit('pick', mainKey!, true)">
-        <cdx-icon :icon="cdxIconAdd" size="small" />
-        {{ t("add") }}
-      </cdx-button>
-    </div>
+      <!-- cuisine=pizza;pasta -->
+      <div v-else-if="kind === 'semi'" class="dd-field-chips">
+        <span v-for="v in splitValues(value)" :key="v" class="dd-field-chip">
+          {{ optionLabel(v) }}
+          <button
+            type="button"
+            :aria-label="t('remove')"
+            @click="removeValue(v)"
+          >
+            <cdx-icon :icon="cdxIconClose" size="x-small" />
+          </button>
+        </span>
+        <cdx-button size="small" @click="emit('pick', mainKey!, true)">
+          <cdx-icon :icon="cdxIconAdd" size="small" />
+          {{ t("add") }}
+        </cdx-button>
+      </div>
 
-    <!-- combo: opens the value picker -->
-    <button
-      v-else-if="kind === 'pick'"
-      type="button"
-      class="dd-field-select"
-      :aria-labelledby="labelId"
-      @click="emit('pick', mainKey!, false)"
-    >
-      <span v-if="value">
-        {{ optionLabel(value) }}
-        <code v-if="optionLabel(value) !== value">{{ value }}</code>
-      </span>
-      <span v-else class="dd-field-placeholder">
-        {{ field.placeholder ?? t("osm-choose") }}
-      </span>
-      <cdx-icon :icon="cdxIconExpand" size="small" />
-    </button>
-
-    <!-- several keys, e.g. access, foot, bicycle -->
-    <div v-else-if="kind === 'keys'" class="dd-field-subkeys">
+      <!-- combo: opens the value picker -->
       <button
-        v-for="key in field.keys"
-        :key="key"
+        v-else-if="kind === 'pick'"
         type="button"
         class="dd-field-select"
-        @click="emit('pick', key, false)"
+        :aria-labelledby="labelId"
+        @click="emit('pick', mainKey!, false)"
       >
-        <span class="dd-field-subkey">{{ key }}</span>
-        <span v-if="tags[key]">{{ optionLabel(tags[key]) }}</span>
-        <span v-else class="dd-field-placeholder">{{ t("osm-choose") }}</span>
+        <span v-if="value">
+          {{ optionLabel(value) }}
+          <code v-if="optionLabel(value) !== value">{{ value }}</code>
+        </span>
+        <span v-else class="dd-field-placeholder">
+          {{ field.placeholder ?? t("osm-choose") }}
+        </span>
         <cdx-icon :icon="cdxIconExpand" size="small" />
       </button>
-    </div>
 
-    <!-- name, name:de, … -->
-    <div v-else-if="kind === 'localized'" class="dd-field-subkeys">
-      <cdx-text-input
+      <!-- several keys, e.g. access, foot, bicycle -->
+      <div v-else-if="kind === 'keys'" class="dd-field-subkeys">
+        <button
+          v-for="key in field.keys"
+          :key="key"
+          type="button"
+          class="dd-field-select"
+          @click="emit('pick', key, false)"
+        >
+          <span class="dd-field-subkey">{{ key }}</span>
+          <span v-if="tags[key]">{{ optionLabel(tags[key]) }}</span>
+          <span v-else class="dd-field-placeholder">{{ t("osm-choose") }}</span>
+          <cdx-icon :icon="cdxIconExpand" size="small" />
+        </button>
+      </div>
+
+      <!-- name, name:de, … -->
+      <div v-else-if="kind === 'localized'" class="dd-field-subkeys">
+        <cdx-text-input
+          :model-value="value ?? ''"
+          :placeholder="field.placeholder"
+          :aria-labelledby="labelId"
+          enterkeyhint="done"
+          @change="onChange(mainKey!, $event)"
+          @keydown.enter="blur"
+        />
+        <div
+          v-for="key in localizedKeys"
+          :key="key"
+          class="dd-field-subkey-row"
+        >
+          <code class="dd-field-subkey">
+            {{ key.slice(mainKey!.length + 1) }}
+          </code>
+          <cdx-text-input
+            :model-value="tags[key] ?? ''"
+            :aria-label="key"
+            enterkeyhint="done"
+            @change="onChange(key, $event)"
+            @keydown.enter="blur"
+          />
+        </div>
+        <form
+          v-if="addingLanguage"
+          class="dd-field-subkey-row"
+          @submit.prevent="addLanguage"
+        >
+          <cdx-text-input
+            v-model="newLanguage"
+            class="dd-field-language"
+            :placeholder="t('terms-placeholder-language')"
+            :aria-label="t('terms-placeholder-language')"
+            autocapitalize="off"
+            enterkeyhint="done"
+          />
+          <cdx-button type="submit">{{ t("add") }}</cdx-button>
+        </form>
+        <cdx-button
+          v-else
+          size="small"
+          weight="quiet"
+          @click="addingLanguage = true"
+        >
+          <cdx-icon :icon="cdxIconLanguage" size="small" />
+          {{ t("osm-add-language") }}
+        </cdx-button>
+      </div>
+
+      <!-- addr:street, addr:housenumber, … -->
+      <div v-else-if="kind === 'address'" class="dd-field-address">
+        <label
+          v-for="key in addressKeys"
+          :key="key"
+          :class="`dd-field-address-${key.slice(5)}`"
+        >
+          <span class="dd-field-subkey">{{ addressLabel(key) }}</span>
+          <cdx-text-input
+            :model-value="tags[key] ?? ''"
+            :inputmode="
+              key === 'addr:housenumber' || key === 'addr:postcode'
+                ? 'numeric'
+                : undefined
+            "
+            enterkeyhint="next"
+            @change="onChange(key, $event)"
+          />
+        </label>
+      </div>
+
+      <!-- wikidata=Q… -->
+      <div v-else-if="kind === 'wikidata'" class="dd-field-wikidata">
+        <span v-if="value" class="dd-field-wikidata-value">
+          <a :href="`#${value}`">{{ wikidataLabel ?? value }}</a>
+          <code class="dd-id-chip">{{ value }}</code>
+          <cdx-button
+            weight="quiet"
+            size="small"
+            :aria-label="t('remove')"
+            @click="set(mainKey!, undefined)"
+          >
+            <cdx-icon :icon="cdxIconTrash" size="small" />
+          </cdx-button>
+        </span>
+        <EntitySearch
+          :language="language"
+          :placeholder="t('search-item')"
+          @select="(id: string) => set(mainKey!, id)"
+        />
+      </div>
+
+      <cdx-text-area
+        v-else-if="kind === 'textarea'"
         :model-value="value ?? ''"
         :placeholder="field.placeholder"
         :aria-labelledby="labelId"
+        autosize
+        @change="onChange(mainKey!, $event)"
+      />
+
+      <cdx-text-input
+        v-else
+        :model-value="value ?? ''"
+        :input-type="inputType"
+        :inputmode="inputMode"
+        :placeholder="field.placeholder"
+        :aria-labelledby="labelId"
+        :start-icon="field.type === 'url' ? cdxIconLink : undefined"
         enterkeyhint="done"
+        autocapitalize="off"
         @change="onChange(mainKey!, $event)"
         @keydown.enter="blur"
       />
-      <div v-for="key in localizedKeys" :key="key" class="dd-field-subkey-row">
-        <code class="dd-field-subkey">
-          {{ key.slice(mainKey!.length + 1) }}
-        </code>
-        <cdx-text-input
-          :model-value="tags[key] ?? ''"
-          :aria-label="key"
-          enterkeyhint="done"
-          @change="onChange(key, $event)"
-          @keydown.enter="blur"
-        />
-      </div>
-      <form
-        v-if="addingLanguage"
-        class="dd-field-subkey-row"
-        @submit.prevent="addLanguage"
-      >
-        <cdx-text-input
-          v-model="newLanguage"
-          class="dd-field-language"
-          :placeholder="t('terms-placeholder-language')"
-          :aria-label="t('terms-placeholder-language')"
-          autocapitalize="off"
-          enterkeyhint="done"
-        />
-        <cdx-button type="submit">{{ t("add") }}</cdx-button>
-      </form>
-      <cdx-button
-        v-else
-        size="small"
-        weight="quiet"
-        @click="addingLanguage = true"
-      >
-        <cdx-icon :icon="cdxIconLanguage" size="small" />
-        {{ t("osm-add-language") }}
-      </cdx-button>
     </div>
-
-    <!-- addr:street, addr:housenumber, … -->
-    <div v-else-if="kind === 'address'" class="dd-field-address">
-      <label
-        v-for="key in addressKeys"
-        :key="key"
-        :class="`dd-field-address-${key.slice(5)}`"
-      >
-        <span class="dd-field-subkey">{{ addressLabel(key) }}</span>
-        <cdx-text-input
-          :model-value="tags[key] ?? ''"
-          :inputmode="
-            key === 'addr:housenumber' || key === 'addr:postcode'
-              ? 'numeric'
-              : undefined
-          "
-          enterkeyhint="next"
-          @change="onChange(key, $event)"
-        />
-      </label>
-    </div>
-
-    <!-- wikidata=Q… -->
-    <div v-else-if="kind === 'wikidata'" class="dd-field-wikidata">
-      <span v-if="value" class="dd-field-wikidata-value">
-        <a :href="`#${value}`">{{ wikidataLabel ?? value }}</a>
-        <code class="dd-id-chip">{{ value }}</code>
-        <cdx-button
-          weight="quiet"
-          size="small"
-          :aria-label="t('remove')"
-          @click="set(mainKey!, undefined)"
-        >
-          <cdx-icon :icon="cdxIconTrash" size="small" />
-        </cdx-button>
-      </span>
-      <EntitySearch
-        :language="language"
-        :placeholder="t('search-item')"
-        @select="(id: string) => set(mainKey!, id)"
-      />
-    </div>
-
-    <cdx-text-area
-      v-else-if="kind === 'textarea'"
-      :model-value="value ?? ''"
-      :placeholder="field.placeholder"
-      :aria-labelledby="labelId"
-      autosize
-      @change="onChange(mainKey!, $event)"
-    />
-
-    <cdx-text-input
-      v-else
-      :model-value="value ?? ''"
-      :input-type="inputType"
-      :inputmode="inputMode"
-      :placeholder="field.placeholder"
-      :aria-labelledby="labelId"
-      :start-icon="field.type === 'url' ? cdxIconLink : undefined"
-      enterkeyhint="done"
-      autocapitalize="off"
-      @change="onChange(mainKey!, $event)"
-      @keydown.enter="blur"
-    />
   </div>
 </template>
 
@@ -219,6 +242,7 @@ import {
 import {
   cdxIconAdd,
   cdxIconClose,
+  cdxIconCopy,
   cdxIconExpand,
   cdxIconLanguage,
   cdxIconLink,
@@ -246,6 +270,8 @@ const emit = defineEmits<{
   pick: [key: string, multi: boolean];
   /** show the documentation of the key */
   info: [key: string];
+  /** copy the tags of the field */
+  copy: [tags: Tags];
 }>();
 
 const labelId = useId();
@@ -336,6 +362,17 @@ function blur(event: KeyboardEvent) {
   (event.target as HTMLElement).blur();
 }
 
+/** tags edited by this field */
+const fieldTags = computed(() =>
+  Object.fromEntries(
+    Object.entries(props.tags).filter(([k]) => fieldMatchesKey(props.field, k)),
+  ),
+);
+const fieldTagCount = computed(() => Object.keys(fieldTags.value).length);
+function copy() {
+  emit("copy", fieldTags.value);
+}
+
 function undo() {
   const patch: TagPatch = {};
   for (const k of Object.keys({ ...props.tags, ...props.base }))
@@ -412,37 +449,66 @@ watch(
 </script>
 
 <style scoped>
+/* like a statement group: label column, then the editor */
 .dd-field {
-  padding: 0.625rem 0.75rem;
-}
-.dd-field + .dd-field {
-  border-top: 1px solid var(--border-color-subtle);
-}
-.dd-field--changed {
-  background: var(--background-color-warning-subtle);
+  display: grid;
+  grid-template-columns: clamp(12rem, 28%, 20rem) 1fr;
+  border-bottom: 1px solid var(--border-color-subtle);
 }
 .dd-field-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  align-content: flex-start;
   flex-wrap: wrap;
-  gap: 0 0.5rem;
-  min-height: 1.75rem;
-  margin-bottom: 0.25rem;
+  gap: 0 0.25rem;
+  padding: 0.375rem 0.625rem;
+  background: var(--background-color-neutral-subtle);
+  line-height: 1.3;
 }
 .dd-field-label {
-  font-weight: bold;
+  font-weight: 600;
+}
+/* together at the end of the first line, like the property buttons */
+.dd-field-buttons {
+  display: flex;
+  margin-inline-start: auto;
+}
+.dd-field-buttons .cdx-button {
+  min-height: 1.5rem;
+  min-width: 1.5rem;
+  padding: 0;
+}
+@media (hover: hover) {
+  .dd-field-copy {
+    opacity: 0.5;
+  }
+}
+.dd-field:hover .dd-field-copy,
+.dd-field-copy:focus-visible {
+  opacity: 1;
+}
+.dd-field-value {
+  min-width: 0;
+  padding: 0.375rem 0.625rem;
+}
+.dd-field--changed .dd-field-value {
+  background: var(--background-color-warning-subtle);
 }
 .dd-field-key {
-  all: unset;
-  font-family: var(--font-family-monospace);
-  font-size: var(--font-size-x-small, 0.75em);
-  color: var(--color-subtle);
   cursor: help;
 }
 .dd-field-key:hover,
 .dd-field-key:focus-visible {
   color: var(--color-progressive);
-  text-decoration: underline;
+}
+/* quiet inputs: an underline until hovered or focused */
+.dd-field-value :deep(.cdx-text-input__input:not(:hover, :focus)),
+.dd-field-value :deep(.cdx-text-area__textarea:not(:hover, :focus)),
+.dd-field-select:not(:hover, :focus-visible) {
+  border-color: transparent transparent var(--border-color-subtle);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 .dd-field-chips {
   display: flex;
@@ -476,8 +542,8 @@ watch(
   align-items: center;
   gap: 0.5rem;
   width: 100%;
-  min-height: 2.5rem;
-  padding: 0 0.75rem;
+  min-height: 2rem;
+  padding: 0 0.5rem;
   box-sizing: border-box;
   border: 1px solid var(--border-color-base);
   border-radius: var(--border-radius-base);
@@ -557,5 +623,10 @@ watch(
 .cdx-text-input,
 .cdx-text-area {
   min-width: 0;
+}
+@media (max-width: 640px) {
+  .dd-field {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

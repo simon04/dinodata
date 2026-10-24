@@ -117,7 +117,7 @@ const box = computed(() => {
   height: 160px;
   overflow: hidden;
   border-radius: var(--border-radius-base);
-  border: 1px solid var(--border-color-subtle);
+  box-shadow: var(--box-shadow-medium);
   background: var(--background-color-neutral-subtle);
 }
 .dd-static-map img {
