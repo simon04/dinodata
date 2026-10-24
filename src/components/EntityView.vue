@@ -212,6 +212,22 @@
       <cdx-tab name="sitelinks" :label="t('tab-sitelinks', sitelinks.length)">
         <SitelinksTable v-model:edits="edits" :entity="entity" />
       </cdx-tab>
+      <cdx-tab name="compare" :label="t('tab-compare')">
+        <!-- rendered when shown, the compared item is kept meanwhile -->
+        <CompareView
+          v-if="tab === 'compare'"
+          v-model:other="compareId"
+          :entity="entity"
+          :properties="orderedProperties"
+          :claims-of="claimsOf"
+          :language="language"
+          :labels="allLabels"
+          :descriptions="allDescriptions"
+          :formatter-urls="formatterUrls"
+          @copy="copyFromOther"
+          @swap="swapCompared"
+        />
+      </cdx-tab>
       <cdx-tab name="backlinks" :label="t('tab-backlinks')">
         <!-- loaded when shown, the tab content is only hidden otherwise -->
         <WhatLinksHere
@@ -264,6 +280,7 @@ import {
   getLabels,
   getPropertySuggestions,
   label,
+  referencedIds,
   type Claim,
   type Entity,
   type Snak,
@@ -298,6 +315,7 @@ import EntityId from "./EntityId.vue";
 import EntitySkeleton from "./EntitySkeleton.vue";
 import SitelinksTable from "./SitelinksTable.vue";
 import WhatLinksHere from "./WhatLinksHere.vue";
+import CompareView from "./CompareView.vue";
 import TermsTable from "./TermsTable.vue";
 import StatementGroup from "./StatementGroup.vue";
 import QuickStatementsPanel from "./QuickStatementsPanel.vue";
@@ -451,6 +469,31 @@ function groupSnaks(snaks: Snak[]): Record<string, Snak[]> {
 const toast = useToast();
 
 /**
+ * Add statements (with qualifiers and references) as new edits, skipping
+ * values the item already has; returns the added edits.
+ */
+function addClaims(claims: Claim[]): Edit[] {
+  // compare values in their normalized QuickStatements form
+  const key = (snak: Snak) => `${snak.property}|${snakValue(snak)}`;
+  const existing = new Set(
+    properties.value.flatMap((p) => claimsOf(p).map((c) => key(c.mainsnak))),
+  );
+  const added: Edit[] = [];
+  for (const claim of claims) {
+    if (existing.has(key(claim.mainsnak))) continue;
+    existing.add(key(claim.mainsnak));
+    added.push(claimToEdit(claim, `new-${++counter}`));
+  }
+  edits.value.push(...added);
+  // labels for added values, qualifiers and references
+  const ids = referencedIds({
+    claims: { _: claims },
+  } as unknown as Entity).filter((id) => !labels.value[id]);
+  getLabels(ids, props.language, addLabels).catch(console.warn);
+  return added;
+}
+
+/**
  * Paste QuickStatements or `Pxxx=value` lines (or Wikidata entity JSON),
  * skipping values the item already has.
  */
@@ -469,25 +512,9 @@ async function pasteClaims(text: string | undefined): Promise<void> {
     toast.warning(t("paste-empty"), { autoDismiss: 8000 });
     return;
   }
-  // compare values in their normalized QuickStatements form
-  const key = (snak: Snak) => `${snak.property}|${snakValue(snak)}`;
-  const existing = new Set(
-    properties.value.flatMap((p) => claimsOf(p).map((c) => key(c.mainsnak))),
-  );
   const before = edits.value.length;
-  let count = 0;
-  for (const claim of data.claims) {
-    if (existing.has(key(claim.mainsnak))) continue;
-    existing.add(key(claim.mainsnak));
-    edits.value.push(claimToEdit(claim, `new-${++counter}`));
-    count++;
-  }
+  const count = addClaims(data.claims).length;
   edits.value.push(...data.terms);
-  // labels for pasted values, qualifiers and references
-  const ids = referencedIds({
-    claims: { _: data.claims },
-  } as unknown as Entity).filter((id) => !labels.value[id]);
-  getLabels(ids, props.language, addLabels).catch(console.warn);
   const pasted = edits.value.slice(before);
   toast.show({
     type: data.invalid.length ? "warning" : "success",
@@ -528,6 +555,33 @@ useEventListener(document, "paste", (event: ClipboardEvent) => {
   event.preventDefault();
   pasteClaims(event.clipboardData?.getData("text/plain"));
 });
+
+/** item compared with in the Compare tab */
+const compareId = ref<string>();
+
+/** Open the compared item, comparing it with this one (unsaved edits are lost). */
+function swapCompared(other: string) {
+  if (edits.value.length && !confirm(t("compare-swap-discard"))) return;
+  compareId.value = props.id;
+  location.hash = other;
+}
+
+/** Copy statements of the compared item to this one, as edits. */
+function copyFromOther(claims: Claim[]) {
+  const added = addClaims(claims);
+  toast.show({
+    type: "success",
+    message: t("pasted", added.length, claims.length - added.length),
+    actionButton: added.length
+      ? {
+          label: t("undo"),
+          onClick: () =>
+            (edits.value = edits.value.filter((e) => !added.includes(e))),
+        }
+      : undefined,
+    autoDismiss: 6000,
+  });
+}
 
 async function copy(claims: Claim[]) {
   await copyClaims(claims, props.id);
@@ -816,29 +870,6 @@ const terms = computed(() => {
 });
 
 const sitelinks = computed(() => Object.keys(entity.value?.sitelinks ?? {}));
-
-function referencedIds(e: Entity): string[] {
-  const ids = new Set<string>();
-  const visit = (snak: Snak) => {
-    ids.add(snak.property);
-    const v = snak.datavalue?.value as { id?: string; unit?: string };
-    if (v?.id) ids.add(v.id);
-    const unit = v?.unit?.match(/Q\d+$/)?.[0];
-    if (unit) ids.add(unit);
-  };
-  for (const claims of Object.values(e.claims)) {
-    for (const claim of claims) {
-      visit(claim.mainsnak);
-      Object.values(claim.qualifiers ?? {})
-        .flat()
-        .forEach(visit);
-      claim.references?.forEach((r) =>
-        Object.values(r.snaks).flat().forEach(visit),
-      );
-    }
-  }
-  return [...ids];
-}
 
 const { username, accessToken } = useAuth();
 const saving = ref(false);

@@ -243,6 +243,30 @@ export async function getPropertySuggestions(
   return (json.search ?? []).map((s) => s.id);
 }
 
+/** Properties and entities used in statements, qualifiers and references. */
+export function referencedIds(e: Entity): string[] {
+  const ids = new Set<string>();
+  const visit = (snak: Snak) => {
+    ids.add(snak.property);
+    const v = snak.datavalue?.value as { id?: string; unit?: string };
+    if (v?.id) ids.add(v.id);
+    const unit = v?.unit?.match(/Q\d+$/)?.[0];
+    if (unit) ids.add(unit);
+  };
+  for (const claims of Object.values(e.claims)) {
+    for (const claim of claims) {
+      visit(claim.mainsnak);
+      Object.values(claim.qualifiers ?? {})
+        .flat()
+        .forEach(visit);
+      claim.references?.forEach((r) =>
+        Object.values(r.snaks).flat().forEach(visit),
+      );
+    }
+  }
+  return [...ids];
+}
+
 export interface Backlink {
   title: string;
   /** item, property or lexeme ID, for entity pages */
