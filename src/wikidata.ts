@@ -97,20 +97,32 @@ export async function getEntities(
   return Object.assign({}, ...results.map((r) => r.entities));
 }
 
+/** The user language, then multilingual (`mul`), then English. */
+export function fallbackLanguages(language: string): string[] {
+  return [...new Set([language, "mul", "en"])];
+}
+
+/** The term in the first available language of {@link fallbackLanguages}. */
+export function term<T>(
+  terms: Record<string, T> | undefined,
+  language: string,
+): T | undefined {
+  for (const l of fallbackLanguages(language))
+    if (terms?.[l] !== undefined) return terms[l];
+}
+
 export function label(
   entity: Pick<Entity, "labels"> | undefined,
   language: string,
 ): string | undefined {
-  return entity?.labels?.[language]?.value ?? entity?.labels?.en?.value;
+  return term(entity?.labels, language)?.value;
 }
 
 export function description(
   entity: Pick<Entity, "descriptions"> | undefined,
   language: string,
 ): string | undefined {
-  return (
-    entity?.descriptions?.[language]?.value ?? entity?.descriptions?.en?.value
-  );
+  return term(entity?.descriptions, language)?.value;
 }
 
 /**
@@ -141,7 +153,7 @@ export async function getLabels(
     }
   }
   if (missing.length < ids.length) onLabels(cached, cachedDescriptions);
-  const languages = [...new Set([language, "en"])].join("|");
+  const languages = fallbackLanguages(language).join("|");
   const batches = [];
   for (let i = 0; i < missing.length; i += 50)
     batches.push(missing.slice(i, i + 50));
@@ -211,15 +223,34 @@ export async function getBacklinks(
     wbetlanguage: language,
     ...from,
   });
-  const pages = (json.query?.pages ?? []).map(({ ns, title, entityterms }) => {
-    const prefix = ENTITY_NAMESPACES[ns];
-    return {
-      title,
-      ...(prefix !== undefined && { id: title.slice(prefix.length) }),
-      label: entityterms?.label?.[0],
-      description: entityterms?.description?.[0],
-    };
-  });
+  const pages: Backlink[] = (json.query?.pages ?? []).map(
+    ({ ns, title, entityterms }) => {
+      const prefix = ENTITY_NAMESPACES[ns];
+      return {
+        title,
+        ...(prefix !== undefined && { id: title.slice(prefix.length) }),
+        label: entityterms?.label?.[0],
+        description: entityterms?.description?.[0],
+      };
+    },
+  );
+  // entityterms has no language fallback, complete missing terms of items and properties
+  const incomplete = pages.filter(
+    (p) => p.id && /^[PQ]/.test(p.id) && !(p.label && p.description),
+  );
+  if (incomplete.length) {
+    const entities = await getEntities(
+      incomplete.map((p) => p.id!),
+      "labels|descriptions",
+      fallbackLanguages(language),
+    );
+    for (const p of incomplete) {
+      const l = label(entities[p.id!], language);
+      const d = description(entities[p.id!], language);
+      if (l) p.label ??= l;
+      if (d) p.description ??= d;
+    }
+  }
   return { pages, next: json.continue };
 }
 

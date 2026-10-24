@@ -36,6 +36,7 @@ const terms: Record<string, Record<string, Record<string, string[]>>> = {
     P99: { label: ["no type"] },
   },
   de: { P31: { label: ["ist ein(e)"] }, P1082: { label: ["Einwohnerzahl"] } },
+  mul: { P10: { label: ["video (mul)"] } },
 };
 
 /** Fake API: one page per request, filtered by prefix. */
@@ -131,9 +132,12 @@ describe("loadProperties", () => {
 });
 
 describe("propertyLabel", () => {
-  it("falls back to English", () => {
+  it("falls back to multilingual, then English", () => {
     expect(propertyLabel(byId.value.P31, "de")).toBe("ist ein(e)");
     expect(propertyLabel(byId.value.P31, "fr")).toBe("instance of");
+    // multilingual before English
+    expect(propertyLabel(byId.value.P10, "de")).toBe("video (mul)");
+    expect(propertyLabel(byId.value.P10, "en")).toBe("video");
     expect(propertyLabel(undefined, "de")).toBeUndefined();
   });
 });

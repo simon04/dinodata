@@ -19,6 +19,7 @@ import { t } from "../i18n";
 import { onMounted, ref, useTemplateRef } from "vue";
 import { CdxLookup, type MenuItemData } from "@wikimedia/codex";
 import {
+  propertyDescription,
   propertyLabel,
   searchProperties,
   useProperties,
@@ -39,7 +40,7 @@ function onInput(value: string) {
     value: p.id,
     label: propertyLabel(p, props.language) ?? p.id,
     match: `${p.id} · ${p.datatype}`,
-    description: p.descriptions[props.language] ?? p.descriptions.en,
+    description: propertyDescription(p, props.language),
   }));
 }
 

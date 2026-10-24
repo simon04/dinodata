@@ -9,9 +9,7 @@
           <EntityId :id="entity.id" />
         </h1>
         <p class="dd-description">
-          {{
-            entity.descriptions[language]?.value ?? t("entity-no-description")
-          }}
+          {{ description(entity, language) ?? t("entity-no-description") }}
         </p>
         <p class="dd-aliases">
           <cdx-info-chip v-for="alias in aliases" :key="alias">
@@ -228,6 +226,7 @@ import {
 } from "@wikimedia/codex-icons";
 import {
   ApiError,
+  description,
   editEntity,
   getEntities,
   getLabels,
@@ -616,7 +615,10 @@ const allDescriptions = computed(() => {
 });
 
 const aliases = computed(
-  () => entity.value?.aliases[props.language]?.map((a) => a.value) ?? [],
+  () =>
+    (entity.value?.aliases[props.language] ?? entity.value?.aliases.mul)?.map(
+      (a) => a.value,
+    ) ?? [],
 );
 
 const isIdentifier = (property: string) =>

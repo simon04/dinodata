@@ -1,5 +1,6 @@
 import { ref, watch, type Ref } from "vue";
 import { cachedFetch } from "./cache";
+import { fallbackLanguages, term } from "./wikidata";
 
 export interface Property {
   id: string;
@@ -160,7 +161,7 @@ function publish(language: string) {
     .sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)));
   properties.value = result;
   byId.value = Object.fromEntries(result.map((p) => [p.id, p]));
-  const languages = [...new Set([language, "en"])];
+  const languages = fallbackLanguages(language);
   index = result.map((p) => ({
     p,
     labels: languages.flatMap((l) => p.labels[l]?.toLowerCase() ?? []),
@@ -203,8 +204,10 @@ export function loadProperties(language: Ref<string>) {
             }
             publish(language.value);
           }),
-          // the user language first, then English for search and fallback
-          terms(lang).then(() => (lang === "en" ? undefined : terms("en"))),
+          // the user language first, then multilingual and English for search and fallback
+          terms(lang).then(() =>
+            Promise.all(fallbackLanguages(lang).slice(1).map(terms)),
+          ),
         ]);
       } catch (e) {
         error.value = String(e);
@@ -224,14 +227,14 @@ export function propertyLabel(
   p: Property | undefined,
   language: string,
 ): string | undefined {
-  return p?.labels[language] ?? p?.labels.en;
+  return term(p?.labels, language);
 }
 
 export function propertyDescription(
   p: Property | undefined,
   language: string,
 ): string | undefined {
-  return p?.descriptions[language] ?? p?.descriptions.en;
+  return term(p?.descriptions, language);
 }
 
 /**

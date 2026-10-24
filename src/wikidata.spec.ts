@@ -11,6 +11,7 @@ import {
   description,
   getBacklinks,
   getEntities,
+  fallbackLanguages,
   getLabels,
   label,
   searchEntities,
@@ -74,14 +75,25 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
+describe("fallbackLanguages", () => {
+  it("falls back to multilingual, then English", () => {
+    expect(fallbackLanguages("de")).toEqual(["de", "mul", "en"]);
+    expect(fallbackLanguages("en")).toEqual(["en", "mul"]);
+    expect(fallbackLanguages("mul")).toEqual(["mul", "en"]);
+  });
+});
+
 describe("label", () => {
   const entity = {
     labels: { de: { value: "Wien" }, en: { value: "Vienna" } },
   };
 
-  it("prefers the language, then English", () => {
+  it("prefers the language, then multilingual, then English", () => {
     expect(label(entity, "de")).toBe("Wien");
     expect(label(entity, "fr")).toBe("Vienna");
+    const mul = { labels: { ...entity.labels, mul: { value: "Wien (mul)" } } };
+    expect(label(mul, "fr")).toBe("Wien (mul)");
+    expect(label(mul, "en")).toBe("Vienna");
     expect(label({ labels: {} }, "de")).toBeUndefined();
     expect(label(undefined, "de")).toBeUndefined();
   });
@@ -144,7 +156,7 @@ describe("getLabels", () => {
     ]);
     expect(params(0).get("ids")).toBe("Q2");
     expect(params(0).get("props")).toBe("labels|descriptions");
-    expect(params(0).get("languages")).toBe("de|en");
+    expect(params(0).get("languages")).toBe("de|mul|en");
     // now cached in the session, including the description
     const onLabels = vi.fn();
     await getLabels(["Q2"], "de", onLabels);
@@ -182,18 +194,23 @@ describe("getBacklinks", () => {
     expect(params(0).get("wbetlanguage")).toBe("de");
     expect(first.pages).toEqual([
       { title: "Q1", id: "Q1", label: "one", description: "first" },
-      { title: "Property:P2", id: "P2" },
+      // completed in the fallback languages
+      { title: "Property:P2", id: "P2", label: "label of P2" },
       { title: "Wikidata:Sandbox" },
     ]);
+    expect(params(1).get("ids")).toBe("P2");
+    expect(params(1).get("languages")).toBe("de|mul|en");
     const second = await getBacklinks("Q42", "de", first.next);
-    expect(params(1).get("gblcontinue")).toBe("0|2");
+    expect(params(2).get("gblcontinue")).toBe("0|2");
     expect(second).toEqual({ pages: [{ title: "Lexeme:L1", id: "L1" }] });
   });
 
   it("uses the page title of properties and lexemes", async () => {
     await getBacklinks("P31", "en");
     await getBacklinks("L7", "en");
-    expect(params(0).get("gbltitle")).toBe("Property:P31");
-    expect(params(1).get("gbltitle")).toBe("Lexeme:L7");
+    const titles = fetch.mock.calls
+      .map(([url]) => new URL(url).searchParams.get("gbltitle"))
+      .filter(Boolean);
+    expect(titles).toEqual(["Property:P31", "Lexeme:L7"]);
   });
 });

@@ -170,7 +170,7 @@ import {
 } from "@vueuse/core";
 import { CdxDialog, CdxToastContainer } from "@wikimedia/codex";
 import { loadProperties } from "./properties";
-import { description, getEntities, label } from "./wikidata";
+import { description, fallbackLanguages, getEntities, label } from "./wikidata";
 import LanguageSelector from "./components/LanguageSelector.vue";
 import UserMenu from "./components/UserMenu.vue";
 import HeaderSearch from "./components/HeaderSearch.vue";
@@ -247,9 +247,11 @@ const examples = computedAsync(
   async () => {
     const lang = language.value;
     const ids = EXAMPLES.map(([example]) => example);
-    const entities = await getEntities(ids, "labels|descriptions", [
-      ...new Set([lang, "en"]),
-    ]);
+    const entities = await getEntities(
+      ids,
+      "labels|descriptions",
+      fallbackLanguages(lang),
+    );
     return Object.fromEntries(
       ids.map((example) => [
         example,

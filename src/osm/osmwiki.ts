@@ -70,8 +70,8 @@ function text(
 ): string | undefined {
   return (
     values?.[language]?.value ??
-    values?.en?.value ??
     values?.mul?.value ??
+    values?.en?.value ??
     Object.values(values ?? {})[0]?.value
   );
 }
@@ -158,7 +158,7 @@ export async function getTagDocs(
   const list = [...titles];
   const batches = [];
   for (let i = 0; i < list.length; i += 50) batches.push(list.slice(i, i + 50));
-  const languages = [...new Set([language, "en", "mul"])].join("|");
+  const languages = [...new Set([language, "mul", "en"])].join("|");
   const results = await Promise.all(
     batches.map((batch) =>
       api<{ entities: Record<string, Entity | { missing: string }> }>(
@@ -195,7 +195,7 @@ export async function getItemLabels(
   const batches = [];
   for (let i = 0; i < unique.length; i += 50)
     batches.push(unique.slice(i, i + 50));
-  const languages = [...new Set([language, "en", "mul"])].join("|");
+  const languages = [...new Set([language, "mul", "en"])].join("|");
   const results = await Promise.all(
     batches.map((batch) =>
       api<{ entities: Record<string, Entity> }>(
