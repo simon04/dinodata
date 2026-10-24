@@ -149,6 +149,14 @@
     >
       {{ t("footer-data") }}
     </a>
+    <a
+      v-if="commitHash"
+      :href="`https://github.com/simon04/dinodata/commit/${commitHash}`"
+      target="_blank"
+      rel="external noopener"
+    >
+      {{ commitHash }} ({{ commitDate }})
+    </a>
   </footer>
 </template>
 
@@ -171,6 +179,9 @@ import MediaDialog from "./components/MediaDialog.vue";
 import dragons from "./assets/dragons.svg";
 import { parseRoute } from "./route";
 import { useSchema } from "./osm/presets";
+
+const commitHash = import.meta.env.VITE_COMMIT_HASH;
+const commitDate = import.meta.env.VITE_COMMIT_DATE;
 
 // OSM mode is loaded on demand
 const OsmElementView = defineAsyncComponent(
