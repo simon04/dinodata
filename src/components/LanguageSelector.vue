@@ -34,13 +34,16 @@ watch(model, (value) => {
   inputValue.value = value;
 });
 
+/** languages supported for labels, descriptions and aliases on Wikidata */
 const { data } = useFetch(
-  "https://www.wikidata.org/w/api.php?action=query&meta=languageinfo&liprop=autonym|name&uselang=en&format=json&formatversion=2&origin=*",
+  "https://www.wikidata.org/w/api.php?action=query&meta=wbcontentlanguages&wbclcontext=term&wbclprop=code|autonym|name&uselang=en&format=json&formatversion=2&origin=*",
 ).json<{
-  query: { languageinfo: Record<string, { autonym: string; name: string }> };
+  query: {
+    wbcontentlanguages: Record<string, { autonym?: string; name: string }>;
+  };
 }>();
 const languages = computed<MenuItemData[]>(() =>
-  Object.entries(data.value?.query.languageinfo ?? {}).map(
+  Object.entries(data.value?.query.wbcontentlanguages ?? {}).map(
     ([code, { autonym, name }]) => ({
       value: code,
       label: autonym || name,
