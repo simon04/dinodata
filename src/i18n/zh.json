@@ -76,6 +76,7 @@
   "sitelinks-no-site": "没有匹配的站点。",
   "copy-id": "复制 $1",
   "copied-id": "已复制 $1",
+  "qs-title": "你的更改",
   "qs-empty": "尚无更改。您的编辑将以 $1 命令的形式显示在这里。",
   "qs-copy": "复制",
   "qs-copied": "已复制 QuickStatements 命令",

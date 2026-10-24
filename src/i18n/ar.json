@@ -76,6 +76,7 @@
   "sitelinks-no-site": "لا يوجد موقع مطابق.",
   "copy-id": "انسخ $1",
   "copied-id": "نُسخ $1",
+  "qs-title": "تغييراتك",
   "qs-empty": "لا توجد تغييرات بعد. ستظهر تعديلاتك هنا كأوامر $1.",
   "qs-copy": "انسخ",
   "qs-copied": "نُسخت أوامر QuickStatements",

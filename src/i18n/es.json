@@ -72,6 +72,7 @@
   "sitelinks-no-site": "Ningún sitio coincide.",
   "copy-id": "Copiar $1",
   "copied-id": "$1 copiado",
+  "qs-title": "Tus cambios",
   "qs-empty": "Aún no hay cambios. Tus ediciones aparecerán aquí como comandos de $1.",
   "qs-copy": "Copiar",
   "qs-copied": "Comandos de QuickStatements copiados",

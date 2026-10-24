@@ -71,6 +71,7 @@
   "sitelinks-no-site": "Keine passende Website.",
   "copy-id": "$1 kopieren",
   "copied-id": "$1 kopiert",
+  "qs-title": "Deine Änderungen",
   "qs-empty": "Noch keine Änderungen. Deine Bearbeitungen erscheinen hier als $1-Befehle.",
   "qs-copy": "Kopieren",
   "qs-copied": "QuickStatements-Befehle kopiert",
