@@ -6,7 +6,7 @@
   "app-hackathon": "DinoData lleva el nombre de los dragones del logo del hackatón de Wikimania 2024 en Katowice, Polonia.",
   "app-hackathon-link": "Sobre el hackatón",
   "app-welcome": "Bienvenido a DinoData",
-  "app-intro": "Una cara amable para Wikidata y los datos estructurados de Commons: explora elementos y archivos en tu idioma, edita declaraciones, calificadores, etiquetas, leyendas y enlaces a sitios, y copia declaraciones entre elementos. Pega el enlace de un archivo de Commons en la búsqueda para abrir sus datos estructurados. Tus ediciones se reúnen como comandos de QuickStatements.",
+  "app-intro": "Una cara amable para Wikidata y los datos estructurados de Commons: explora elementos y archivos en tu idioma, edita declaraciones, calificadores, etiquetas, leyendas y enlaces a sitios, y copia declaraciones entre elementos. Pega el enlace de un archivo de Commons en la búsqueda para abrir sus datos estructurados. Nada se guarda al instante: tus cambios se reúnen para revisarlos y, al iniciar sesión, se guardan en una sola edición, o se copian como comandos de QuickStatements.",
   "osm-teaser": "Prueba también: editar etiquetas de OpenStreetMap →",
   "app-try": "Busca arriba o prueba:",
   "search-no-results": "No se encontraron resultados.",
