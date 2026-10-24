@@ -5,6 +5,9 @@ describe("formatNumber", () => {
   it("groups digits per locale", () => {
     expect(formatNumber("+1505005", "en")).toBe("1,505,005");
     expect(formatNumber(1505005, "de")).toBe("1.505.005");
+    // grouping only from five digits on
+    expect(formatNumber(1234, "en")).toBe("1234");
+    expect(formatNumber(12345, "en")).toBe("12,345");
   });
 
   it("keeps all decimals of Wikibase amounts", () => {
@@ -12,7 +15,7 @@ describe("formatNumber", () => {
   });
 
   it("falls back to English for codes unknown to Intl", () => {
-    expect(formatNumber(1234.5, "not a language")).toBe("1,234.5");
+    expect(formatNumber(1234.5, "not a language")).toBe("1234.5");
   });
 });
 

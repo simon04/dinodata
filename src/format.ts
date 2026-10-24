@@ -7,6 +7,8 @@ export function formatNumber(
 ): string {
   return new Intl.NumberFormat(locale(language), {
     maximumFractionDigits: 20,
+    // 1234 but 12,345: no separator for a single digit before the group
+    useGrouping: "min2",
     ...options,
   }).format(Number(value));
 }
