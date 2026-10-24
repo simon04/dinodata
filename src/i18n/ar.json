@@ -73,6 +73,7 @@
   "value-language-code": "رمز اللغة",
   "terms-placeholder-language": "رمز اللغة، مثل ar",
   "sitelinks-placeholder-site": "الموقع، مثل arwiki",
+  "sitelinks-no-site": "لا يوجد موقع مطابق.",
   "copy-id": "انسخ $1",
   "copied-id": "نُسخ $1",
   "qs-empty": "لا توجد تغييرات بعد. ستظهر تعديلاتك هنا كأوامر $1.",

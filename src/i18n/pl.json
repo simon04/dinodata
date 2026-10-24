@@ -76,6 +76,7 @@
   "value-language-code": "Kod języka",
   "terms-placeholder-language": "Kod języka, np. pl",
   "sitelinks-placeholder-site": "Witryna, np. plwiki",
+  "sitelinks-no-site": "Brak pasującej witryny.",
   "copy-id": "Kopiuj $1",
   "copied-id": "Skopiowano $1",
   "qs-title": "QuickStatements",

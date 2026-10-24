@@ -73,6 +73,7 @@
   "value-language-code": "Код языка",
   "terms-placeholder-language": "Код языка, например ru",
   "sitelinks-placeholder-site": "Сайт, например ruwiki",
+  "sitelinks-no-site": "Нет подходящего сайта.",
   "copy-id": "Копировать $1",
   "copied-id": "$1 скопировано",
   "qs-empty": "Изменений пока нет. Ваши правки появятся здесь в виде команд $1.",

@@ -69,6 +69,7 @@
   "value-language-code": "Código de idioma",
   "terms-placeholder-language": "Código de idioma, p. ej. es",
   "sitelinks-placeholder-site": "Sitio, p. ej. eswiki",
+  "sitelinks-no-site": "Ningún sitio coincide.",
   "copy-id": "Copiar $1",
   "copied-id": "$1 copiado",
   "qs-empty": "Aún no hay cambios. Tus ediciones aparecerán aquí como comandos de $1.",

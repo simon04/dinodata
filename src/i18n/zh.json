@@ -73,6 +73,7 @@
   "value-language-code": "语言代码",
   "terms-placeholder-language": "语言代码，例如 zh",
   "sitelinks-placeholder-site": "网站，例如 zhwiki",
+  "sitelinks-no-site": "没有匹配的站点。",
   "copy-id": "复制 $1",
   "copied-id": "已复制 $1",
   "qs-empty": "尚无更改。您的编辑将以 $1 命令的形式显示在这里。",

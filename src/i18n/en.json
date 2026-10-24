@@ -76,6 +76,7 @@
   "value-language-code": "Language code",
   "terms-placeholder-language": "Language code, e.g. de",
   "sitelinks-placeholder-site": "Site, e.g. dewiki",
+  "sitelinks-no-site": "No matching site.",
   "copy-id": "Copy $1",
   "copied-id": "Copied $1",
   "qs-title": "QuickStatements",

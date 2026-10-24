@@ -1,5 +1,5 @@
 <template>
-  <div class="dd-sitelinks-table">
+  <div ref="root" class="dd-sitelinks-table">
     <div class="dd-sitelinks-grid">
       <div
         v-for="row in rows"
@@ -50,14 +50,22 @@
       </div>
     </div>
     <div class="dd-sitelink-add">
-      <cdx-text-input
-        v-model="newSite"
+      <cdx-lookup
+        v-model:selected="selectedSite"
+        v-model:input-value="newSite"
+        class="dd-site-lookup"
+        :menu-items="siteItems"
+        :menu-config="{ visibleItemLimit: 8 }"
         :aria-label="t('sitelinks-site')"
-        :status="tried && !newSite.trim() ? 'error' : 'default'"
+        :status="tried && !siteValid ? 'error' : 'default'"
         :placeholder="t('sitelinks-placeholder-site')"
-        @keydown.enter="add"
-      />
+        @input="onSiteInput"
+        @update:selected="onSiteSelected"
+      >
+        <template #no-results>{{ t("sitelinks-no-site") }}</template>
+      </cdx-lookup>
       <cdx-text-input
+        ref="titleInput"
         v-model="newTitle"
         :aria-label="t('sitelinks-title')"
         :status="tried && !newTitle.trim() ? 'error' : 'default'"
@@ -73,8 +81,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { CdxButton, CdxIcon, CdxTextInput } from "@wikimedia/codex";
+import { computed, ref, shallowRef, useTemplateRef, watch } from "vue";
+import {
+  CdxButton,
+  CdxIcon,
+  CdxLookup,
+  CdxTextInput,
+  type MenuItemData,
+} from "@wikimedia/codex";
+import { useElementVisibility } from "@vueuse/core";
 import {
   cdxIconAdd,
   cdxIconLinkExternal,
@@ -84,6 +99,7 @@ import {
 import { t } from "../i18n";
 import type { Edit } from "../quickstatements";
 import type { Entity } from "../wikidata";
+import { getSites, searchSites, type Site } from "../sites";
 import EditableText from "./EditableText.vue";
 
 const props = defineProps<{ entity: Entity }>();
@@ -91,6 +107,45 @@ const edits = defineModel<Edit[]>("edits", { required: true });
 
 const newSite = ref("");
 const newTitle = ref("");
+const selectedSite = ref<string | null>(null);
+const siteItems = ref<MenuItemData[]>([]);
+const titleInput =
+  useTemplateRef<InstanceType<typeof CdxTextInput>>("titleInput");
+
+/** sites for sitelinks, loaded when the tab is first shown */
+const sites = shallowRef<Map<string, Site>>();
+const visible = useElementVisibility(useTemplateRef("root"));
+const stop = watch(visible, (shown) => {
+  if (!shown) return;
+  stop();
+  getSites()
+    .then((s) => (sites.value = s))
+    .catch(console.warn);
+});
+
+function onSiteInput(value: string) {
+  const linked = new Set(rows.value.map((r) => r.site));
+  siteItems.value = searchSites(sites.value?.values() ?? [], value)
+    .filter((s) => !linked.has(s.id))
+    .map((s) => ({
+      value: s.id,
+      label: s.id,
+      match: s.name === s.id ? undefined : s.name,
+      description: s.url.replace(/^https:\/\//, ""),
+    }));
+}
+
+function onSiteSelected(id: string | null) {
+  if (!id) return;
+  newSite.value = id;
+  titleInput.value?.focus();
+}
+
+/** a known site, or anything while the sites are not loaded */
+const siteValid = computed(() => {
+  const site = newSite.value.trim();
+  return !!site && (!sites.value || sites.value.has(site));
+});
 
 type SitelinkEdit = Extract<Edit, { type: "sitelink" }>;
 
@@ -133,14 +188,17 @@ function add() {
   const site = newSite.value.trim();
   const title = newTitle.value.trim();
   tried.value = true;
-  if (!site || !title) return;
+  if (!siteValid.value || !title) return;
   tried.value = false;
   setSitelink(site, title);
   newSite.value = "";
   newTitle.value = "";
+  selectedSite.value = null;
 }
 
 function siteUrl(site: string, title: string): string {
+  const url = sites.value?.get(site)?.url;
+  if (url) return `${url}/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`;
   const special: Record<string, string> = {
     commonswiki: "commons.wikimedia.org",
     specieswiki: "species.wikimedia.org",
@@ -204,5 +262,8 @@ function siteUrl(site: string, title: string): string {
   display: flex;
   gap: 0.5rem;
   margin-top: 0.75rem;
+}
+.dd-site-lookup {
+  flex: 0 0 16rem;
 }
 </style>

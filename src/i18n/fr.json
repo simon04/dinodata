@@ -69,6 +69,7 @@
   "value-language-code": "Code de langue",
   "terms-placeholder-language": "Code de langue, p. ex. fr",
   "sitelinks-placeholder-site": "Site, p. ex. frwiki",
+  "sitelinks-no-site": "Aucun site correspondant.",
   "copy-id": "Copier $1",
   "copied-id": "$1 copié",
   "qs-empty": "Aucune modification pour l’instant. Vos modifications apparaîtront ici sous forme de commandes $1.",

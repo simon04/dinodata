@@ -68,6 +68,7 @@
   "value-language-code": "Sprachcode",
   "terms-placeholder-language": "Sprachcode, z. B. de",
   "sitelinks-placeholder-site": "Website, z. B. dewiki",
+  "sitelinks-no-site": "Keine passende Website.",
   "copy-id": "$1 kopieren",
   "copied-id": "$1 kopiert",
   "qs-empty": "Noch keine Änderungen. Deine Bearbeitungen erscheinen hier als $1-Befehle.",

@@ -76,6 +76,7 @@
   "value-language-code": "Taalcode",
   "terms-placeholder-language": "Taalcode, bijv. nl",
   "sitelinks-placeholder-site": "Site, bijv. nlwiki",
+  "sitelinks-no-site": "Geen overeenkomende site.",
   "copy-id": "$1 kopiëren",
   "copied-id": "$1 gekopieerd",
   "qs-title": "QuickStatements",
