@@ -80,6 +80,54 @@ async function fetchTypes(): Promise<Types> {
   return parseTypes(body);
 }
 
+const ORDER_PAGE = "MediaWiki:Wikibase-SortedProperties";
+let order: Promise<Map<string, number>> | undefined;
+
+/**
+ * The property order of statements on Wikidata entity pages, from
+ * [[MediaWiki:Wikibase-SortedProperties]]: property ID → position.
+ */
+export function getPropertyOrder(): Promise<Map<string, number>> {
+  order ??= (async () => {
+    const params = new URLSearchParams({
+      action: "query",
+      format: "json",
+      formatversion: "2",
+      origin: "*",
+      prop: "revisions",
+      titles: ORDER_PAGE,
+      rvprop: "content",
+      rvslots: "main",
+    });
+    const json = JSON.parse(
+      await cachedFetch(`${API}?${params}`, {
+        cacheName: "properties-v4",
+        maxAge: MAX_AGE,
+        staleWhileRevalidate: true,
+      }),
+    ) as {
+      query: {
+        pages: { revisions?: { slots: { main: { content: string } } }[] }[];
+      };
+    };
+    return parsePropertyOrder(
+      json.query.pages[0]?.revisions?.[0]?.slots.main.content ?? "",
+    );
+  })().catch((e) => {
+    order = undefined;
+    throw e;
+  });
+  return order;
+}
+
+/** Parse the list items `* P31 (instance of)`, keeping the first position. */
+export function parsePropertyOrder(wikitext: string): Map<string, number> {
+  const result = new Map<string, number>();
+  for (const [, id] of wikitext.matchAll(/^[*#]\s*(P\d+)/gm))
+    if (!result.has(id)) result.set(id, result.size);
+  return result;
+}
+
 interface TermsPage {
   title: string;
   entityterms?: { label?: string[]; description?: string[]; alias?: string[] };

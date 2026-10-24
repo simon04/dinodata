@@ -85,6 +85,14 @@
             <cdx-icon :icon="cdxIconPaste" />
             {{ t("paste-statements") }}
           </cdx-button>
+          <cdx-menu-button
+            v-model:selected="sort"
+            :menu-items="sortItems"
+            :aria-label="t('sort-statements')"
+          >
+            <cdx-icon :icon="cdxIconSortVertical" />
+            {{ t(`sort-${sort}`) }}
+          </cdx-menu-button>
         </div>
         <p v-if="suggested.statements.length" class="dd-suggested">
           {{ t("suggested-properties") }}
@@ -210,12 +218,13 @@
 </template>
 
 <script setup lang="ts">
-import { t } from "../i18n";
-import { computed, ref, useTemplateRef, watch } from "vue";
+import { locale, t } from "../i18n";
+import { computed, ref, shallowRef, toRaw, useTemplateRef, watch } from "vue";
 import {
   CdxButton,
   CdxIcon,
   CdxInfoChip,
+  CdxMenuButton,
   CdxMessage,
   CdxTab,
   CdxTabs,
@@ -227,6 +236,7 @@ import {
   cdxIconLogoWikimediaCommons,
   cdxIconLogoWikipedia,
   cdxIconPaste,
+  cdxIconSortVertical,
 } from "@wikimedia/codex-icons";
 import {
   ApiError,
@@ -253,9 +263,11 @@ import {
   until,
   useElementSize,
   useEventListener,
+  useLocalStorage,
   useTitle,
 } from "@vueuse/core";
 import {
+  getPropertyOrder,
   propertyDescription,
   propertyLabel,
   useProperties,
@@ -338,7 +350,8 @@ async function loadTypeProperties(e: Entity) {
     return id && c.rank !== "deprecated" ? [id] : [];
   });
   const result = classes.length ? await getEntities(classes, "claims") : {};
-  if (entity.value !== e) return;
+  // another entity was loaded meanwhile (entity.value is a reactive proxy)
+  if (toRaw(entity.value) !== e) return;
   typeProperties.value = [
     ...new Set(
       classes.flatMap((id) =>
@@ -646,11 +659,46 @@ const properties = computed(() => [
     ...statementEdits.value.map((e) => e.snak.property),
   ]),
 ]);
-/** Properties for this type (P1963) first, in their order. */
+type Sort = "wikidata" | "type" | "alphabetical";
+/** user-selected order of statements and identifiers */
+const sort = useLocalStorage<Sort>("dinodata.sort", "wikidata");
+const sortItems = computed(() =>
+  (["wikidata", "type", "alphabetical"] as const).map((value) => ({
+    value,
+    label: t(`sort-${value}`),
+  })),
+);
+/** property order of Wikidata entity pages, loaded when needed */
+const wikidataOrder = shallowRef<Map<string, number>>();
+async function loadWikidataOrder() {
+  if (sort.value === "alphabetical" || wikidataOrder.value) return;
+  try {
+    wikidataOrder.value = await getPropertyOrder();
+  } catch (e) {
+    console.warn(e);
+  }
+}
+watch(sort, loadWikidataOrder);
+const collator = computed(
+  () => new Intl.Collator(locale(props.language), { numeric: true }),
+);
+/** Sorted by the user's choice, otherwise keeping the order of the API. */
 const orderedProperties = computed(() => {
-  const index = new Map(typeProperties.value.map((p, i) => [p, i]));
-  const rank = (p: string) => index.get(p) ?? index.size;
-  return [...properties.value].sort((a, b) => rank(a) - rank(b));
+  const byPosition = (positions: Map<string, number> | undefined) => {
+    const rank = (p: string) => positions?.get(p) ?? Infinity;
+    // unlisted properties (Infinity - Infinity = NaN) keep their order
+    return (a: string, b: string) => rank(a) - rank(b) || 0;
+  };
+  const wikidata = byPosition(wikidataOrder.value);
+  const type = byPosition(new Map(typeProperties.value.map((p, i) => [p, i])));
+  const compare: Record<Sort, (a: string, b: string) => number> = {
+    wikidata,
+    // properties for this type (P1963) first, in their order
+    type: (a, b) => type(a, b) || wikidata(a, b),
+    alphabetical: (a, b) =>
+      collator.value.compare(allLabels.value[a], allLabels.value[b]),
+  };
+  return [...properties.value].sort(compare[sort.value] ?? wikidata);
 });
 const statements = computed(() =>
   orderedProperties.value.filter((p) => !isIdentifier(p)),
@@ -786,13 +834,12 @@ watch(
       closeAdding();
     }
     try {
-      // browser refresh: bypass the cache for the item first shown
-      const entities = await getEntities(
-        [props.id],
-        undefined,
-        undefined,
-        consumeReloadBypass(),
-      );
+      // browser refresh: bypass the cache for the item first shown;
+      // the property order along with it, so statements do not jump
+      const [entities] = await Promise.all([
+        getEntities([props.id], undefined, undefined, consumeReloadBypass()),
+        loadWikidataOrder(),
+      ]);
       const e = entities[props.id];
       if (!e || "missing" in e) throw new Error(`${props.id} not found`);
       const referenced = referencedIds(e);

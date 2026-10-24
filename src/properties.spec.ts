@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vite-plus/test";
 import { ref } from "vue";
 import {
   loadProperties,
+  parsePropertyOrder,
   propertyDescription,
   propertyLabel,
   searchProperties,
@@ -194,5 +195,24 @@ describe("searchProperties", () => {
     await vi.waitFor(() => expect(loading.value).toBe(false));
     // types and English terms come from the cache
     expect(requests).toHaveLength(before);
+  });
+});
+
+describe("parsePropertyOrder", () => {
+  it("numbers list items in order, keeping the first position", () => {
+    const wikitext = [
+      "<!-- * P1 in a comment line is not at the start -->",
+      "== Classification ==",
+      "* P31 (instance of)",
+      "*P279 (subclass of)",
+      "# P361 (part of)",
+      "see P99",
+      "* P31 (duplicate)",
+    ].join("\n");
+    expect([...parsePropertyOrder(wikitext)]).toEqual([
+      ["P31", 0],
+      ["P279", 1],
+      ["P361", 2],
+    ]);
   });
 });
