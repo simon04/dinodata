@@ -56,7 +56,7 @@ describe("t", () => {
   it("falls back to English for untranslated languages", async () => {
     language.value = "de";
     await vi.waitFor(() => expect(t("copy-id", "Q1")).toBe("Q1 kopieren"));
-    language.value = "nl";
+    language.value = "sv";
     await vi.waitFor(() => expect(t("copy-id", "Q1")).toBe("Copy Q1"));
   });
 

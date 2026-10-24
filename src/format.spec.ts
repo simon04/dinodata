@@ -56,6 +56,10 @@ describe("formatTime", () => {
     expect(formatTime("+1801-00-00T00:00:00Z", 7, "de")).toBe("19. century");
   });
 
+  it("uses Dutch ordinals", () => {
+    expect(formatTime("+1801-00-00T00:00:00Z", 7, "nl")).toBe("19e century");
+  });
+
   it("returns unparsable values unchanged", () => {
     expect(formatTime("yesterday", 11, "en")).toBe("yesterday");
   });
