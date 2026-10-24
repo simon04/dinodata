@@ -1,5 +1,5 @@
 <template>
-  <div class="dd-add-statement">
+  <div class="dd-add-statement" @keydown.esc.capture="onEscape">
     <PropertyLookup
       v-if="!fixedProperty"
       ref="propertyLookup"
@@ -16,12 +16,7 @@
       :label="propertyLabel(current, language) ?? current.id"
       @submit="onSubmit"
     />
-    <cdx-button
-      weight="quiet"
-      :aria-label="t('cancel')"
-      @click="emit('close')"
-      @keydown.esc="emit('close')"
-    >
+    <cdx-button weight="quiet" :aria-label="t('cancel')" @click="emit('close')">
       <cdx-icon :icon="cdxIconClose" />
     </cdx-button>
   </div>
@@ -46,6 +41,16 @@ const emit = defineEmits<{
 const property = ref<Property>();
 const current = computed(() => props.fixedProperty ?? property.value);
 const propertyLookup = useTemplateRef<{ reset(): void }>("propertyLookup");
+
+/**
+ * Escape closes the box, unless it closes an open suggestion menu. Captured,
+ * as Codex menus stop the propagation of Escape even when collapsed.
+ */
+function onEscape(event: KeyboardEvent) {
+  const target = event.target as HTMLElement;
+  if (target.getAttribute("aria-expanded") === "true") return;
+  emit("close");
+}
 
 function onSubmit(snak: Snak, label?: string) {
   emit("add", snak, label);

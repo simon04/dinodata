@@ -119,7 +119,7 @@
                   editing = undefined;
                 }
               "
-              @keydown.esc="editing = undefined"
+              @cancel="editing = undefined"
             />
             <cdx-button
               weight="quiet"
@@ -270,7 +270,7 @@
                       editingQualifier = undefined;
                     }
                   "
-                  @keydown.esc="editingQualifier = undefined"
+                  @cancel="editingQualifier = undefined"
                 />
                 <cdx-button
                   weight="quiet"

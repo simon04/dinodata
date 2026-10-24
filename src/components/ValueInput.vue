@@ -8,6 +8,7 @@
       entityType === 'item' ? t('search-item') : t('search-property')
     "
     @select="onEntity"
+    @keydown.esc.capture="onEscape"
   />
   <cdx-field
     v-else
@@ -15,6 +16,7 @@
     :status="showError ? 'error' : 'default'"
     :messages="{ error: t('value-invalid', placeholder) }"
     :hide-label="true"
+    @keydown.esc.capture="onEscape"
   >
     <template #label>{{ label ?? t("value-placeholder") }}</template>
     <div class="dd-value-row">
@@ -57,7 +59,20 @@ const props = defineProps<{
   /** accessible label, e.g. the property label */
   label?: string;
 }>();
-const emit = defineEmits<{ submit: [snak: Snak, label?: string] }>();
+const emit = defineEmits<{
+  submit: [snak: Snak, label?: string];
+  cancel: [];
+}>();
+
+/**
+ * Escape cancels, unless it closes an open suggestion menu. Captured, as
+ * Codex menus stop the propagation of Escape even when collapsed.
+ */
+function onEscape(event: KeyboardEvent) {
+  const target = event.target as HTMLElement;
+  if (target.getAttribute("aria-expanded") === "true") return;
+  emit("cancel");
+}
 
 const text = ref(formatInput(props.original?.datavalue));
 const textLanguage = ref(
