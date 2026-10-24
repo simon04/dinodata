@@ -197,7 +197,8 @@ const TITLE_PREFIXES: Record<string, string> = { P: "Property:", L: "Lexeme:" };
 
 /**
  * Pages linking to the entity (via statements, or wikitext on other pages),
- * 500 per request, with labels and descriptions of linking entities.
+ * 500 per request, with labels and descriptions of linking entities
+ * (cached for an hour).
  */
 export async function getBacklinks(
   id: string,
@@ -213,16 +214,19 @@ export async function getBacklinks(
       }[];
     };
     continue?: Record<string, string>;
-  }>({
-    action: "query",
-    generator: "backlinks",
-    gbltitle: `${TITLE_PREFIXES[id[0]] ?? ""}${id}`,
-    gbllimit: "max",
-    prop: "entityterms",
-    wbetterms: "label|description",
-    wbetlanguage: language,
-    ...from,
-  });
+  }>(
+    {
+      action: "query",
+      generator: "backlinks",
+      gbltitle: `${TITLE_PREFIXES[id[0]] ?? ""}${id}`,
+      gbllimit: "max",
+      prop: "entityterms",
+      wbetterms: "label|description",
+      wbetlanguage: language,
+      ...from,
+    },
+    { maxAge: 60 * 60 * 1000 },
+  );
   const pages: Backlink[] = (json.query?.pages ?? []).map(
     ({ ns, title, entityterms }) => {
       const prefix = ENTITY_NAMESPACES[ns];

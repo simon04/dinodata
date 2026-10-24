@@ -188,6 +188,13 @@ describe("getLabels", () => {
 });
 
 describe("getBacklinks", () => {
+  it("caches responses", async () => {
+    await getBacklinks("Q42", "de");
+    const calls = fetch.mock.calls.length;
+    await getBacklinks("Q42", "de");
+    expect(fetch).toHaveBeenCalledTimes(calls);
+  });
+
   it("returns entity IDs, terms and other pages, then continues", async () => {
     const first = await getBacklinks("Q42", "de");
     expect(params(0).get("gbltitle")).toBe("Q42");
