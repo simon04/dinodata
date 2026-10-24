@@ -133,7 +133,7 @@
   "login": "Anmelden",
   "logout": "Abmelden",
   "login-failed": "Anmeldung fehlgeschlagen: $1",
-  "osm-teaser": "Neu: OpenStreetMap-Tags bearbeiten →",
+  "osm-teaser": "Probiere auch: OpenStreetMap-Tags bearbeiten →",
   "osm-welcome": "OpenStreetMap-Tag-Editor",
   "osm-intro": "Öffne beliebige OpenStreetMap-Knoten, -Wege und -Relationen per URL, ID (wie w123) oder Suche, sieh, was ihre Tags in deiner Sprache bedeuten, und bearbeite sie bequem – auch am Handy. Die Geometrie wird nicht bearbeitet.",
   "osm-search": "Suchen",

@@ -7,6 +7,7 @@
   "app-hackathon-link": "关于黑客松",
   "app-welcome": "欢迎使用 DinoData",
   "app-intro": "Wikidata 和共享资源结构化数据的友好界面：以你的语言浏览项目和文件，编辑声明、限定符、标签、说明和站点链接，并在项目之间复制声明。将共享资源文件的链接粘贴到搜索框即可打开其结构化数据。你的编辑会汇总为 QuickStatements 命令。",
+  "osm-teaser": "也试试：编辑 OpenStreetMap 标签 →",
   "app-try": "在上方搜索，或试试：",
   "search-no-results": "未找到结果。",
   "search-item": "搜索项目…",

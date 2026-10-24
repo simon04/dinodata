@@ -138,7 +138,7 @@
   "login": "Aanmelden",
   "logout": "Afmelden",
   "login-failed": "Aanmelden mislukt: $1",
-  "osm-teaser": "Nieuw: OpenStreetMap-tags bewerken →",
+  "osm-teaser": "Probeer ook: OpenStreetMap-tags bewerken →",
   "osm-welcome": "OpenStreetMap-tageditor",
   "osm-intro": "Open elke OpenStreetMap-node, -way of -relatie via URL, ID (zoals w123) of zoekopdracht, zie wat de tags betekenen in je eigen taal en bewerk ze gemakkelijk – ook op je telefoon. De geometrie wordt niet bewerkt.",
   "osm-search": "Zoeken",

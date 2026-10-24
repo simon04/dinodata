@@ -138,7 +138,7 @@
   "login": "Log in",
   "logout": "Log out",
   "login-failed": "Login failed: $1",
-  "osm-teaser": "New: edit OpenStreetMap tags →",
+  "osm-teaser": "Also try: editing OpenStreetMap tags →",
   "osm-welcome": "OpenStreetMap tag editor",
   "osm-intro": "Open any OpenStreetMap node, way or relation by URL, ID (like w123) or search, see what its tags mean in your language, and edit them comfortably – also on your phone. Geometry is not edited.",
   "osm-search": "Search",
