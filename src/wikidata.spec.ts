@@ -42,7 +42,28 @@ const fetch = vi.fn(async (input: string | URL) => {
     );
   if (params.get("action") === "wbsearchentities")
     return Response.json({
-      search: [{ id: "Q1735", label: params.get("search") }],
+      search:
+        params.get("search") === "NL hackathon"
+          ? []
+          : [{ id: "Q1735", label: params.get("search") }],
+    });
+  if (params.get("list") === "search")
+    return Response.json({
+      query: {
+        search:
+          params.get("srnamespace") === "120"
+            ? [{ title: "Property:P2", snippet: "" }]
+            : [
+                {
+                  title: "Q2",
+                  snippet: 'second <span class="searchmatch">hackathon</span>',
+                },
+                {
+                  title: "Q3",
+                  snippet: 'a <span class="searchmatch">NL</span> one',
+                },
+              ],
+      },
     });
   const entities = Object.fromEntries(
     params
@@ -113,6 +134,30 @@ describe("searchEntities", () => {
       origin: "*",
       format: "json",
     });
+  });
+});
+
+describe("searchEntities full-text fallback", () => {
+  it("searches the full text when the prefix search finds nothing", async () => {
+    expect(await searchEntities("NL hackathon", "de")).toEqual([
+      { id: "Q2", label: "label of Q2", description: "description of Q2" },
+      // the snippet without markup, if there is no description
+      { id: "Q3", label: "label of Q3", description: "a NL one" },
+    ]);
+    expect(Object.fromEntries(params(1))).toMatchObject({
+      list: "search",
+      srsearch: "NL hackathon",
+      srnamespace: "0",
+    });
+    expect(params(2).get("ids")).toBe("Q2|Q3");
+    expect(params(2).get("languages")).toBe("de|mul|en");
+  });
+
+  it("searches properties in their namespace", async () => {
+    expect(await searchEntities("NL hackathon", "en", "property")).toEqual([
+      { id: "P2", label: "label of P2", description: undefined },
+    ]);
+    expect(params(1).get("srnamespace")).toBe("120");
   });
 });
 

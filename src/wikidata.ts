@@ -69,7 +69,51 @@ export async function searchEntities(
     type,
     limit: "10",
   });
-  return json.search;
+  return json.search.length
+    ? json.search
+    : fullTextSearch(search, language, type);
+}
+
+/** namespace of entity pages by type */
+const NAMESPACES = { item: "0", property: "120" };
+
+/**
+ * Full-text search (CirrusSearch) in labels, descriptions, aliases and
+ * statements, for queries the label prefix search does not match, such as
+ * words from the middle of a description.
+ */
+async function fullTextSearch(
+  search: string,
+  language: string,
+  type: "item" | "property",
+): Promise<SearchResult[]> {
+  const json = await api<{
+    query?: { search: { title: string; snippet: string }[] };
+  }>({
+    action: "query",
+    list: "search",
+    srsearch: search,
+    srnamespace: NAMESPACES[type],
+    srlimit: "10",
+    srprop: "snippet",
+  });
+  const hits = (json.query?.search ?? []).map(({ title, snippet }) => ({
+    id: title.slice(title.indexOf(":") + 1),
+    // HTML with highlighted matches
+    snippet: new DOMParser().parseFromString(snippet, "text/html").body
+      .textContent,
+  }));
+  if (!hits.length) return [];
+  const entities = await getEntities(
+    hits.map((h) => h.id),
+    "labels|descriptions",
+    fallbackLanguages(language),
+  );
+  return hits.map(({ id, snippet }) => ({
+    id,
+    label: label(entities[id], language),
+    description: description(entities[id], language) ?? (snippet || undefined),
+  }));
 }
 
 /** Fetch full entities (cached for an hour unless `bypass`). */
