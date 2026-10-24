@@ -218,7 +218,7 @@ function siteUrl(site: string, title: string): string {
 <style scoped>
 .dd-sitelinks-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
   margin-top: 0.75rem;
   border-top: 1px solid var(--border-color-subtle);
 }
