@@ -35,7 +35,7 @@
         :aria-label="t('value-language-code')"
         @keydown.enter="submit"
       />
-      <cdx-button action="progressive" @click="submit">
+      <cdx-button action="progressive" :disabled="empty" @click="submit">
         {{ original ? t("save") : t("add") }}
       </cdx-button>
     </div>
@@ -133,11 +133,13 @@ const snak = computed<Snak | undefined>(() => {
     : undefined;
 });
 
-/** Validate on blur and on submit, not while typing. */
+const empty = computed(() => !text.value.trim());
+/** Validate on blur and on submit, not while typing; empty is not an error. */
 const touched = ref(false);
-const showError = computed(() => touched.value && !snak.value);
+const showError = computed(() => touched.value && !empty.value && !snak.value);
 
 function submit() {
+  if (empty.value) return;
   touched.value = true;
   if (!snak.value) return;
   touched.value = false;
