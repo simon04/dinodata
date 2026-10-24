@@ -71,7 +71,7 @@
       </button>
     </header>
 
-    <cdx-tabs v-model:active="tab">
+    <cdx-tabs v-model:active="tab" :style="tabIcons">
       <cdx-tab
         name="statements"
         :label="t('tab-statements', statements.length)"
@@ -269,7 +269,7 @@
 </template>
 
 <script setup lang="ts">
-import { locale, t } from "../i18n";
+import { isRTL, language as uiLanguage, locale, t } from "../i18n";
 import { computed, ref, shallowRef, toRaw, useTemplateRef, watch } from "vue";
 import {
   CdxButton,
@@ -283,12 +283,22 @@ import {
 } from "@wikimedia/codex";
 import {
   cdxIconAdd,
+  cdxIconArticleRedirect,
+  cdxIconDiffs,
+  cdxIconHistory,
+  cdxIconImageGallery,
+  cdxIconKey,
+  cdxIconLanguage,
   cdxIconLogoWikidata,
   cdxIconLogoWikimediaCommons,
   cdxIconLogoWikipedia,
   cdxIconPaste,
+  cdxIconShareAndroid,
   cdxIconSortVertical,
   cdxIconUpload,
+  resolveIcon,
+  shouldIconFlip,
+  type Icon,
 } from "@wikimedia/codex-icons";
 import {
   ApiError,
@@ -892,6 +902,35 @@ const commonsCategory = computed(
   () => commons.value?.match(/^Category:(.+)$/)?.[1],
 );
 
+/** CSS mask image of an icon in the UI language (cf. cdx-mixin-css-icon) */
+function iconImage(icon: Icon): string {
+  const dir = isRTL() ? "rtl" : "ltr";
+  const resolved = resolveIcon(icon, uiLanguage.value, dir);
+  let svg =
+    typeof resolved === "string" ? resolved : `<path d="${resolved.path}"/>`;
+  if (dir === "rtl" && shouldIconFlip(icon, uiLanguage.value))
+    svg = `<g transform="matrix(-1 0 0 1 20 0)">${svg}</g>`;
+  const xml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">${svg}</svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(xml)}")`;
+}
+
+/** icons of the tabs, in their order, as CdxTabs has no slot for them */
+const tabIcons = computed(() => {
+  const icons = [
+    cdxIconLogoWikidata, // statements
+    cdxIconKey, // identifiers
+    cdxIconLanguage, // languages
+    cdxIconShareAndroid, // sitelinks
+    ...(commonsCategory.value ? [cdxIconImageGallery] : []), // media
+    cdxIconDiffs, // compare
+    cdxIconHistory, // history
+    cdxIconArticleRedirect, // what links here
+  ];
+  return Object.fromEntries(
+    icons.map((icon, i) => [`--dd-tab-icon-${i + 1}`, iconImage(icon)]),
+  );
+});
+
 /** UploadWizard with the Commons category and depicting the entity */
 const uploadWizard = computed(() => {
   const params = new URLSearchParams({
@@ -1130,6 +1169,40 @@ watch(
 }
 .dd-entity :deep(.cdx-tab) {
   padding-top: 1rem;
+}
+.dd-entity :deep(.cdx-tabs__list__item > span::before) {
+  content: "";
+  display: inline-block;
+  width: var(--size-icon-small);
+  height: var(--size-icon-small);
+  margin-inline-end: var(--spacing-25);
+  vertical-align: text-bottom;
+  background-color: currentcolor;
+  mask: var(--dd-tab-icon) no-repeat center / contain;
+}
+.dd-entity :deep(.cdx-tabs__list__item:nth-child(1)) {
+  --dd-tab-icon: var(--dd-tab-icon-1);
+}
+.dd-entity :deep(.cdx-tabs__list__item:nth-child(2)) {
+  --dd-tab-icon: var(--dd-tab-icon-2);
+}
+.dd-entity :deep(.cdx-tabs__list__item:nth-child(3)) {
+  --dd-tab-icon: var(--dd-tab-icon-3);
+}
+.dd-entity :deep(.cdx-tabs__list__item:nth-child(4)) {
+  --dd-tab-icon: var(--dd-tab-icon-4);
+}
+.dd-entity :deep(.cdx-tabs__list__item:nth-child(5)) {
+  --dd-tab-icon: var(--dd-tab-icon-5);
+}
+.dd-entity :deep(.cdx-tabs__list__item:nth-child(6)) {
+  --dd-tab-icon: var(--dd-tab-icon-6);
+}
+.dd-entity :deep(.cdx-tabs__list__item:nth-child(7)) {
+  --dd-tab-icon: var(--dd-tab-icon-7);
+}
+.dd-entity :deep(.cdx-tabs__list__item:nth-child(8)) {
+  --dd-tab-icon: var(--dd-tab-icon-8);
 }
 @media (max-width: 640px) {
   .dd-entity {
