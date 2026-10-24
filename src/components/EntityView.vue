@@ -212,6 +212,15 @@
       <cdx-tab name="sitelinks" :label="t('tab-sitelinks', sitelinks.length)">
         <SitelinksTable v-model:edits="edits" :entity="entity" />
       </cdx-tab>
+      <cdx-tab v-if="commonsCategory" name="gallery" :label="t('tab-gallery')">
+        <!-- loaded when shown -->
+        <CommonsGallery
+          v-if="tab === 'gallery'"
+          :key="`${commonsCategory}:${language}`"
+          :category="commonsCategory"
+          :language="language"
+        />
+      </cdx-tab>
       <cdx-tab name="compare" :label="t('tab-compare')">
         <!-- rendered when shown, the compared item is kept meanwhile -->
         <CompareView
@@ -316,6 +325,7 @@ import EntitySkeleton from "./EntitySkeleton.vue";
 import SitelinksTable from "./SitelinksTable.vue";
 import WhatLinksHere from "./WhatLinksHere.vue";
 import CompareView from "./CompareView.vue";
+import CommonsGallery from "./CommonsGallery.vue";
 import { entityHash } from "../route";
 import TermsTable from "./TermsTable.vue";
 import StatementGroup from "./StatementGroup.vue";
@@ -867,12 +877,17 @@ const commons = computed(() => {
     : entity.value?.sitelinks?.commonswiki?.title;
 });
 
+/** name of the Commons category (P373, or a category sitelink) */
+const commonsCategory = computed(
+  () => commons.value?.match(/^Category:(.+)$/)?.[1],
+);
+
 /** UploadWizard with the Commons category and depicting the entity */
 const uploadWizard = computed(() => {
   const params = new URLSearchParams({
     description: `{{Depicts|${entity.value?.id}}}`,
   });
-  const category = commons.value?.match(/^Category:(.+)$/)?.[1];
+  const category = commonsCategory.value;
   if (category) params.set("categories", category);
   return `https://commons.wikimedia.org/wiki/Special:UploadWizard?${params}`;
 });
