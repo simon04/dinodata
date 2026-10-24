@@ -170,6 +170,13 @@ defineExpose({ focus });
 </script>
 
 <style scoped>
+/*
+ * Codex spaces fields below preceding siblings, here it sits in a row
+ * (more specific than Codex's bidi "[dir] .cdx-field")
+ */
+.dd-value-input.cdx-field {
+  margin-top: 0;
+}
 .dd-value-row {
   display: flex;
   gap: 0.5rem;
