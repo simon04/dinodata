@@ -50,6 +50,15 @@
             <cdx-icon :icon="cdxIconLogoWikimediaCommons" size="small" />
             {{ t("entity-commons") }}
           </a>
+          <a
+            :class="LINK_BUTTON"
+            :href="uploadWizard"
+            target="_blank"
+            rel="external noopener"
+          >
+            <cdx-icon :icon="cdxIconUpload" size="small" />
+            {{ t("entity-upload") }}
+          </a>
         </p>
       </div>
       <button
@@ -240,6 +249,7 @@ import {
   cdxIconLogoWikipedia,
   cdxIconPaste,
   cdxIconSortVertical,
+  cdxIconUpload,
 } from "@wikimedia/codex-icons";
 import {
   ApiError,
@@ -727,6 +737,16 @@ const commons = computed(() => {
   return category
     ? `Category:${category}`
     : entity.value?.sitelinks?.commonswiki?.title;
+});
+
+/** UploadWizard with the Commons category and depicting the entity */
+const uploadWizard = computed(() => {
+  const params = new URLSearchParams({
+    description: `{{Depicts|${entity.value?.id}}}`,
+  });
+  const category = commons.value?.match(/^Category:(.+)$/)?.[1];
+  if (category) params.set("categories", category);
+  return `https://commons.wikimedia.org/wiki/Special:UploadWizard?${params}`;
 });
 
 const imageFile = computed(() => {
