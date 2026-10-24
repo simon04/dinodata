@@ -38,6 +38,8 @@
   "backlinks-loading": "正在加载…",
   "backlinks-more": "加载更多",
   "backlinks-wikidata": "维基数据上的链入页面",
+  "backlinks-filter": "筛选链接…",
+  "backlinks-filter-none": "没有符合筛选条件的链接。",
   "add-statement": "添加声明",
   "add-value": "添加值",
   "add-qualifier": "添加限定符",

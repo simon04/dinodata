@@ -40,6 +40,8 @@
   "backlinks-loading": "Laden…",
   "backlinks-more": "Meer laden",
   "backlinks-wikidata": "Links naar deze pagina op Wikidata",
+  "backlinks-filter": "Links filteren…",
+  "backlinks-filter-none": "Geen links komen overeen met het filter.",
   "add-statement": "Statement toevoegen",
   "add-value": "Waarde toevoegen",
   "add-qualifier": "Kwalificatie toevoegen",

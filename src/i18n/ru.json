@@ -38,6 +38,8 @@
   "backlinks-loading": "Загрузка…",
   "backlinks-more": "Загрузить ещё",
   "backlinks-wikidata": "Ссылки сюда в Викиданных",
+  "backlinks-filter": "Фильтр ссылок…",
+  "backlinks-filter-none": "Нет ссылок, соответствующих фильтру.",
   "add-statement": "Добавить утверждение",
   "add-value": "Добавить значение",
   "add-qualifier": "Добавить квалификатор",

@@ -38,6 +38,8 @@
   "backlinks-loading": "جارٍ التحميل…",
   "backlinks-more": "تحميل المزيد",
   "backlinks-wikidata": "ماذا يصل هنا في ويكي بيانات",
+  "backlinks-filter": "تصفية الروابط…",
+  "backlinks-filter-none": "لا توجد روابط تطابق عامل التصفية.",
   "add-statement": "أضف بيانًا",
   "add-value": "أضف قيمة",
   "add-qualifier": "أضف مؤهلًا",

@@ -40,6 +40,8 @@
   "backlinks-loading": "Loading…",
   "backlinks-more": "Load more",
   "backlinks-wikidata": "What links here on Wikidata",
+  "backlinks-filter": "Filter links…",
+  "backlinks-filter-none": "No links match the filter.",
   "add-statement": "Add statement",
   "add-value": "Add value",
   "add-qualifier": "Add qualifier",

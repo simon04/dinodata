@@ -40,6 +40,8 @@
   "backlinks-loading": "Wczytywanie…",
   "backlinks-more": "Wczytaj więcej",
   "backlinks-wikidata": "Linkujące w Wikidanych",
+  "backlinks-filter": "Filtruj linki…",
+  "backlinks-filter-none": "Żaden link nie pasuje do filtra.",
   "add-statement": "Dodaj deklarację",
   "add-value": "Dodaj wartość",
   "add-qualifier": "Dodaj kwalifikator",

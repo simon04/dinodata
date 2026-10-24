@@ -34,6 +34,8 @@
   "backlinks-loading": "Chargement…",
   "backlinks-more": "Charger plus",
   "backlinks-wikidata": "Pages liées sur Wikidata",
+  "backlinks-filter": "Filtrer les liens…",
+  "backlinks-filter-none": "Aucun lien ne correspond au filtre.",
   "add-statement": "Ajouter une déclaration",
   "add-value": "Ajouter une valeur",
   "add-qualifier": "Ajouter un qualificatif",

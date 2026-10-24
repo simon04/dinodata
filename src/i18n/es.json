@@ -34,6 +34,8 @@
   "backlinks-loading": "Cargando…",
   "backlinks-more": "Cargar más",
   "backlinks-wikidata": "Lo que enlaza aquí en Wikidata",
+  "backlinks-filter": "Filtrar enlaces…",
+  "backlinks-filter-none": "Ningún enlace coincide con el filtro.",
   "add-statement": "Añadir declaración",
   "add-value": "Añadir valor",
   "add-qualifier": "Añadir calificador",
