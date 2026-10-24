@@ -120,7 +120,7 @@
             {{ allLabels[property] }}
           </cdx-button>
         </p>
-        <div class="dd-statements">
+        <div v-if="statements.length" class="dd-statements">
           <StatementGroup
             v-for="property in statements"
             :key="property"
@@ -176,7 +176,7 @@
             {{ allLabels[property] }}
           </cdx-button>
         </p>
-        <div class="dd-statements">
+        <div v-if="identifiers.length" class="dd-statements">
           <StatementGroup
             v-for="property in identifiers"
             :key="property"
@@ -220,6 +220,7 @@
     </cdx-tabs>
 
     <QuickStatementsPanel
+      class="dd-entity-qs"
       :id="entity.id"
       :edits="edits"
       :saving="saving"
@@ -900,13 +901,14 @@ watch(
 .dd-entity {
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto auto 1fr auto;
+  grid-template-rows: auto auto auto 1fr auto auto;
   grid-template-areas:
     "title title"
     "description image"
     "aliases image"
     "links image"
-    "tabs tabs";
+    "tabs tabs"
+    "qs qs";
   column-gap: 2rem;
 }
 .dd-entity-header,
@@ -916,6 +918,10 @@ watch(
 .dd-entity > :deep(.cdx-tabs) {
   grid-area: tabs;
   margin-top: 1rem;
+  min-width: 0;
+}
+.dd-entity-qs {
+  grid-area: qs;
   min-width: 0;
 }
 .dd-image {
@@ -998,7 +1004,7 @@ watch(
   .dd-entity {
     grid-template-columns: 1fr;
     grid-template-rows: none;
-    grid-template-areas: "image" "title" "description" "aliases" "links" "tabs";
+    grid-template-areas: "image" "title" "description" "aliases" "links" "tabs" "qs";
   }
   .dd-image {
     max-width: 100%;
