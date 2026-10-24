@@ -6,7 +6,7 @@
   "app-hackathon": "DinoData ist nach den Drachen im Logo des Wikimania-2024-Hackathons in Katowice, Polen, benannt.",
   "app-hackathon-link": "Über den Hackathon",
   "app-welcome": "Willkommen bei DinoData",
-  "app-intro": "Ein freundliches Gesicht für Wikidata: Datenobjekte in deiner Sprache ansehen, Aussagen, Qualifikatoren, Bezeichnungen und Sitelinks bearbeiten und Aussagen zwischen Datenobjekten kopieren. Deine Änderungen werden als QuickStatements-Befehle gesammelt.",
+  "app-intro": "Ein freundliches Gesicht für Wikidata und strukturierte Daten auf Commons: Datenobjekte und Dateien in deiner Sprache ansehen, Aussagen, Qualifikatoren, Bezeichnungen, Bildunterschriften und Sitelinks bearbeiten und Aussagen zwischen Datenobjekten kopieren. Füge einen Link zu einer Commons-Datei in die Suche ein, um ihre strukturierten Daten zu öffnen. Deine Änderungen werden als QuickStatements-Befehle gesammelt.",
   "app-try": "Suche oben oder probiere:",
   "search-no-results": "Keine Ergebnisse gefunden.",
   "search-item": "Datenobjekt suchen…",

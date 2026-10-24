@@ -6,7 +6,7 @@
   "app-hackathon": "Nazwa DinoData pochodzi od smoków z logo hackathonu Wikimanii 2024 w Katowicach.",
   "app-hackathon-link": "O hackathonie",
   "app-welcome": "Witaj w DinoData",
-  "app-intro": "Przyjazne oblicze Wikidanych: przeglądaj elementy w swoim języku, edytuj deklaracje, kwalifikatory, etykiety i linki do stron oraz kopiuj deklaracje między elementami. Twoje zmiany są zbierane jako polecenia QuickStatements.",
+  "app-intro": "Przyjazne oblicze Wikidanych i danych strukturalnych w Commons: przeglądaj elementy i pliki w swoim języku, edytuj deklaracje, kwalifikatory, etykiety, podpisy i linki do stron oraz kopiuj deklaracje między elementami. Wklej link do pliku z Commons w wyszukiwarkę, aby otworzyć jego dane strukturalne. Twoje zmiany są zbierane jako polecenia QuickStatements.",
   "app-try": "Skorzystaj z wyszukiwarki powyżej albo wypróbuj:",
   "search-no-results": "Brak wyników.",
   "search-item": "Szukaj elementu…",

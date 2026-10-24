@@ -6,7 +6,7 @@
   "app-hackathon": "DinoData is vernoemd naar de draken in het logo van de Wikimania 2024 Hackathon in Katowice, Polen.",
   "app-hackathon-link": "Over de hackathon",
   "app-welcome": "Welkom bij DinoData",
-  "app-intro": "Een vriendelijk gezicht voor Wikidata: bekijk items in je eigen taal, bewerk statements, kwalificaties, labels en sitelinks, en kopieer statements tussen items. Je bewerkingen worden verzameld als QuickStatements-opdrachten.",
+  "app-intro": "Een vriendelijk gezicht voor Wikidata en gestructureerde gegevens op Commons: bekijk items en bestanden in je eigen taal, bewerk statements, kwalificaties, labels, bijschriften en sitelinks, en kopieer statements tussen items. Plak een link naar een Commons-bestand in de zoekbalk om de gestructureerde gegevens te openen. Je bewerkingen worden verzameld als QuickStatements-opdrachten.",
   "app-try": "Zoek hierboven, of probeer:",
   "search-no-results": "Geen resultaten gevonden.",
   "search-item": "Item zoeken…",
