@@ -496,3 +496,19 @@ export async function editEntity(
   );
   return { lastrevid: json.entity.lastrevid };
 }
+
+/**
+ * The allowed units of a property (constraint Q21514353, units in P2305), in
+ * the order given; empty without the constraint or if no unit is allowed.
+ */
+export async function getAllowedUnits(property: string): Promise<string[]> {
+  const json = await api<{ claims: Record<string, Claim[]> }>(
+    { action: "wbgetclaims", entity: property, property: "P2302" },
+    { maxAge: 24 * 60 * 60 * 1000 },
+  );
+  const id = (s: Snak) => (s.datavalue?.value as { id?: string })?.id;
+  return (json.claims.P2302 ?? [])
+    .filter((c) => id(c.mainsnak) === "Q21514353")
+    .flatMap((c) => c.qualifiers?.P2305 ?? [])
+    .flatMap((s) => id(s) ?? []);
+}

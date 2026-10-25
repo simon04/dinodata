@@ -673,13 +673,14 @@ async function copy(claims: Claim[]) {
 }
 
 function addStatement(snak: Snak, valueLabel?: string) {
-  const id = (snak.datavalue?.value as { id?: string })?.id;
-  if (id && valueLabel) labels.value[id] = valueLabel;
+  rememberLabel(snak, valueLabel);
   edits.value.push({ type: "statement", claimId: `new-${++counter}`, snak });
 }
 
+/** The label of the item value, or of the unit of a quantity. */
 function rememberLabel(snak: Snak | undefined, valueLabel?: string) {
-  const id = (snak?.datavalue?.value as { id?: string })?.id;
+  const v = snak?.datavalue?.value as { id?: string; unit?: string };
+  const id = v?.id ?? v?.unit?.match(/Q\d+$/)?.[0];
   if (id && valueLabel) labels.value[id] = valueLabel;
 }
 

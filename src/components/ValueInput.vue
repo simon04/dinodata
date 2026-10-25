@@ -14,7 +14,11 @@
     v-else
     class="dd-value-input"
     :status="showError ? 'error' : 'default'"
-    :messages="{ error: t('value-invalid', placeholder) }"
+    :messages="{
+      error: missingUnit
+        ? t('value-unit-choose')
+        : t('value-invalid', placeholder),
+    }"
     :hide-label="true"
     @keydown.esc.capture="onEscape"
   >
@@ -39,15 +43,37 @@
         {{ original ? t("save") : t("add") }}
       </cdx-button>
     </div>
+    <!-- quantities: the allowed units as chips, others by search -->
+    <div v-if="datatype === 'quantity'" class="dd-units">
+      <ChoiceChips
+        :options="unitOptions"
+        :selected="unit ? [unit] : []"
+        :label="t('value-unit')"
+        @toggle="unit = unit === $event ? undefined : $event"
+      />
+      <EntitySearch
+        v-if="searchingUnit"
+        ref="unitSearch"
+        class="dd-unit-search"
+        :language="language"
+        type="item"
+        :placeholder="t('value-unit-search')"
+        @select="onUnit"
+      />
+      <cdx-button v-else weight="quiet" size="small" @click="searchUnit">
+        {{ t("value-unit-other") }}
+      </cdx-button>
+    </div>
   </cdx-field>
 </template>
 
 <script setup lang="ts">
 import { t } from "../i18n";
-import { computed, onMounted, ref, useTemplateRef } from "vue";
+import { computed, nextTick, onMounted, ref, useTemplateRef } from "vue";
 import { CdxButton, CdxField, CdxTextInput } from "@wikimedia/codex";
-import type { Snak } from "../wikidata";
+import { getAllowedUnits, getLabels, type Snak } from "../wikidata";
 import EntitySearch from "./EntitySearch.vue";
+import ChoiceChips from "./osm/ChoiceChips.vue";
 import { formatInput, keepOriginal, parseValue } from "../values";
 
 const props = defineProps<{
@@ -105,13 +131,73 @@ const placeholder = computed(() => {
   return t("value-placeholder");
 });
 
+/*
+ * Quantities: the unit is picked from chips of the allowed units of the
+ * property (preselected if there is only one, the current one when
+ * editing), or searched. Without a chip, there is no unit, which is only
+ * valid if the property has no allowed units.
+ */
+const originalUnit = (
+  props.original?.datavalue?.value as { unit?: string } | undefined
+)?.unit?.match(/Q\d+$/)?.[0];
+const unit = ref(originalUnit);
+const units = ref<string[]>(originalUnit ? [originalUnit] : []);
+const unitLabels = ref<Record<string, string>>({});
+const unitOptions = computed(() =>
+  units.value.map((id) => ({ value: id, label: unitLabels.value[id] ?? id })),
+);
+const allowedUnits = ref<string[]>([]);
+/** a unit is needed, but none is picked */
+const missingUnit = computed(
+  () => !unit.value && !!allowedUnits.value.length && !originalUnit,
+);
+const searchingUnit = ref(false);
+const unitSearch = useTemplateRef<{ $el: HTMLElement }>("unitSearch");
+
+if (props.datatype === "quantity")
+  getAllowedUnits(props.property)
+    .then((allowed) => {
+      units.value = [...new Set([...units.value, ...allowed])];
+      allowedUnits.value = allowed;
+      if (!props.original && allowed.length === 1) unit.value = allowed[0];
+      return getLabels(units.value, props.language, (labels) =>
+        Object.assign(unitLabels.value, labels),
+      );
+    })
+    .catch(console.warn);
+
+function searchUnit() {
+  searchingUnit.value = true;
+  void nextTick(() => unitSearch.value?.$el.querySelector("input")?.focus());
+}
+
+function onUnit(id: string, label: string) {
+  unitLabels.value[id] = label;
+  if (!units.value.includes(id)) units.value.push(id);
+  unit.value = id;
+  searchingUnit.value = false;
+  focus();
+}
+
 function datavalue(): Snak["datavalue"] {
   if (props.datatype === "monolingualtext" && !textLanguage.value) return;
-  return keepOriginal(
+  const value = keepOriginal(
     parseValue(props.datatype, text.value, textLanguage.value),
     props.original?.datavalue,
     text.value,
   );
+  // the unit of the chips, unless given in QuickStatements syntax (…U123)
+  if (value?.type === "quantity" && !/U\d+$/.test(text.value.trim())) {
+    if (missingUnit.value) return;
+    return {
+      ...value,
+      value: {
+        ...(value.value as object),
+        unit: unit.value ? `http://www.wikidata.org/entity/${unit.value}` : "1",
+      },
+    };
+  }
+  return value;
 }
 
 const snak = computed<Snak | undefined>(() => {
@@ -136,7 +222,10 @@ function submit() {
   touched.value = true;
   if (!snak.value) return;
   touched.value = false;
-  emit("submit", snak.value);
+  const unitId = (
+    snak.value.datavalue?.value as { unit?: string }
+  )?.unit?.match(/Q\d+$/)?.[0];
+  emit("submit", snak.value, unitId && unitLabels.value[unitId]);
   text.value = "";
 }
 
@@ -178,6 +267,18 @@ defineExpose({ focus });
 }
 .dd-value-row > :first-child {
   flex: 1;
+}
+
+.dd-units {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+}
+.dd-unit-search {
+  flex: 1;
+  min-width: 12rem;
 }
 
 .dd-lang {
