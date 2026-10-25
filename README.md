@@ -34,13 +34,31 @@ Edits are collected locally, then saved to Wikidata directly (after logging in) 
 - **Change values** of existing statements (pencil or double-click), e.g. a number or a photo, exported as `SWITCH_VALUE`, which keeps the statement with its ID, qualifiers, references and rank
 - **Edit qualifiers**: add, change (pencil or double-click) and remove qualifiers of a statement; only the difference is exported: added qualifiers on a line matching the existing statement (QuickStatements merges them), removed ones as `REMOVE_QUAL`
 - **Remove statements** (`-STATEMENT|<id>`) and undo any change
-- Value inputs per datatype with validation and a hint for the expected format: items/properties (search), strings, external IDs, URLs, Commons files, dates (`1955`, `1955-05`, `1955-05-15`), quantities (unit kept when editing), coordinates, monolingual text
+- Value inputs per datatype with validation and a hint for the expected format: items/properties (search), strings, external IDs, URLs, Commons files, dates (`1955`, `1955-05`, `1955-05-15`), quantities (unit and bounds kept when editing), coordinates (globe and precision kept when editing), monolingual text
 - Ranks (`R+`/`R-`) and Julian calendar dates (`/J`) preserved in the export
 - Inline editing of labels, descriptions and aliases in all languages; add new languages
 - Edit, add and remove sitelinks
 - Suggested properties (P1963) that the item lacks, one click to add a value
 - Pending additions highlighted green, changes yellow, removals red
 - Actions appear on hover right after the value (fading in); always visible on touch devices
+
+#### Datatypes
+
+How values of each [datatype](https://www.wikidata.org/wiki/Special:ListDatatypes) can be added and changed, for statements and qualifiers alike:
+
+| Datatype                                            | Add | Change | Notes                                                                                                                       |
+| --------------------------------------------------- | --- | ------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `wikibase-item`, `wikibase-property`                | ✅  | ✅     | search                                                                                                                      |
+| `wikibase-lexeme`                                   | ✅  | ✅     | ID or URL (`L123`), no search                                                                                               |
+| `wikibase-form`, `wikibase-sense`, `entity-schema`  | ❌  | ❌     | sent as a string, rejected by Wikidata                                                                                      |
+| `quantity`                                          | ✅  | ✅     | `42`, `1.5`, unit as `42U11573`; no ± bounds or exponents when adding; changing keeps the unit and moves the bounds along   |
+| `time`                                              | ✅  | ✅     | `1955`, `1955-05`, `1955-05-15`, other precisions as `+1950-00-00T00:00:00Z/8`; no time of day; changing keeps the calendar |
+| `globe-coordinate`                                  | ✅  | ✅     | `48.2, 16.37`; new values on Earth with precision 0.0001; changing keeps the globe and precision                            |
+| `monolingualtext`                                   | ✅  | ✅     | text and language code                                                                                                      |
+| `url`                                               | ✅  | ✅     | must start with `scheme://`                                                                                                 |
+| `string`, `external-id`, `math`, `musical-notation` | ✅  | ✅     | not validated before saving                                                                                                 |
+| `commonsMedia`, `geo-shape`, `tabular-data`         | ⚠️  | ⚠️     | file name not checked before saving (no `File:` prefix; `Data:….map` / `Data:….tab`)                                        |
+| unknown value, no value                             | ❌  | ❌     | shown, but not editable                                                                                                     |
 
 ### Saving
 
