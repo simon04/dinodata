@@ -48,13 +48,13 @@ import { computed, onMounted, ref, useTemplateRef } from "vue";
 import { CdxButton, CdxField, CdxTextInput } from "@wikimedia/codex";
 import type { Snak } from "../wikidata";
 import EntitySearch from "./EntitySearch.vue";
-import { formatInput, parseValue } from "../values";
+import { formatInput, keepOriginal, parseValue } from "../values";
 
 const props = defineProps<{
   property: string;
   datatype: string;
   language: string;
-  /** value being edited: prefills the input, keeps the unit of quantities */
+  /** value being edited: prefills the input, see {@link keepOriginal} */
   original?: Snak;
   /** accessible label, e.g. the property label */
   label?: string;
@@ -107,18 +107,11 @@ const placeholder = computed(() => {
 
 function datavalue(): Snak["datavalue"] {
   if (props.datatype === "monolingualtext" && !textLanguage.value) return;
-  const value = parseValue(props.datatype, text.value, textLanguage.value);
-  const unit = (props.original?.datavalue?.value as { unit?: string })?.unit;
-  // editing a quantity keeps its unit unless a new one is given (…U123)
-  if (value?.type === "quantity" && unit && !/U\d+$/.test(text.value))
-    (value.value as { unit: string }).unit = unit;
-  // editing a date keeps its calendar model (e.g. Julian)
-  const calendar = (
-    props.original?.datavalue?.value as { calendarmodel?: string }
-  )?.calendarmodel;
-  if (value?.type === "time" && calendar)
-    (value.value as { calendarmodel: string }).calendarmodel = calendar;
-  return value;
+  return keepOriginal(
+    parseValue(props.datatype, text.value, textLanguage.value),
+    props.original?.datavalue,
+    text.value,
+  );
 }
 
 const snak = computed<Snak | undefined>(() => {

@@ -140,3 +140,57 @@ export function formatInput(datavalue: Snak["datavalue"]): string {
   }
   return JSON.stringify(datavalue.value);
 }
+
+/** Decimal places of a Wikibase decimal string such as "+1.25". */
+const decimals = (s: string) => s.split(".")[1]?.length ?? 0;
+
+/** Wikibase decimal string of a number with the given decimal places. */
+const decimal = (n: number, places: number) => {
+  const s = n.toFixed(places);
+  return s.startsWith("-") ? s : `+${s}`;
+};
+
+/**
+ * Carry over what the input of {@link parseValue} cannot express from the
+ * value being edited: the unit (unless a new one is given, …U123) and the
+ * bounds of quantities, moved along with the amount; the calendar model of
+ * dates; the globe and precision of coordinates.
+ */
+export function keepOriginal(
+  datavalue: Snak["datavalue"],
+  original: Snak["datavalue"],
+  input: string,
+): Snak["datavalue"] {
+  if (!datavalue || datavalue.type !== original?.type) return datavalue;
+  const value = { ...(datavalue.value as Record<string, unknown>) };
+  const old = original.value as Record<string, unknown>;
+  switch (datavalue.type) {
+    case "quantity": {
+      if (old.unit && !/U\d+$/.test(input.trim())) value.unit = old.unit;
+      const amount = value.amount as string;
+      const oldAmount = old.amount as string;
+      for (const bound of ["upperBound", "lowerBound"]) {
+        const b = old[bound] as string | undefined;
+        if (b === undefined) continue;
+        const places = Math.max(
+          decimals(amount),
+          decimals(oldAmount),
+          decimals(b),
+        );
+        value[bound] = decimal(
+          Number(amount) + Number(b) - Number(oldAmount),
+          places,
+        );
+      }
+      break;
+    }
+    case "time":
+      if (old.calendarmodel) value.calendarmodel = old.calendarmodel;
+      break;
+    case "globecoordinate":
+      if (old.globe) value.globe = old.globe;
+      if (typeof old.precision === "number") value.precision = old.precision;
+      break;
+  }
+  return { ...datavalue, value };
+}

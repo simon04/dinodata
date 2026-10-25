@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import { formatInput, parseValue } from "./values";
+import { formatInput, keepOriginal, parseValue } from "./values";
+import type { Snak } from "./wikidata";
 
 describe("parseValue", () => {
   it.each([
@@ -146,5 +147,76 @@ describe("formatInput", () => {
 
   it("returns an empty string without a value", () => {
     expect(formatInput(undefined)).toBe("");
+  });
+});
+
+describe("keepOriginal", () => {
+  const edit = (datatype: string, original: Snak["datavalue"], input: string) =>
+    keepOriginal(parseValue(datatype, input), original, input)?.value;
+
+  it("keeps the unit of a quantity unless a new one is given", () => {
+    const original = {
+      type: "quantity",
+      value: { amount: "+12", unit: "http://www.wikidata.org/entity/Q11573" },
+    };
+    expect(edit("quantity", original, "15")).toEqual({
+      amount: "+15",
+      unit: "http://www.wikidata.org/entity/Q11573",
+    });
+    expect(edit("quantity", original, "15U828224")).toMatchObject({
+      unit: "http://www.wikidata.org/entity/Q828224",
+    });
+  });
+
+  it("moves the bounds of a quantity along with the amount", () => {
+    const original = {
+      type: "quantity",
+      value: {
+        amount: "+12",
+        upperBound: "+13",
+        lowerBound: "+11.5",
+        unit: "1",
+      },
+    };
+    expect(edit("quantity", original, "12")).toEqual(original.value);
+    expect(edit("quantity", original, "0.1")).toEqual({
+      amount: "+0.1",
+      upperBound: "+1.1",
+      lowerBound: "-0.4",
+      unit: "1",
+    });
+  });
+
+  it("keeps the calendar model of a date", () => {
+    const julian = "http://www.wikidata.org/entity/Q1985786";
+    const original = parseValue("time", "+1500-01-01T00:00:00Z/11/J");
+    expect(edit("time", original, "1501")).toMatchObject({
+      calendarmodel: julian,
+    });
+  });
+
+  it("keeps the globe and precision of coordinates", () => {
+    const original = {
+      type: "globecoordinate",
+      value: {
+        latitude: 1,
+        longitude: 2,
+        precision: 0.01,
+        globe: "http://www.wikidata.org/entity/Q405",
+      },
+    };
+    expect(edit("globe-coordinate", original, "3, 4")).toEqual({
+      latitude: 3,
+      longitude: 4,
+      precision: 0.01,
+      globe: "http://www.wikidata.org/entity/Q405",
+    });
+  });
+
+  it("leaves new values alone", () => {
+    expect(edit("quantity", undefined, "42")).toEqual({
+      amount: "+42",
+      unit: "1",
+    });
   });
 });
