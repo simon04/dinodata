@@ -47,8 +47,7 @@ const TYPES_QUERY = `SELECT ?p ?type ?f WHERE {
   OPTIONAL { ?p wdt:P1630 ?f }
 }`;
 
-/** Unescape a SPARQL TSV literal. */
-export const unescape = (s: string) =>
+const unescape = (s: string) =>
   s.replace(/\\(.)/g, (_, c: string) =>
     c === "n" ? "\n" : c === "t" ? "\t" : c,
   );
