@@ -132,6 +132,21 @@
       </ul>
     </section>
 
+    <section>
+      <h2>{{ t("tab-history") }}</h2>
+      <!-- loaded on demand, again after saving -->
+      <OsmHistory
+        v-if="showHistory"
+        :key="`${shortRef(osmRef)}:${element.version}:${language}`"
+        :osm-ref="osmRef"
+        :language="language"
+      />
+      <cdx-button v-else @click="showHistory = true">
+        <cdx-icon :icon="cdxIconHistory" />
+        {{ t("osm-history-show") }}
+      </cdx-button>
+    </section>
+
     <div v-if="changes.length || conflicts.length" class="dd-osm-bar">
       <cdx-button weight="quiet" @click="sheet = { kind: 'review' }">
         {{ t("osm-changes", changes.length) }}
@@ -346,6 +361,7 @@ import {
   cdxIconAdd,
   cdxIconCopy,
   cdxIconEdit,
+  cdxIconHistory,
   cdxIconLogIn,
   cdxIconLogoWikidata,
   cdxIconMapPin,
@@ -404,6 +420,7 @@ import BottomSheet from "./BottomSheet.vue";
 import ChoiceChips from "./ChoiceChips.vue";
 import FieldEditor from "./FieldEditor.vue";
 import OsmChanges from "./OsmChanges.vue";
+import OsmHistory from "./OsmHistory.vue";
 import OsmIssues from "./OsmIssues.vue";
 import { validate } from "../../osm/validate";
 import PresetIcon from "./PresetIcon.vue";
@@ -427,6 +444,7 @@ const parents = shallowRef<OsmElement[]>([]);
 const bounds = shallowRef<Bounds>();
 const loading = ref(false);
 const error = ref<string>();
+const showHistory = ref(false);
 const toast = useToast();
 
 const { schema } = useSchema();
@@ -861,6 +879,7 @@ watch(
     parents.value = [];
     bounds.value = undefined;
     sheet.value = undefined;
+    showHistory.value = false;
     addedFields.value = [];
     conflicts.value = [];
     try {

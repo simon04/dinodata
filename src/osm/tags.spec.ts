@@ -9,6 +9,7 @@ import {
   parseTagText,
   patchTo,
   splitValues,
+  tagDiffLines,
   tagState,
   upgradePatch,
 } from "./tags";
@@ -127,5 +128,18 @@ describe("upgradePatch", () => {
         { old: { amenity: "shop" }, replace: { shop: "*" } },
       ),
     ).toEqual({ amenity: undefined, shop: "yes" });
+  });
+});
+
+describe("tagDiffLines", () => {
+  it("removes and adds changed values, by key", () => {
+    expect(
+      tagDiffLines({ name: "A", amenity: "cafe" }, { name: "B", wifi: "yes" }),
+    ).toEqual([
+      { type: "-", key: "amenity", value: "cafe" },
+      { type: "-", key: "name", value: "A" },
+      { type: "+", key: "name", value: "B" },
+      { type: "+", key: "wifi", value: "yes" },
+    ]);
   });
 });

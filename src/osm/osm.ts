@@ -28,6 +28,8 @@ export interface OsmElement {
   nodes?: number[];
   /** relations only */
   members?: OsmMember[];
+  /** false: deleted (in the history) */
+  visible?: boolean;
 }
 
 /** Error from the OSM API, e.g. 409 (version conflict) or 410 (deleted). */
@@ -228,4 +230,43 @@ export async function saveTags(
 /** Changeset on the website. */
 export function changesetUrl(id: number): string {
   return `${OSM_URL}/changeset/${id}`;
+}
+
+/** All versions of an element, newest first (deleted ones without tags). */
+export async function getHistory({ type, id }: OsmRef): Promise<OsmElement[]> {
+  const res = await request(`/${type}/${id}/history.json`);
+  const json = (await res.json()) as { elements: OsmElement[] };
+  return json.elements.reverse();
+}
+
+/** Tags (comment, created_by, …) of changesets, by ID; at most 100 per request. */
+export async function getChangesetTags(
+  ids: number[],
+): Promise<Record<number, Tags>> {
+  const result: Record<number, Tags> = {};
+  for (let i = 0; i < ids.length; i += 100) {
+    const res = await request(
+      `/changesets.json?changesets=${ids.slice(i, i + 100).join(",")}`,
+    );
+    const json = (await res.json()) as {
+      changesets: { id: number; tags?: Tags }[];
+    };
+    for (const c of json.changesets) result[c.id] = c.tags ?? {};
+  }
+  return result;
+}
+
+/** Version of an element on the website. */
+export function versionUrl({ type, id }: OsmRef, version: number): string {
+  return `${OSM_URL}/${type}/${id}/history/${version}`;
+}
+
+/** Whether coordinates, nodes or members differ between two versions. */
+export function geometryChanged(a: OsmElement, b: OsmElement): boolean {
+  return (
+    a.lat !== b.lat ||
+    a.lon !== b.lon ||
+    JSON.stringify(a.nodes ?? []) !== JSON.stringify(b.nodes ?? []) ||
+    JSON.stringify(a.members ?? []) !== JSON.stringify(b.members ?? [])
+  );
 }

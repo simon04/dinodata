@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import {
   changesetXml,
+  geometryChanged,
   isClosed,
   osmChangeXml,
   saveTags,
@@ -97,5 +98,12 @@ describe("saveTags", () => {
       status: 409,
     });
     expect(fetch).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("geometryChanged", () => {
+  it("compares nodes, not tags", () => {
+    expect(geometryChanged(way, { ...way, tags: {} })).toBe(false);
+    expect(geometryChanged(way, { ...way, nodes: [1, 2, 4, 1] })).toBe(true);
   });
 });

@@ -146,3 +146,18 @@ export function upgradePatch(tags: Tags, deprecation: Deprecation): TagPatch {
   }
   return patch;
 }
+
+/** A line of a tag diff: `key=value` removed (-) or added (+). */
+export interface TagDiffLine {
+  type: "+" | "-";
+  key: string;
+  value: string;
+}
+
+/** Changes between two versions as lines, by key; a changed value is removed and added. */
+export function tagDiffLines(before: Tags, after: Tags): TagDiffLine[] {
+  return diffTags(before, after).flatMap(({ key, old, new: value }) => [
+    ...(old !== undefined ? [{ type: "-" as const, key, value: old }] : []),
+    ...(value !== undefined ? [{ type: "+" as const, key, value }] : []),
+  ]);
+}
