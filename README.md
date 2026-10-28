@@ -156,6 +156,14 @@ Pushes to `master` deploy automatically once a deploy token
 (`toolforge components deploy-token create`) is stored as the
 `TOOLFORGE_DEPLOY_TOKEN` GitHub Actions secret.
 
+## Wikidata gadget
+
+[`gadget/dinodata.js`](gadget/dinodata.js) adds a “DinoData” tab right of “Read” on Wikidata item, property and lexeme pages. To install it, copy it to `User:Simon04/DinoData.js` on wikidata.org and add to [your common.js](https://www.wikidata.org/wiki/Special:MyPage/common.js):
+
+```js
+mw.loader.load("/w/index.php?title=User:Simon04/DinoData.js&action=raw&ctype=text/javascript");
+```
+
 ## License
 
 [GPL-3.0](LICENSE) © Simon Legner. Data from Wikidata is available under [CC0](https://www.wikidata.org/wiki/Wikidata:Licensing).
