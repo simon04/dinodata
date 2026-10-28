@@ -161,7 +161,9 @@ Pushes to `master` deploy automatically once a deploy token
 [`gadget/dinodata.js`](gadget/dinodata.js) ([Q141903666](https://www.wikidata.org/wiki/Q141903666)) adds a “DinoData” tab right of “Read” on Wikidata item, property and lexeme pages. It is published as [User:Simon04/DinoData.js](https://www.wikidata.org/wiki/User:Simon04/DinoData.js); to install it, add to [your common.js](https://www.wikidata.org/wiki/Special:MyPage/common.js):
 
 ```js
-mw.loader.load("/w/index.php?title=User:Simon04/DinoData.js&action=raw&ctype=text/javascript");
+mw.loader.load(
+  "/w/index.php?title=User:Simon04/DinoData.js&action=raw&ctype=text/javascript",
+);
 ```
 
 ## License

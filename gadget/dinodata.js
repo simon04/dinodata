@@ -18,8 +18,9 @@ mw.loader.using("mediawiki.util").then(function () {
     "ca-dinodata",
     "Open " + id + " in DinoData",
     null,
-    "#ca-history"
+    "#ca-history",
   );
   // Vector 2022: move into the "More" menu on narrow screens like the other tabs
-  if (link) link.classList.add("vector-menu-item--collapsible", "vector-tab-noicon");
+  if (link)
+    link.classList.add("vector-menu-item--collapsible", "vector-tab-noicon");
 });
