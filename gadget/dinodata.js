@@ -4,6 +4,9 @@
  *
  * Install as user script on wikidata.org (User:Simon04/DinoData.js) or as
  * gadget (MediaWiki:Gadget-DinoData.js, dependencies: mediawiki.util).
+ *
+ * Wikidata item: [[d:Q141903666]]
+ * Source: https://github.com/simon04/dinodata/blob/master/gadget/dinodata.js
  */
 mw.loader.using("mediawiki.util").then(function () {
   var id = mw.config.get("wbEntityId");
