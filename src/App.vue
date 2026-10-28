@@ -107,6 +107,7 @@
   </main>
 
   <MediaDialog />
+  <EntityPreview />
   <cdx-toast-container />
 
   <footer class="dd-footer">
@@ -181,6 +182,7 @@ import UserMenu from "./components/UserMenu.vue";
 import HeaderSearch from "./components/HeaderSearch.vue";
 import EntityView from "./components/EntityView.vue";
 import MediaDialog from "./components/MediaDialog.vue";
+import EntityPreview from "./components/EntityPreview.vue";
 import dragons from "./assets/dragons.svg";
 import { parseRoute } from "./route";
 import { useSchema } from "./osm/presets";

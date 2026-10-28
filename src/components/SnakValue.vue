@@ -7,7 +7,10 @@
       {{ t("snak-somevalue") }}
     </span>
     <template v-else-if="entityId">
-      <a :href="`#${entityId}`" v-tooltip="descriptions?.[entityId]">
+      <a
+        :href="`#${entityId}`"
+        v-tooltip="isItem(entityId) ? undefined : descriptions?.[entityId]"
+      >
         {{ labels[entityId] ?? entityId }}
       </a>
       <EntityId :id="entityId" />
@@ -24,6 +27,7 @@ import { language, t } from "../i18n";
 import { computed } from "vue";
 import type { Snak } from "../wikidata";
 import EntityId from "./EntityId.vue";
+import { isItem } from "../preview";
 import {
   FORMATTER_PROPERTIES,
   formatNumber,
