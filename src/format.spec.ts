@@ -1,5 +1,21 @@
 import { describe, expect, it } from "vite-plus/test";
-import { formatNumber, formatRelativeTime, formatTime } from "./format";
+import {
+  formatNumber,
+  formatRelativeTime,
+  formatTime,
+  formatUrl,
+} from "./format";
+
+describe("formatUrl", () => {
+  it("replaces every $1 with the encoded value", () => {
+    expect(formatUrl("https://viaf.org/viaf/$1", "120062731")).toBe(
+      "https://viaf.org/viaf/120062731",
+    );
+    expect(formatUrl("https://x.org/$1?id=$1", "a b/c")).toBe(
+      "https://x.org/a%20b%2Fc?id=a%20b%2Fc",
+    );
+  });
+});
 
 describe("formatNumber", () => {
   it("groups digits per locale", () => {

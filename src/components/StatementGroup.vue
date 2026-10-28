@@ -136,6 +136,7 @@
             :labels="labels"
             :descriptions="descriptions"
             :formatter-urls="formatterUrls"
+            :formatter-example="formatterExample"
             @dblclick="startEdit(claim)"
           />
           <details v-if="claim.references?.length" class="dd-references">
@@ -377,6 +378,8 @@ const props = defineProps<{
   /** shown as tooltips on properties and item values */
   descriptions: Record<string, string>;
   formatterUrls: Record<string, string>;
+  /** example value of the property shown, see SnakValue */
+  formatterExample?: string;
   language: string;
   pending: Set<string>;
   changed: Set<string>;

@@ -54,6 +54,7 @@
 import { computed } from "vue";
 import { CdxInfoChip } from "@wikimedia/codex";
 import { t } from "../../i18n";
+import { formatUrl } from "../../format";
 import {
   keyPage,
   tagPage,
@@ -110,7 +111,7 @@ const links = computed(() => {
   const formatter = props.keyDoc?.formatterUrl;
   if (formatter && props.value)
     result.push({
-      href: formatter.replace("$1", encodeURIComponent(props.value)),
+      href: formatUrl(formatter, props.value),
       label: new URL(formatter.replace("$1", "x")).hostname,
     });
   const wikidata = props.valueDoc?.wikidata ?? props.keyDoc?.wikidata;

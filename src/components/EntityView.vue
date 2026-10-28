@@ -146,6 +146,7 @@
             :labels="allLabels"
             :descriptions="allDescriptions"
             :formatter-urls="formatterUrls"
+            :formatter-example="formatterExample"
             :language="language"
             :pending="pending"
             :changed="changed"
@@ -204,6 +205,7 @@
             :labels="allLabels"
             :descriptions="allDescriptions"
             :formatter-urls="formatterUrls"
+            :formatter-example="formatterExample"
             :language="language"
             :pending="pending"
             :changed="changed"
@@ -772,6 +774,17 @@ const formatterUrls = computed(() =>
     }),
   ),
 );
+
+/** Value of a property in its first example (P1855), to try its formatter URLs. */
+const formatterExample = computed(() => {
+  const id = entity.value?.id;
+  if (!id?.startsWith("P")) return undefined;
+  for (const claim of entity.value?.claims.P1855 ?? []) {
+    const value = claim.qualifiers?.[id]?.[0]?.datavalue?.value;
+    if (typeof value === "string") return value;
+  }
+  return undefined;
+});
 
 /** Fetched labels, completed with locally preloaded property labels. */
 const allLabels = computed(() => {

@@ -24,13 +24,20 @@ import { language, t } from "../i18n";
 import { computed } from "vue";
 import type { Snak } from "../wikidata";
 import EntityId from "./EntityId.vue";
-import { formatNumber, formatTime } from "../format";
+import {
+  FORMATTER_PROPERTIES,
+  formatNumber,
+  formatTime,
+  formatUrl,
+} from "../format";
 
 const props = defineProps<{
   snak: Snak;
   labels: Record<string, string>;
   descriptions?: Record<string, string>;
   formatterUrls?: Record<string, string>;
+  /** example value of the property shown, to try out its formatter URLs */
+  formatterExample?: string;
 }>();
 
 const value = computed(() => props.snak.datavalue?.value);
@@ -50,8 +57,13 @@ const href = computed(() => {
       return `https://commons.wikimedia.org/wiki/File:${encodeURIComponent(String(v))}`;
     case "external-id": {
       const formatter = props.formatterUrls?.[props.snak.property];
-      return formatter?.replace("$1", encodeURIComponent(String(v)));
+      return formatter && formatUrl(formatter, String(v));
     }
+    case "string":
+      return FORMATTER_PROPERTIES.has(props.snak.property) &&
+        props.formatterExample
+        ? formatUrl(String(v), props.formatterExample)
+        : undefined;
     case "globe-coordinate": {
       const { latitude, longitude } = v as Record<string, number>;
       return `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=12/${latitude}/${longitude}`;

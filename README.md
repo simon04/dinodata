@@ -20,7 +20,7 @@ A prototype of [Wikidata](https://www.wikidata.org/) with a nicer UX, built with
 - Statement groups ordered by the “properties for this type” (P1963) of the item’s classes (P31); missing ones are suggested for adding
 - Values sorted by rank (preferred first, deprecated last), then by point in time (P585) or publication date (P577), newest first
 - Descriptions of properties and linked items as tooltips
-- Ranks (preferred/deprecated), linked values, image thumbnails (click to enlarge, with author and license), OpenStreetMap links for coordinates, formatter URLs (P1630) for identifiers
+- Ranks (preferred/deprecated), linked values, image thumbnails (click to enlarge, with author and license), OpenStreetMap links for coordinates, formatter URLs (P1630) for identifiers; on property pages, formatter URLs (P1630, P3303, P7250) link to their first example (P1855)
 - Wikidata IDs shown as `<code>` after every link — click to copy
 - Numbers, dates and coordinates formatted for the selected language
 - Document title `Q40 · Austria · DinoData`

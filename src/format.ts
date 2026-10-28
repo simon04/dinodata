@@ -1,5 +1,17 @@
 import { locale, t } from "./i18n";
 
+/** Properties holding a URL template with a `$1` placeholder for the value. */
+export const FORMATTER_PROPERTIES = new Set([
+  "P1630", // formatter URL
+  "P3303", // third-party formatter URL
+  "P7250", // mobile formatter URL
+]);
+
+/** Fill a formatter URL (P1630) with an identifier. */
+export function formatUrl(formatter: string, value: string): string {
+  return formatter.split("$1").join(encodeURIComponent(value));
+}
+
 export function formatNumber(
   value: number | string,
   language: string,
