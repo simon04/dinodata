@@ -27,6 +27,7 @@
         </a>
         <cdx-button
           v-if="row.changed"
+          class="dd-action"
           weight="quiet"
           size="small"
           :aria-label="t('undo')"
@@ -37,7 +38,7 @@
         </cdx-button>
         <cdx-button
           v-else
-          class="dd-hover"
+          class="dd-action dd-hover"
           weight="quiet"
           action="destructive"
           size="small"
@@ -235,9 +236,17 @@ function siteUrl(site: string, title: string): string {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.dd-title {
-  flex: 1;
+/* title only as wide as its text, so the link to the wiki stays next to it */
+.dd-sitelink-row .dd-title {
+  flex: 0 1 auto;
+  width: auto;
   min-width: 0;
+}
+.dd-sitelink-row .dd-editable-input {
+  flex: 1;
+}
+.dd-action {
+  margin-left: auto;
 }
 .dd-changed {
   background: var(--background-color-success-subtle);
