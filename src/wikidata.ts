@@ -162,7 +162,57 @@ export async function getEntities(
   for (const [id, e] of Object.entries(entities))
     if (isMediaInfo(id) && !("missing" in e))
       entities[id] = await normalizeMediaInfo(e);
+  const unstructured = ids.filter(
+    (id) => isMediaInfo(id) && entities[id] && "missing" in entities[id],
+  );
+  if (unstructured.length)
+    Object.assign(entities, await emptyMediaInfo(unstructured, bypass));
   return entities;
+}
+
+/**
+ * MediaInfo of files without captions and statements yet, which Commons
+ * reports as missing: empty, with the page revision to add the first ones.
+ */
+async function emptyMediaInfo(
+  ids: string[],
+  bypass: boolean,
+): Promise<Record<string, Entity>> {
+  const json = await api<{
+    query: {
+      pages: {
+        pageid: number;
+        ns: number;
+        title: string;
+        lastrevid?: number;
+      }[];
+    };
+  }>(
+    {
+      action: "query",
+      prop: "info",
+      pageids: ids.map((id) => id.slice(1)).join("|"),
+    },
+    { maxAge: 60 * 60 * 1000, bypass },
+    COMMONS_API,
+  );
+  return Object.fromEntries(
+    json.query.pages
+      .filter((p) => p.ns === 6 && p.lastrevid)
+      .map(({ pageid, title, lastrevid }) => [
+        `M${pageid}`,
+        {
+          id: `M${pageid}`,
+          type: "mediainfo",
+          title,
+          lastrevid,
+          labels: {},
+          descriptions: {},
+          aliases: {},
+          claims: {},
+        },
+      ]),
+  );
 }
 
 /**

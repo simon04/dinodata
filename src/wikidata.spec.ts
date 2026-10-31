@@ -48,6 +48,15 @@ const fetch = vi.fn(async (input: string | URL) => {
           ? []
           : [{ id: "Q1735", label: params.get("search") }],
     });
+  if (url.hostname === "commons.wikimedia.org" && params.get("prop") === "info")
+    return Response.json({
+      query: {
+        pages: [
+          { pageid: 3, ns: 6, title: "File:C.jpg", lastrevid: 30 },
+          { pageid: 4, ns: 0, title: "Main Page", lastrevid: 40 },
+        ],
+      },
+    });
   if (url.hostname === "commons.wikimedia.org")
     return Response.json({
       entities: {
@@ -71,6 +80,8 @@ const fetch = vi.fn(async (input: string | URL) => {
           },
         },
         M2: { id: "M2", type: "mediainfo", labels: [], statements: [] },
+        M3: { id: "M3", missing: "" },
+        M4: { id: "M4", missing: "" },
       },
     });
   if (params.get("props") === "datatype")
@@ -211,6 +222,23 @@ describe("getEntities of Commons files", () => {
     // without captions and statements: empty arrays
     expect(entities.M2).toMatchObject({ labels: {}, claims: {} });
     expect(entities.Q1).toBeDefined();
+  });
+
+  it("loads files without structured data as empty MediaInfo", async () => {
+    const entities = await getEntities(["M3", "M4"]);
+    expect(params(fetch.mock.calls.length - 1).get("pageids")).toBe("3|4");
+    expect(entities.M3).toEqual({
+      id: "M3",
+      type: "mediainfo",
+      title: "File:C.jpg",
+      lastrevid: 30,
+      labels: {},
+      descriptions: {},
+      aliases: {},
+      claims: {},
+    });
+    // not a file: still missing
+    expect(entities.M4).toHaveProperty("missing");
   });
 });
 
