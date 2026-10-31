@@ -166,6 +166,10 @@ mw.loader.load(
 );
 ```
 
+## Commons gadget
+
+[`gadget/dinodata-commons.js`](gadget/dinodata-commons.js) adds the same “DinoData” tab on Wikimedia Commons: on file pages it opens their structured data (e.g. `#M119963151`), on categories and other pages connected to a Wikidata item it opens that item (e.g. `#Q105337024`). It is published as [User:Simon04/DinoData.js](https://commons.wikimedia.org/wiki/User:Simon04/DinoData.js) on Commons; to install it, add the snippet above to [your common.js on Commons](https://commons.wikimedia.org/wiki/Special:MyPage/common.js).
+
 ## License
 
 [GPL-3.0](LICENSE) © Simon Legner. Data from Wikidata is available under [CC0](https://www.wikidata.org/wiki/Wikidata:Licensing).
