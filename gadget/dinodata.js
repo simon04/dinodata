@@ -8,19 +8,18 @@
  * Wikidata item: [[d:Q141903666]]
  * Source: https://github.com/simon04/dinodata/blob/master/gadget/dinodata.js
  */
-mw.loader.using("mediawiki.util").then(function () {
-  var id = mw.config.get("wbEntityId");
+mw.loader.using("mediawiki.util").then(() => {
+  const id = mw.config.get("wbEntityId");
   if (!id || !/^[LPQ]\d+$/.test(id)) return;
-  var link = mw.util.addPortletLink(
+  const link = mw.util.addPortletLink(
     "p-views",
-    "https://dinodata.toolforge.org/#" + id,
+    `https://dinodata.toolforge.org/#${id}`,
     "DinoData",
     "ca-dinodata",
-    "Open " + id + " in DinoData",
+    `Open ${id} in DinoData`,
     null,
     "#ca-history",
   );
   // Vector 2022: move into the "More" menu on narrow screens like the other tabs
-  if (link)
-    link.classList.add("vector-menu-item--collapsible", "vector-tab-noicon");
+  link?.classList.add("vector-menu-item--collapsible", "vector-tab-noicon");
 });
