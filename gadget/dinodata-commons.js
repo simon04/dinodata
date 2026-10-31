@@ -7,6 +7,7 @@
  * Install as user script on commons.wikimedia.org (User:Simon04/DinoData.js)
  * or as gadget (MediaWiki:Gadget-DinoData.js, dependencies: mediawiki.util).
  *
+ * Category: [[:Category:DinoData]]
  * Source: https://github.com/simon04/dinodata/blob/master/gadget/dinodata-commons.js
  */
 mw.loader.using("mediawiki.util").then(() => {

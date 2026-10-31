@@ -5,7 +5,7 @@
  * Install as user script on wikidata.org (User:Simon04/DinoData.js) or as
  * gadget (MediaWiki:Gadget-DinoData.js, dependencies: mediawiki.util).
  *
- * Wikidata item: [[d:Q141903666]]
+ * Wikidata item: [[d:Q141903666]], part of DinoData [[d:Q141746631]]
  * Source: https://github.com/simon04/dinodata/blob/master/gadget/dinodata.js
  */
 mw.loader.using("mediawiki.util").then(() => {
