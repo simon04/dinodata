@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import { toEntityData } from "./edit";
+import { applyEdits, toEntityData } from "./edit";
+import { entityDiff } from "./history";
 import type { Entity, Snak } from "./wikidata";
 
 const item = (property: string, id: string): Snak => ({
@@ -145,5 +146,55 @@ describe("toEntityData", () => {
         },
       ]),
     ).toThrow("Q42$gone");
+  });
+});
+
+describe("applyEdits", () => {
+  it("diffs pending edits like a revision", () => {
+    const after = applyEdits(entity, [
+      { type: "label", language: "de", value: "Douglas Adams" },
+      { type: "alias", language: "en", value: "DNA" },
+      { type: "sitelink", site: "dewiki", title: "Douglas Adams" },
+      {
+        type: "statement",
+        claimId: "Q42$b",
+        remove: true,
+        snak: entity.claims.P106![0]!.mainsnak,
+      },
+      {
+        type: "statement",
+        claimId: "Q42$a",
+        snak: item("P31", "Q5"),
+        qualifiers: [],
+        original: { snak: item("P31", "Q5"), qualifiers: [item("P642", "Q1")] },
+      },
+      { type: "statement", claimId: "new-1", snak: item("P27", "Q145") },
+    ]);
+    expect(after.claims.P106).toHaveLength(1);
+    expect(entity.claims.P106).toHaveLength(2);
+    expect(entityDiff(entity, after)).toEqual([
+      { type: "-", text: "Q42|P31|Q5|R+|P642|Q1|S143|Q328" },
+      { type: "-", text: "Q42|P106|Q36180" },
+      { type: "+", text: 'Q42|Lde|"Douglas Adams"' },
+      { type: "+", text: 'Q42|Aen|"DNA"' },
+      { type: "+", text: "Q42|P31|Q5|R+|S143|Q328" },
+      { type: "+", text: "Q42|P27|Q145" },
+      { type: "+", text: 'Q42|Sdewiki|"Douglas Adams"' },
+    ]);
+  });
+
+  it("removes terms and sitelinks", () => {
+    const before = {
+      ...entity,
+      labels: { en: { value: "Douglas Adams" } },
+      aliases: { en: [{ value: "DNA" }] },
+      sitelinks: { enwiki: { site: "enwiki", title: "Douglas Adams" } },
+    };
+    const after = applyEdits(before, [
+      { type: "label", language: "en", value: "" },
+      { type: "alias", language: "en", value: "DNA", remove: true },
+      { type: "sitelink", site: "enwiki", title: "" },
+    ]);
+    expect(after).toMatchObject({ labels: {}, aliases: {}, sitelinks: {} });
   });
 });

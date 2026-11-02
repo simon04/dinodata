@@ -28,7 +28,15 @@
       </template>
     </p>
     <template v-else>
-      <cdx-text-area :model-value="commands" readonly rows="6" />
+      <!-- the changes as in the history, the commands only via copying -->
+      <div class="dd-qs-diff">
+        <DiffLines
+          :id="id"
+          :lines="diff"
+          :labels="allLabels"
+          :descriptions="allDescriptions"
+        />
+      </div>
       <div class="dd-qs-actions">
         <template v-if="username">
           <cdx-text-input
@@ -68,12 +76,11 @@
 
 <script setup lang="ts">
 import { t } from "../i18n";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import {
   CdxButton,
   CdxIcon,
   CdxMessage,
-  CdxTextArea,
   CdxTextInput,
   useToast,
 } from "@wikimedia/codex";
@@ -84,11 +91,19 @@ import {
 } from "@wikimedia/codex-icons";
 import { loginAvailable, useAuth } from "../auth";
 import { useSharedClipboard } from "../clipboard";
+import { applyEdits } from "../edit";
+import { entityDiff, tokenize } from "../history";
 import { toQuickStatements, type Edit } from "../quickstatements";
+import { getLabels, type Entity } from "../wikidata";
+import DiffLines from "./DiffLines.vue";
 
 const props = defineProps<{
   id: string;
+  entity: Entity;
   edits: Edit[];
+  language: string;
+  labels: Record<string, string>;
+  descriptions: Record<string, string>;
   saving?: boolean;
   /** revision of the last save, for the diff link */
   savedRevision?: number;
@@ -103,6 +118,39 @@ function save() {
 const toast = useToast();
 const clipboard = useSharedClipboard();
 const commands = computed(() => toQuickStatements(props.id, props.edits));
+
+/** The pending changes, like a revision in the history. */
+const diff = computed(() => {
+  try {
+    return entityDiff(props.entity, applyEdits(props.entity, props.edits));
+  } catch (e) {
+    // e.g. a changed statement no longer in the entity
+    console.warn(e);
+    return [];
+  }
+});
+
+// labels of IDs the item view has not loaded, e.g. of removed references
+const labels = ref<Record<string, string>>({});
+const descriptions = ref<Record<string, string>>({});
+const allLabels = computed(() => ({ ...labels.value, ...props.labels }));
+const allDescriptions = computed(() => ({
+  ...descriptions.value,
+  ...props.descriptions,
+}));
+watch(diff, (lines) => {
+  const missing = [
+    ...new Set(
+      lines.flatMap((l) => tokenize(l.text).flatMap((p) => p.id ?? [])),
+    ),
+  ].filter((id) => !(id in allLabels.value));
+  if (!missing.length) return;
+  for (const id of missing) labels.value[id] = id;
+  getLabels(missing, props.language, (l, d) => {
+    labels.value = { ...labels.value, ...l };
+    descriptions.value = { ...descriptions.value, ...d };
+  }).catch(console.warn);
+});
 
 async function copy() {
   await clipboard.copy(commands.value);
@@ -132,8 +180,10 @@ async function copy() {
   margin: 0;
   color: var(--color-subtle);
 }
-.dd-qs .cdx-text-area {
-  font-family: monospace;
-  margin-bottom: 0.5rem;
+/* scrolls horizontally: no line breaks, as in the history */
+.dd-qs-diff {
+  overflow: auto;
+  max-height: 20rem;
+  white-space: nowrap;
 }
 </style>

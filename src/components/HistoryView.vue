@@ -33,34 +33,14 @@
                 {{ rev.user }}
               </a>
             </td>
-            <td class="dd-diff">
+            <td class="dd-history-diff">
               <template v-if="diffs[rev.revid]">
-                <div
-                  v-for="(line, j) in diffs[rev.revid]"
-                  :key="j"
-                  :class="line.type === '+' ? 'dd-diff-add' : 'dd-diff-del'"
-                >
-                  <span class="dd-diff-marker" aria-hidden="true">
-                    {{ line.type }}
-                  </span>
-                  <component :is="line.type === '+' ? 'ins' : 'del'">
-                    <template v-for="(part, k) in tokenize(line.text)" :key="k">
-                      <!-- the item itself (starting each line) just by ID -->
-                      <code v-if="!part.id || part.id === id">
-                        {{ part.text }}
-                      </code>
-                      <span v-else class="dd-diff-entity">
-                        <a
-                          :href="`#${part.id}`"
-                          v-tooltip="descriptions[part.id]"
-                        >
-                          {{ labels[part.id] ?? part.id }}
-                        </a>
-                        <code class="dd-id-chip">{{ part.text }}</code>
-                      </span>
-                    </template>
-                  </component>
-                </div>
+                <DiffLines
+                  :id="id"
+                  :lines="diffs[rev.revid]!"
+                  :labels="labels"
+                  :descriptions="descriptions"
+                />
                 <span
                   v-if="!diffs[rev.revid]!.length"
                   class="dd-history-comment"
@@ -111,6 +91,7 @@ import {
   type Revision,
 } from "../history";
 import { getLabels, type Entity } from "../wikidata";
+import DiffLines from "./DiffLines.vue";
 
 const props = defineProps<{ id: string; language: string }>();
 

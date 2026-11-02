@@ -107,3 +107,43 @@ export function toEntityData(entity: Entity, edits: Edit[]): EntityData {
   }
   return data;
 }
+
+/** The entity after saving the edits, e.g. for a diff of the pending changes. */
+export function applyEdits(entity: Entity, edits: Edit[]): Entity {
+  const data = toEntityData(entity, edits);
+  // a deep copy, also of reactive entities
+  const result: Entity = JSON.parse(JSON.stringify(entity));
+  for (const terms of ["labels", "descriptions"] as const)
+    for (const { language, value } of Object.values(data[terms] ?? {}))
+      if (value) result[terms][language] = { value };
+      else delete result[terms][language];
+  for (const { language, value, ...change } of data.aliases ?? []) {
+    const aliases = (result.aliases[language] ?? []).filter(
+      (a) => a.value !== value,
+    );
+    if ("add" in change) aliases.push({ value });
+    if (aliases.length) result.aliases[language] = aliases;
+    else delete result.aliases[language];
+  }
+  for (const sitelink of Object.values(data.sitelinks ?? {})) {
+    result.sitelinks ??= {};
+    if (sitelink.title) result.sitelinks[sitelink.site] = sitelink;
+    else delete result.sitelinks[sitelink.site];
+  }
+  let counter = 0;
+  for (const claim of data.claims ?? []) {
+    if ("remove" in claim) {
+      for (const [property, claims] of Object.entries(result.claims))
+        result.claims[property] = claims.filter((c) => c.id !== claim.id);
+      continue;
+    }
+    const { type: _, ...rest } = claim;
+    const property = claim.mainsnak.property;
+    const claims = (result.claims[property] ??= []);
+    const i = claim.id ? claims.findIndex((c) => c.id === claim.id) : -1;
+    const updated = { ...rest, id: claim.id ?? `new-${++counter}` };
+    if (i >= 0) claims[i] = updated;
+    else claims.push(updated);
+  }
+  return result;
+}

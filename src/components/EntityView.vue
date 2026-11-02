@@ -283,7 +283,11 @@
     <QuickStatementsPanel
       class="dd-entity-qs"
       :id="entity.id"
+      :entity="entity"
       :edits="edits"
+      :language="language"
+      :labels="allLabels"
+      :descriptions="allDescriptions"
       :saving="saving"
       :saved-revision="savedRevision"
       @save="save"
