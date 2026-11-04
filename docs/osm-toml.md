@@ -1,5 +1,7 @@
 # OSM formats compared with TOML
 
+OpenStreetMap data comes in several text formats. OSM XML is exact but verbose, OSM JSON has no comments, and Level0L is easy to type but has no grammar beyond its parser. TOML has comments, a spec and parsers in most languages, including Python's standard library. So what would OSM data look like as TOML? I came across this question while adding an OSM tag editor to [DinoData](https://github.com/simon04/dinodata). Below, each format is compared with TOML using the examples from the OSM wiki, and the TOML versions are checked with Python's `tomllib`.
+
 [Level0L](https://wiki.openstreetmap.org/wiki/Level0L) is the text format of the [Level0](https://level0.osmz.ru/) editor. DinoData reads and writes it in the OSM text view (`src/osm/level0.ts`, `src/osm/tags.ts`). It looks a bit like [TOML](https://toml.io/en/v1.0.0): `key = value` lines, `#` comments, and headers that start a section. But the two formats are not compatible. This page compares them, together with the other formats DinoData meets, and shows how OSM data could look as TOML.
 
 | Format                                                                   | Syntax                                      | Used for             | In the OSM API                                                                                                | In DinoData                              |
@@ -434,6 +436,47 @@ Notes on the mapping:
 - The top-level `version = "0.6"` is the API version, a string; `version = 1` in an element is the element version, a number.
 - `timestamp` stays a string here, as in the JSON. As a TOML date-time (`timestamp = 2019-09-04T15:05:00Z`) it would be a `datetime` in Python, but no longer equal to the JSON.
 - This is the single-array layout mentioned in the Level0L notes. Compared with `[[node]]`, `[[way]]` and `[[relation]]`, it keeps the order of the objects, and every object needs a `type` line.
+
+### Alternatives for members
+
+The array of inline tables above is the only form that loads to the same data as OSM JSON, so it is the default. These forms also parse with `tomllib`.
+
+**Array of tables.** The same data as the inline tables, so it is still equal to OSM JSON. It takes four lines per member, but stays readable when a member has more keys than fits on one line. Like `[elements.tags]`, the member tables come after the relation's own keys (`id`, `version`, …):
+
+```toml
+[[elements.members]]
+type = "node"
+ref = 6772305769
+role = "sign"
+
+[[elements.members]]
+type = "node"
+ref = 35352001
+role = "intersection"
+
+[[elements.members]]
+type = "way"
+ref = 5123563
+role = "to"
+```
+
+**Array of arrays.** Compact and still typed: TOML 1.0 allows mixed types in one array. The meaning comes from the position, so it is no longer equal to OSM JSON: `[['node', 6772305769, 'sign'], …]` in Python, converted with `dict(zip(("type", "ref", "role"), m))`.
+
+```toml
+members = [
+  ["node", 6772305769, "sign"],
+  ["node", 35352001, "intersection"],
+  ["way", 5123563, "to"],
+]
+```
+
+**Strings.** The shortest, close to Level0L, with the `n`/`w`/`r` prefixes of osmium and Overpass IDs. Every reader has to split and parse the strings, and TOML no longer checks that `ref` is a number:
+
+```toml
+members = ["n6772305769 sign", "n35352001 intersection", "w5123563 to"]
+```
+
+A table keyed by member, like `members = { n6772305769 = "sign" }`, does not work. A relation can contain the same object twice, which TOML rejects as a duplicate key, and the TOML spec does not keep the order of keys, which matters for members.
 
 ## osmChange
 
