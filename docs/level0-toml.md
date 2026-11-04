@@ -135,7 +135,7 @@ Notes on the mapping:
 
 - `[node.tags]` belongs to the most recent `[[node]]`, so `id`, `lat`, `lon`, `nodes` and `members` must come before it. In Level0L, tags and references can be in any order.
 - In the TOML version, `ref = "123"` has to be quoted. `ref = 123` would be an integer, while OSM tag values are always strings.
-- In TOML 1.0 an inline table must fit on one line. A member list over several lines therefore uses an array of inline tables, as above, or `[[relation.member]]` tables.
+- In TOML 1.0 an inline table must fit on one line. A member list over several lines therefore uses an array of inline tables, as above, or `[[relation.member]]` tables. [TOML 1.1](https://toml.io/en/v1.1.0) also allows newlines and a trailing comma inside an inline table.
 - Keys like `name:de` or `addr:street` need quotes: `"name:de" = "Hauptstraße"`.
 - If the order of objects across types matters, a single `[[object]]` array with `type = "node"` keeps it, at the cost of a longer header.
 
@@ -177,6 +177,106 @@ deleted = true
 ```
 
 A Level0L conflict (`!node 1`) would become `conflict = true`. The `changeset` object, which has only tags, would become a single `[changeset]` table.
+
+## Parsing with Python
+
+Since Python 3.11 the standard library reads TOML with [`tomllib`](https://docs.python.org/3.15/library/tomllib.html); Python 3.15 added TOML 1.1 support. Both TOML examples above parse without errors and become built-in types (`dict`, `list`, `str`, `int`, `float`, `bool`):
+
+```python
+import tomllib
+from pathlib import Path
+
+data = tomllib.loads(Path("example.toml").read_text())
+```
+
+The first example (abridged):
+
+```python
+{'node': [{'id': 298884269, 'version': 1, 'lat': 54.0901746, 'lon': 12.2482632},
+          …,
+          {'id': 1831881213, 'lat': 54.0900666, 'lon': 12.2539381,
+           'tags': {'name': 'Neu Broderstorf', 'traffic_sign': 'city_limit'}},
+          …],
+ 'way': [{'id': 26659127, 'version': 5,
+          'nodes': [292403538, 298884289, 261728686],
+          'tags': {'highway': 'unclassified', 'name': 'Pastower Straße'}}],
+ 'relation': [{'id': 56688, 'version': 28,
+               'members': [{'type': 'node', 'ref': 294942404},
+                           {'type': 'node', 'ref': 364933006},
+                           {'type': 'way', 'ref': 4579143, 'role': 'forward'},
+                           {'type': 'node', 'ref': 249673494}],
+               'tags': {'name': 'Küstenbus Linie 123', 'network': 'VVW',
+                        'operator': 'Regionalverkehr Küste', 'ref': '123',
+                        'route': 'bus', 'type': 'route'}}]}
+```
+
+The second example:
+
+```python
+{'node': [{'id': 26821100, 'lat': 51.5077286, 'lon': -0.1279688,
+           'tags': {'created_by': 'Potlatch 0.10f', 'name': "Nelson's Column",
+                    'tourism': 'attraction', 'monument': 'statue',
+                    'historic': 'monument'}},
+          {'lat': 51.507661490456606, 'lon': -0.1278000843634869},
+          {'id': 346364767, 'deleted': True}]}
+```
+
+Working with it is plain `dict` and `list` code. Optional fields are absent rather than empty, so use `.get()`:
+
+```python
+rel = data["relation"][0]
+rel["tags"]["ref"]                                          # '123'
+[m["ref"] for m in rel["members"] if m["type"] == "way"]    # [4579143]
+[m.get("role", "") for m in rel["members"]]                 # ['', '', 'forward', '']
+
+for node in data["node"]:
+    node.get("id")          # None for a new node
+    node.get("tags", {})    # {} for an untagged node
+```
+
+Back to Level0L takes a few lines. For the second example this gives exactly the wiki text, with tags sorted by key:
+
+```python
+KINDS = {"node": "nd", "way": "wy", "relation": "rel"}
+
+def to_level0(type_, o):
+    head = ("-" if o.get("deleted") else "") + type_
+    if "id" in o:
+        head += f" {o['id']}"
+    if type_ == "node" and "lat" in o:
+        head += f": {o['lat']}, {o['lon']}"
+    tags = [f"  {k.replace('=', chr(92) + '=')} = {v}" for k, v in sorted(o.get("tags", {}).items())]
+    nodes = [f"  nd {ref}" for ref in o.get("nodes", [])]
+    members = [f"  {KINDS[m['type']]} {m['ref']} {m.get('role', '')}".rstrip() for m in o.get("members", [])]
+    return "\n".join([head, *tags, *nodes, *members])
+
+print("\n".join(to_level0(t, o) for t, objects in data.items() for o in objects))
+```
+
+```
+node 26821100: 51.5077286, -0.1279688
+  created_by = Potlatch 0.10f
+  historic = monument
+  monument = statue
+  name = Nelson's Column
+  tourism = attraction
+node: 51.507661490456606, -0.1278000843634869
+-node 346364767
+```
+
+Things to know:
+
+| Input                                             | `tomllib` result                                                               |
+| ------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `ref = 123`                                       | `{'ref': 123}`, an `int`: tag values must be quoted, or converted with `str()` |
+| `name = Main Street`                              | `TOMLDecodeError: Invalid value`                                               |
+| `name:de = "x"`                                   | `TOMLDecodeError: Expected '=' after a key in a key/value pair`                |
+| `a = "1"` and `a = "2"`                           | `TOMLDecodeError: Cannot overwrite a value` (Level0 only warns)                |
+| `m = { type = "way", ref = 1,`<br>`role = "x", }` | Parsed with Python 3.15 (TOML 1.1); an error for TOML 1.0 parsers              |
+
+- Comments, including the `# …` placeholders, are dropped. So is the order of objects across `node`, `way` and `relation`.
+- Coordinates become `float`; 7-decimal OSM values print back unchanged.
+- `tomllib` only reads. Writing needs a package such as [`tomli-w`](https://pypi.org/project/tomli-w/), or [`tomlkit`](https://pypi.org/project/tomlkit/) to keep comments and formatting.
 
 ## In DinoData
 
