@@ -11,7 +11,7 @@ Goals:
 - Open any OSM object by URL, short ID or search (Nominatim), or nearby
 - Explain every tag in the user's language: what it means, whether it is deprecated, which values are common
 - The nicest tag editing on a phone: big targets, suitable keyboards, value pickers instead of free typing, no hover-only UI
-- Power-user escape hatch: raw `key=value` or [Level0](https://wiki.openstreetmap.org/wiki/Level0L) text view, paste tags
+- Power-user escape hatch: raw `key=value` or [Level0](https://wiki.openstreetmap.org/wiki/Level0L) text view ([compared with TOML](level0-toml.md)), paste tags
 - Save with OSM OAuth 2.0 directly from the browser, with tag-level conflict resolution
 
 Non-goals (for now):
