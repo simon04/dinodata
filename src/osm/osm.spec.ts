@@ -7,6 +7,8 @@ import {
   saveTags,
   type OsmElement,
 } from "./osm";
+import { formatLevel0 } from "./level0";
+import { parseTagText } from "./tags";
 
 const way: OsmElement = {
   type: "way",
@@ -103,7 +105,14 @@ describe("saveTags", () => {
 
 describe("geometryChanged", () => {
   it("compares nodes, not tags", () => {
-    expect(geometryChanged(way, { ...way, tags: {} })).toBe(false);
+    const retagged: OsmElement = { ...way, tags: {} };
+    expect(geometryChanged(way, retagged)).toBe(false);
     expect(geometryChanged(way, { ...way, nodes: [1, 2, 4, 1] })).toBe(true);
+  });
+
+  it("compares with references parsed from Level0 text", () => {
+    const parsed = parseTagText(formatLevel0(way, {}), way).object!;
+    expect(geometryChanged(parsed, way)).toBe(false);
+    expect(geometryChanged({ ...parsed, nodes: [] }, way)).toBe(true);
   });
 });

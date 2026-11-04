@@ -261,8 +261,10 @@ export function versionUrl({ type, id }: OsmRef, version: number): string {
   return `${OSM_URL}/${type}/${id}/history/${version}`;
 }
 
+type Geometry = Pick<OsmElement, "lat" | "lon" | "nodes" | "members">;
+
 /** Whether coordinates, nodes or members differ between two versions. */
-export function geometryChanged(a: OsmElement, b: OsmElement): boolean {
+export function geometryChanged(a: Geometry, b: Geometry): boolean {
   return (
     a.lat !== b.lat ||
     a.lon !== b.lon ||

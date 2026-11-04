@@ -214,7 +214,20 @@
         @select="changePreset"
       />
       <template v-else-if="sheet?.kind === 'text'">
-        <p class="dd-osm-subtle">{{ t("osm-text-hint") }}</p>
+        <cdx-toggle-button-group
+          :model-value="textFormat"
+          :buttons="TEXT_FORMATS"
+          @update:model-value="switchTextFormat"
+        />
+        <p class="dd-osm-subtle">
+          {{
+            t(
+              textFormat === "level0"
+                ? "osm-text-hint-level0"
+                : "osm-text-hint",
+            )
+          }}
+        </p>
         <cdx-text-area
           v-model="text"
           class="dd-osm-text"
@@ -299,17 +312,14 @@
         </cdx-button>
         <cdx-button
           v-if="sheet?.kind === 'text'"
-          @click="copyTags(parseTagText(text, osmRef).tags)"
+          @click="
+            (textFormat === 'level0' ? copyLevel0 : copyTags)(
+              parseTagText(text, osmRef).tags,
+            )
+          "
         >
           <cdx-icon :icon="cdxIconCopy" />
           {{ t("osm-copy") }}
-        </cdx-button>
-        <cdx-button
-          v-if="sheet?.kind === 'text'"
-          @click="copyLevel0(parseTagText(text, osmRef).tags)"
-        >
-          <cdx-icon :icon="cdxIconCopy" />
-          {{ t("osm-copy-level0") }}
         </cdx-button>
         <cdx-button
           v-if="sheet?.kind === 'text'"
@@ -354,7 +364,7 @@
 
 <script setup lang="ts">
 import { computed, ref, shallowRef, useTemplateRef, watch } from "vue";
-import { useEventListener, useTitle } from "@vueuse/core";
+import { useEventListener, useLocalStorage, useTitle } from "@vueuse/core";
 import {
   CdxButton,
   CdxField,
@@ -362,6 +372,7 @@ import {
   CdxMessage,
   CdxTextInput,
   CdxTextArea,
+  CdxToggleButtonGroup,
   useToast,
 } from "@wikimedia/codex";
 import {
@@ -385,6 +396,7 @@ import { useSharedClipboard } from "../../clipboard";
 import {
   changesetUrl,
   editUrl,
+  geometryChanged,
   elementUrl,
   getBounds,
   getElement,
@@ -595,17 +607,46 @@ function changePreset(id: string) {
   sheet.value = undefined;
 }
 
-// text view
+// text view: key=value lines or Level0
+type TextFormat = "tags" | "level0";
+const TEXT_FORMATS: { value: TextFormat; label: string }[] = [
+  { value: "tags", label: "key=value" },
+  { value: "level0", label: "Level0" },
+];
+const textFormat = useLocalStorage<TextFormat>(
+  "dinodata.osm.text-format",
+  "tags",
+);
 const text = ref("");
+function formatText(tags: Tags): string {
+  return textFormat.value === "level0" && element.value
+    ? formatLevel0(element.value, tags)
+    : formatTagText(tags);
+}
 function openText() {
-  text.value = formatTagText(current.value);
+  text.value = formatText(current.value);
   sheet.value = { kind: "text" };
+}
+/** Keeps the edited tags, not yet applied, in the other format. */
+function switchTextFormat(format: TextFormat) {
+  const { tags } = parseTagText(text.value, props.osmRef);
+  textFormat.value = format;
+  text.value = formatText(tags);
 }
 function applyText() {
   const parsed = parseTagText(text.value, props.osmRef);
   patch(patchTo(current.value, parsed.tags));
   sheet.value = undefined;
   const warnings = parseWarnings(parsed);
+  // only tags are edited here
+  const { object } = parsed;
+  if (
+    object &&
+    element.value &&
+    isSameObject(object, props.osmRef) &&
+    geometryChanged(object, element.value)
+  )
+    warnings.push(t("osm-text-geometry"));
   if (parsed.invalid.length)
     warnings.push(
       t("osm-text-invalid", parsed.invalid.length, parsed.invalid.join("; ")),
