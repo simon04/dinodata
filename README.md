@@ -128,7 +128,7 @@ pnpm vp fmt    # format all files
 pnpm vp lint   # lint only
 ```
 
-OpenStreetMap logins use an OAuth 2.0 application registered on openstreetmap.org (public client, same callback URL), configured as `VITE_OSM_OAUTH_CLIENT_ID`; `VITE_OSM_URL=https://master.apis.dev.openstreetmap.org` switches viewing and saving to the OSM dev server for testing (with an application registered there).
+OpenStreetMap logins use an OAuth 2.0 application registered on openstreetmap.org (public client, same callback URL, with the permissions “Read user preferences”, “Modify the map” and “Sign in using OpenStreetMap”: requesting any scope not granted fails with “The requested scope is invalid”), configured as `VITE_OSM_OAUTH_CLIENT_ID`; `VITE_OSM_URL=https://master.apis.dev.openstreetmap.org` switches viewing and saving to the OSM dev server for testing (with an application registered there).
 
 Logging in locally uses the OAuth 2.0 consumer “DinoData (dev)” with the callback `http://localhost:5173/oauth-callback`, so the dev server is fixed to port 5173. Client IDs are in `.env.development` and `.env.production` (public clients, no secrets).
 
