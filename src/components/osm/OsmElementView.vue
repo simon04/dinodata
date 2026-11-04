@@ -306,6 +306,13 @@
         </cdx-button>
         <cdx-button
           v-if="sheet?.kind === 'text'"
+          @click="copyLevel0(parseTagText(text, osmRef).tags)"
+        >
+          <cdx-icon :icon="cdxIconCopy" />
+          {{ t("osm-copy-level0") }}
+        </cdx-button>
+        <cdx-button
+          v-if="sheet?.kind === 'text'"
           action="progressive"
           weight="primary"
           @click="applyText"
@@ -414,7 +421,7 @@ import {
   type TagChange,
   type TagPatch,
 } from "../../osm/tags";
-import { isSameObject, level0Label } from "../../osm/level0";
+import { formatLevel0, isSameObject, level0Label } from "../../osm/level0";
 import EntityId from "../EntityId.vue";
 import EntitySkeleton from "../EntitySkeleton.vue";
 import AddTag from "./AddTag.vue";
@@ -757,6 +764,14 @@ const clipboard = useSharedClipboard();
 async function copyTags(tags: Tags = current.value) {
   await clipboard.copy(formatTagText(tags));
   toast.success(t("osm-copied", Object.keys(tags).length), {
+    autoDismiss: true,
+  });
+}
+/** Copy the element with the tags as Level0 text, for the Level0 editor. */
+async function copyLevel0(tags: Tags = current.value) {
+  if (!element.value) return;
+  await clipboard.copy(formatLevel0(element.value, tags));
+  toast.success(t("osm-copied-level0", Object.keys(tags).length), {
     autoDismiss: true,
   });
 }

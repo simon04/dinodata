@@ -186,6 +186,8 @@
   "osm-copy": "Kopiëren",
   "osm-copy-tags": "{{PLURAL:$1|Tag|$1 tags}} kopiëren",
   "osm-copied": "$1 {{PLURAL:$1|tag|tags}} gekopieerd als sleutel=waarde-regels",
+  "osm-copy-level0": "Als Level0 kopiëren",
+  "osm-copied-level0": "Object met $1 {{PLURAL:$1|tag|tags}} als Level0-tekst gekopieerd",
   "osm-paste-empty": "Het klembord bevat geen tags. Ondersteund: sleutel=waarde-regels en Level0-tekst.",
   "osm-paste-other": "De tags zijn van $1, niet van dit object.",
   "osm-paste-ignored": "{{PLURAL:$1|Eén ander object|$1 andere objecten}} genegeerd: $2",

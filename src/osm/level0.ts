@@ -10,7 +10,7 @@
  *   nd 2
  * ```
  */
-import type { OsmMember } from "./osm";
+import type { OsmElement, OsmMember, Tags } from "./osm";
 import type { OsmRef, OsmType } from "./osm-ref";
 
 /** An object header with its node or member references (tags aside). */
@@ -78,4 +78,29 @@ export function level0Label({ type, id }: Pick<Level0Object, "type" | "id">) {
 
 export function isSameObject(object: Level0Object, ref: OsmRef): boolean {
   return object.type === ref.type && object.id === ref.id;
+}
+
+const REF_KINDS: Record<OsmType, string> = {
+  node: "nd",
+  way: "wy",
+  relation: "rel",
+};
+
+/**
+ * The element as Level0 text: header without version (as recommended), tags
+ * sorted by key with `\=` in keys, and all node or member references, without
+ * which Level0 would remove them.
+ */
+export function formatLevel0(element: OsmElement, tags: Tags): string {
+  const { type, id, lat, lon } = element;
+  return [
+    type === "node" ? `${type} ${id}: ${lat}, ${lon}` : `${type} ${id}`,
+    ...Object.keys(tags)
+      .sort()
+      .map((k) => `  ${k.replace(/=/g, "\\=")} = ${tags[k]}`),
+    ...(element.nodes ?? []).map((ref) => `  nd ${ref}`),
+    ...(element.members ?? []).map((m) =>
+      `  ${REF_KINDS[m.type]} ${m.ref} ${m.role}`.trimEnd(),
+    ),
+  ].join("\n");
 }

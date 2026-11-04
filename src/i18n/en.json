@@ -186,6 +186,8 @@
   "osm-copy": "Copy",
   "osm-copy-tags": "Copy $1 {{PLURAL:$1|tag|tags}}",
   "osm-copied": "Copied $1 {{PLURAL:$1|tag|tags}} as key=value lines",
+  "osm-copy-level0": "Copy as Level0",
+  "osm-copied-level0": "Copied the object with $1 {{PLURAL:$1|tag|tags}} as Level0 text",
   "osm-paste-empty": "The clipboard contains no tags. Supported: key=value lines and Level0 text.",
   "osm-paste-other": "The tags are from $1, not from this object.",
   "osm-paste-ignored": "Ignored $1 other {{PLURAL:$1|object|objects}}: $2",
