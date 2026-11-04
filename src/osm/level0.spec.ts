@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { formatLevel0 } from "./level0";
+import { formatLevel0, level0Url } from "./level0";
 import type { OsmElement } from "./osm";
 import { parseTagText } from "./tags";
 
@@ -48,5 +48,13 @@ describe("formatLevel0", () => {
       object: { type: "way", id: 2, nodes: [5, 6], members: [] },
       ignored: [],
     });
+  });
+});
+
+describe("level0Url", () => {
+  it("opens the element in Level0", () => {
+    expect(level0Url({ type: "way", id: 2 })).toBe(
+      "https://level0.osmz.ru/?url=way/2",
+    );
   });
 });

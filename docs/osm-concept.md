@@ -11,7 +11,7 @@ Goals:
 - Open any OSM object by URL, short ID or search (Nominatim), or nearby
 - Explain every tag in the user's language: what it means, whether it is deprecated, which values are common
 - The nicest tag editing on a phone: big targets, suitable keyboards, value pickers instead of free typing, no hover-only UI
-- Power-user escape hatch: raw `key=value` text view, paste tags
+- Power-user escape hatch: raw `key=value` or [Level0](https://wiki.openstreetmap.org/wiki/Level0L) text view, paste tags
 - Save with OSM OAuth 2.0 directly from the browser, with tag-level conflict resolution
 
 Non-goals (for now):
@@ -134,7 +134,7 @@ The schema is loaded lazily per language and cached via the Cache API, like the 
 
 Layout of `#osm/way/123`, top to bottom:
 
-1. **Header card**: preset icon and name (“Restaurant”), `name` in the user's language, type and ID chip (`way 123`, tap to copy, like `EntityId`), last edit (“3 months ago by Alice”), links: openstreetmap.org, iD, JOSM remote control, Wikidata. Small static location preview.
+1. **Header card**: preset icon and name (“Restaurant”), `name` in the user's language, type and ID chip (`way 123`, tap to copy, like `EntityId`), last edit (“3 months ago by Alice”), links: openstreetmap.org, iD, Level0, Wikidata. Small static location preview.
 2. **Issues**: deprecated tags with “Upgrade” button, invalid values (P13 regex, field type), tags not applying to this element type, incompatible combinations, missing required tags, common combinations as suggestions (“Add cuisine?”).
 3. **Preset fields** (tags that the preset knows), each field as its own row with the best input:
    - yes/no/unknown → segmented control (three large buttons), not a checkbox
@@ -147,7 +147,7 @@ Layout of `#osm/way/123`, top to bottom:
    - `opening_hours` → text with live validation and a readable weekly preview
 4. **Other tags**: all remaining tags as rows: key (with wiki label as caption) and value. Tapping a row opens a **bottom sheet** with the input, the wiki description, image, status, common values and “Read more on the wiki”.
 5. **Add tag**: one button opening a sheet with key autocompletion (preset “moreFields” first, then taginfo), then the value input matching the key.
-6. **Text view toggle**: the whole tag list as editable `key=value` lines (iD-style), for power users and for pasting; diffed back into individual edits.
+6. **Text view toggle**: the whole tag list as editable `key=value` lines (iD-style) or Level0 text (with coordinates, way nodes and relation members, which are not edited), for power users and for pasting; diffed back into individual edits.
 
 Interaction details:
 
@@ -203,6 +203,7 @@ src/osm/
   presets.ts        load id-tagging-schema + translations, match preset, fields for preset
   taginfo.ts        values, key search
   tags.ts           tag edits, diff, text view parse/serialize, three-way merge
+  level0.ts         Level0 text format (objects, references), Level0 link
   validate.ts       issues from wiki + presets + regex
 src/components/osm/
   OsmHome.vue, OsmSearch.vue, OsmElementView.vue, OsmHeaderCard.vue,

@@ -77,7 +77,7 @@ A second mode at `#osm` edits the tags of OpenStreetMap nodes, ways and relation
 - Fields of the preset with the matching input: yes/no and radio chips, a value picker with translated options and the most used values from taginfo, multi-value chips (`cuisine=pizza;pasta`), `diet:*`-style toggles, names per language, address, access, Wikidata search, phone/URL/number keyboards
 - Every tag explained from the Wikibase of the OSM wiki: description in your language, status, image, wiki page, Wikidata concept; deprecated tags marked
 - Issues with one-tap fixes: deprecated tags (schema and wiki), values not matching the wiki's format, tags not meant for the element type, incompatible tags
-- Add fields or tags (key suggestions from taginfo, or `key=value`), text view, copy and paste tags (Ctrl+V), undo per field or tag; pending edits survive reloads
+- Add fields or tags (key suggestions from taginfo, or `key=value`), text view (`key=value` or Level0), copy and paste tags (Ctrl+V), also as Level0 text, undo per field or tag; pending edits survive reloads
 - Static map preview of the location, parent ways and relations, links to openstreetmap.org, iD and Wikidata
 - Save with your OpenStreetMap account (OAuth 2.0 with PKCE in a popup): review the changes, changeset comment and source, one changeset per save; if someone edited the object meanwhile, the tags are merged and only keys changed on both sides need a choice
 

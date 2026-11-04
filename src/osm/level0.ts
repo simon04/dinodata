@@ -10,6 +10,7 @@
  *   nd 2
  * ```
  */
+import { OSM_URL } from "./config";
 import type { OsmElement, OsmMember, Tags } from "./osm";
 import type { OsmRef, OsmType } from "./osm-ref";
 
@@ -103,4 +104,11 @@ export function formatLevel0(element: OsmElement, tags: Tags): string {
       `  ${REF_KINDS[m.type]} ${m.ref} ${m.role}`.trimEnd(),
     ),
   ].join("\n");
+}
+
+/** Level0 editor with the element loaded; it only edits the main OSM database. */
+export function level0Url({ type, id }: OsmRef): string | undefined {
+  return OSM_URL === "https://www.openstreetmap.org"
+    ? `https://level0.osmz.ru/?url=${type}/${id}`
+    : undefined;
 }

@@ -48,6 +48,16 @@
           <cdx-icon :icon="cdxIconEdit" size="small" />
           iD
         </a>
+        <a
+          v-if="level0Url(osmRef)"
+          :class="LINK_BUTTON"
+          :href="level0Url(osmRef)"
+          target="_blank"
+          rel="external noopener"
+        >
+          <cdx-icon :icon="cdxIconEdit" size="small" />
+          Level0
+        </a>
         <a v-if="wikidataId" :class="LINK_BUTTON" :href="`#${wikidataId}`">
           <cdx-icon :icon="cdxIconLogoWikidata" size="small" />
           {{ t("entity-wikidata") }}
@@ -433,7 +443,12 @@ import {
   type TagChange,
   type TagPatch,
 } from "../../osm/tags";
-import { formatLevel0, isSameObject, level0Label } from "../../osm/level0";
+import {
+  formatLevel0,
+  isSameObject,
+  level0Label,
+  level0Url,
+} from "../../osm/level0";
 import EntityId from "../EntityId.vue";
 import EntitySkeleton from "../EntitySkeleton.vue";
 import AddTag from "./AddTag.vue";
