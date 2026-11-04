@@ -44,6 +44,7 @@ describe("formatLevel0", () => {
     const tags = { highway: "service", "a=b": "x = y" };
     expect(parseTagText(formatLevel0(way, tags), way)).toEqual({
       tags,
+      removed: [],
       invalid: [],
       object: { type: "way", id: 2, nodes: [5, 6], members: [] },
       ignored: [],

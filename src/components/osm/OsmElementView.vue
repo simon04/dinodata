@@ -844,12 +844,16 @@ function pasteTags(textValue: string | undefined) {
   const parsed = parseTagText(textValue ?? "", props.osmRef);
   const { tags, invalid } = parsed;
   const count = Object.keys(tags).length;
-  if (!count) {
+  // `key=` as copied from the changes; ignored for keys not set
+  const removed = parsed.removed.filter(
+    (k) => k in current.value && !(k in tags),
+  );
+  if (!count && !parsed.removed.length) {
     toast.warning(t("osm-paste-empty"), { autoDismiss: 8000 });
     return;
   }
   const before = current.value;
-  patch(tags);
+  patch({ ...Object.fromEntries(removed.map((k) => [k, undefined])), ...tags });
   const warnings = [
     ...parseWarnings(parsed),
     ...(invalid.length
@@ -858,7 +862,11 @@ function pasteTags(textValue: string | undefined) {
   ];
   toast.show({
     type: warnings.length ? "warning" : "success",
-    message: [t("osm-pasted", count), ...warnings].join(" · "),
+    message: [
+      ...(count || !removed.length ? [t("osm-pasted", count)] : []),
+      ...(removed.length ? [t("osm-pasted-removed", removed.length)] : []),
+      ...warnings,
+    ].join(" · "),
     actionButton: {
       label: t("undo"),
       onClick: () => (current.value = before),

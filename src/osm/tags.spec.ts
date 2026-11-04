@@ -75,6 +75,7 @@ describe("text view", () => {
         wheelchair: "yes",
         cuisine: "coffee_shop",
       },
+      removed: [],
       invalid: ["invalid", "=x"],
       ignored: [],
     });
@@ -96,11 +97,20 @@ describe("text view", () => {
     ].join("\n");
     expect(parseTagText(text, { type: "way", id: 123 })).toEqual({
       tags: { highway: "residential", "a=b": "c=d", "#hash": "yes" },
+      removed: [],
       invalid: [],
       object: { type: "way", id: 123, nodes: [1, 2], members: [] },
       ignored: [
         { type: "node", id: 1, lat: 47.1, lon: 11.2, nodes: [], members: [] },
       ],
+    });
+  });
+
+  it("parses key= as removed", () => {
+    expect(parseTagText('fixme=\nname=A\n"note"=""')).toMatchObject({
+      tags: { name: "A" },
+      removed: ["fixme", "note"],
+      invalid: [],
     });
   });
 

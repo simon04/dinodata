@@ -71,6 +71,8 @@ export function formatTagText(tags: Tags): string {
 
 export interface ParsedTagText {
   tags: Tags;
+  /** `key=` without value, e.g. as copied from the changes */
+  removed: string[];
   invalid: string[];
   /** Level0 object the tags were taken from */
   object?: Level0Object;
@@ -85,6 +87,7 @@ const QUOTED_TAG_LINE = /^"([^"]+)"\s*=\s*"(.*)"\s*,?$/;
 interface Block {
   object?: Level0Object | "changeset";
   tags: Tags;
+  removed: string[];
   invalid: string[];
 }
 
@@ -92,16 +95,16 @@ interface Block {
  * Parse `key=value` lines (also tab-separated, or `"key"="value"` as copied
  * from taginfo or Overpass), or Level0 text: of several objects, the tags of
  * `ref` (else of the first object) are taken; references and comments are
- * skipped. Invalid lines are returned separately.
+ * skipped. `key=` lines are returned as removed, invalid lines separately.
  */
 export function parseTagText(text: string, ref?: OsmRef): ParsedTagText {
-  const blocks: Block[] = [{ tags: {}, invalid: [] }];
+  const blocks: Block[] = [{ tags: {}, removed: [], invalid: [] }];
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
     if (!line || isLevel0Comment(raw)) continue;
     const header = parseLevel0Header(line);
     if (header) {
-      blocks.push({ object: header, tags: {}, invalid: [] });
+      blocks.push({ object: header, tags: {}, removed: [], invalid: [] });
       continue;
     }
     const block = blocks[blocks.length - 1];
@@ -110,8 +113,9 @@ export function parseTagText(text: string, ref?: OsmRef): ParsedTagText {
     const m = line.match(QUOTED_TAG_LINE) ?? line.match(TAG_LINE);
     const key = m?.[1].replace(/\\=/g, "=").trim();
     const value = normalizeValue(m?.[2]);
-    if (!key || !value || key.length > MAX_LENGTH || value.length > MAX_LENGTH)
+    if (!key || key.length > MAX_LENGTH || (value?.length ?? 0) > MAX_LENGTH)
       block.invalid.push(line);
+    else if (value === undefined) block.removed.push(key);
     else block.tags[key] = value;
   }
   const [loose, ...rest] = blocks;
@@ -122,6 +126,7 @@ export function parseTagText(text: string, ref?: OsmRef): ParsedTagText {
     objects.find((b) => ref && isSameObject(b.object, ref)) ?? objects[0];
   return {
     tags: { ...loose.tags, ...chosen?.tags },
+    removed: [...loose.removed, ...(chosen?.removed ?? [])],
     invalid: [...loose.invalid, ...(chosen?.invalid ?? [])],
     ...(chosen ? { object: chosen.object } : {}),
     ignored: objects.filter((b) => b !== chosen).map((b) => b.object),
