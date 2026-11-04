@@ -76,7 +76,45 @@ describe("text view", () => {
         cuisine: "coffee_shop",
       },
       invalid: ["invalid", "=x"],
+      ignored: [],
     });
+  });
+
+  it("parses Level0 text of the object, skipping references and comments", () => {
+    const text = [
+      "# conflict: name = Old",
+      "node 1: 47.1, 11.2 # by user=x",
+      "  amenity = cafe",
+      "way 123.4",
+      "  highway = residential",
+      "  a\\=b = c=d",
+      "  #hash = yes",
+      "  nd 1",
+      "  nd 2",
+      "changeset",
+      "  source = survey",
+    ].join("\n");
+    expect(parseTagText(text, { type: "way", id: 123 })).toEqual({
+      tags: { highway: "residential", "a=b": "c=d", "#hash": "yes" },
+      invalid: [],
+      object: { type: "way", id: 123, nodes: [1, 2], members: [] },
+      ignored: [
+        { type: "node", id: 1, lat: 47.1, lon: 11.2, nodes: [], members: [] },
+      ],
+    });
+  });
+
+  it("takes the first Level0 object when none matches", () => {
+    const text = "relation 5\n  type = route\n  wy 7 forward\n  nd 8\n-node 9";
+    const parsed = parseTagText(text, { type: "way", id: 1 });
+    expect(parsed.tags).toEqual({ type: "route" });
+    expect(parsed.object?.members).toEqual([
+      { type: "way", ref: 7, role: "forward" },
+      { type: "node", ref: 8, role: "" },
+    ]);
+    expect(parsed.ignored).toEqual([
+      { type: "node", id: 9, deleted: true, nodes: [], members: [] },
+    ]);
   });
 });
 

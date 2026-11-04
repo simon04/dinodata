@@ -1,4 +1,12 @@
+import {
+  addLevel0Ref,
+  isLevel0Comment,
+  isSameObject,
+  parseLevel0Header,
+  type Level0Object,
+} from "./level0";
 import type { Tags } from "./osm";
+import type { OsmRef } from "./osm-ref";
 import type { Deprecation } from "./presets";
 
 /** Tag changes: `undefined` removes the key. */
@@ -61,26 +69,63 @@ export function formatTagText(tags: Tags): string {
     .join("\n");
 }
 
+export interface ParsedTagText {
+  tags: Tags;
+  invalid: string[];
+  /** Level0 object the tags were taken from */
+  object?: Level0Object;
+  /** other Level0 objects in the text, ignored */
+  ignored: Level0Object[];
+}
+
+/** `key=value` or `key<TAB>value`, `\=` in keys like Level0; or `"key"="value"`. */
+const TAG_LINE = /^((?:[^=\t\\]|\\.)+?)\s*(?:=|\t)\s*(.*)$/;
+const QUOTED_TAG_LINE = /^"([^"]+)"\s*=\s*"(.*)"\s*,?$/;
+
+interface Block {
+  object?: Level0Object | "changeset";
+  tags: Tags;
+  invalid: string[];
+}
+
 /**
  * Parse `key=value` lines (also tab-separated, or `"key"="value"` as copied
- * from taginfo or Overpass). Invalid lines are returned separately.
+ * from taginfo or Overpass), or Level0 text: of several objects, the tags of
+ * `ref` (else of the first object) are taken; references and comments are
+ * skipped. Invalid lines are returned separately.
  */
-export function parseTagText(text: string): { tags: Tags; invalid: string[] } {
-  const tags: Tags = {};
-  const invalid: string[] = [];
+export function parseTagText(text: string, ref?: OsmRef): ParsedTagText {
+  const blocks: Block[] = [{ tags: {}, invalid: [] }];
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
-    if (!line) continue;
-    const m =
-      line.match(/^"([^"]+)"\s*=\s*"(.*)"\s*,?$/) ??
-      line.match(/^([^=\t]+?)\s*(?:=|\t)\s*(.*)$/);
-    const key = m?.[1].trim();
+    if (!line || isLevel0Comment(raw)) continue;
+    const header = parseLevel0Header(line);
+    if (header) {
+      blocks.push({ object: header, tags: {}, invalid: [] });
+      continue;
+    }
+    const block = blocks[blocks.length - 1];
+    if (typeof block.object === "object" && addLevel0Ref(block.object, line))
+      continue;
+    const m = line.match(QUOTED_TAG_LINE) ?? line.match(TAG_LINE);
+    const key = m?.[1].replace(/\\=/g, "=").trim();
     const value = normalizeValue(m?.[2]);
     if (!key || !value || key.length > MAX_LENGTH || value.length > MAX_LENGTH)
-      invalid.push(line);
-    else tags[key] = value;
+      block.invalid.push(line);
+    else block.tags[key] = value;
   }
-  return { tags, invalid };
+  const [loose, ...rest] = blocks;
+  const objects = rest.filter(
+    (b): b is Block & { object: Level0Object } => b.object !== "changeset",
+  );
+  const chosen =
+    objects.find((b) => ref && isSameObject(b.object, ref)) ?? objects[0];
+  return {
+    tags: { ...loose.tags, ...chosen?.tags },
+    invalid: [...loose.invalid, ...(chosen?.invalid ?? [])],
+    ...(chosen ? { object: chosen.object } : {}),
+    ignored: objects.filter((b) => b !== chosen).map((b) => b.object),
+  };
 }
 
 /** Patch turning `current` into `next` (all keys of both). */

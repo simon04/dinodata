@@ -299,7 +299,7 @@
         </cdx-button>
         <cdx-button
           v-if="sheet?.kind === 'text'"
-          @click="copyTags(parseTagText(text).tags)"
+          @click="copyTags(parseTagText(text, osmRef).tags)"
         >
           <cdx-icon :icon="cdxIconCopy" />
           {{ t("osm-copy") }}
@@ -410,9 +410,11 @@ import {
   parseTagText,
   patchTo,
   tagState,
+  type ParsedTagText,
   type TagChange,
   type TagPatch,
 } from "../../osm/tags";
+import { isSameObject, level0Label } from "../../osm/level0";
 import EntityId from "../EntityId.vue";
 import EntitySkeleton from "../EntitySkeleton.vue";
 import AddTag from "./AddTag.vue";
@@ -593,13 +595,34 @@ function openText() {
   sheet.value = { kind: "text" };
 }
 function applyText() {
-  const { tags, invalid } = parseTagText(text.value);
-  patch(patchTo(current.value, tags));
+  const parsed = parseTagText(text.value, props.osmRef);
+  patch(patchTo(current.value, parsed.tags));
   sheet.value = undefined;
-  if (invalid.length)
-    toast.warning(t("osm-text-invalid", invalid.length, invalid.join("; ")), {
-      autoDismiss: 8000,
-    });
+  const warnings = parseWarnings(parsed);
+  if (parsed.invalid.length)
+    warnings.push(
+      t("osm-text-invalid", parsed.invalid.length, parsed.invalid.join("; ")),
+    );
+  if (warnings.length)
+    toast.warning(warnings.join(" · "), { autoDismiss: 8000 });
+}
+
+/** Level0 text of another object, or of several objects. */
+function parseWarnings({ object, ignored }: ParsedTagText): string[] {
+  return [
+    ...(object && !isSameObject(object, props.osmRef)
+      ? [t("osm-paste-other", level0Label(object))]
+      : []),
+    ...(ignored.length
+      ? [
+          t(
+            "osm-paste-ignored",
+            ignored.length,
+            ignored.map(level0Label).join(", "),
+          ),
+        ]
+      : []),
+  ];
 }
 
 // saving
@@ -747,7 +770,8 @@ async function copyChanges() {
 }
 
 function pasteTags(textValue: string | undefined) {
-  const { tags, invalid } = parseTagText(textValue ?? "");
+  const parsed = parseTagText(textValue ?? "", props.osmRef);
+  const { tags, invalid } = parsed;
   const count = Object.keys(tags).length;
   if (!count) {
     toast.warning(t("osm-paste-empty"), { autoDismiss: 8000 });
@@ -755,19 +779,20 @@ function pasteTags(textValue: string | undefined) {
   }
   const before = current.value;
   patch(tags);
+  const warnings = [
+    ...parseWarnings(parsed),
+    ...(invalid.length
+      ? [t("paste-invalid", invalid.length, invalid.join("; "))]
+      : []),
+  ];
   toast.show({
-    type: invalid.length ? "warning" : "success",
-    message: [
-      t("osm-pasted", count),
-      ...(invalid.length
-        ? [t("paste-invalid", invalid.length, invalid.join("; "))]
-        : []),
-    ].join(" · "),
+    type: warnings.length ? "warning" : "success",
+    message: [t("osm-pasted", count), ...warnings].join(" · "),
     actionButton: {
       label: t("undo"),
       onClick: () => (current.value = before),
     },
-    autoDismiss: invalid.length ? false : 6000,
+    autoDismiss: warnings.length ? false : 6000,
   });
 }
 
