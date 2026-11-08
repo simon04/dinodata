@@ -456,6 +456,75 @@ export async function getBacklinks(
   return { pages, next: json.continue };
 }
 
+/** Coordinates on Earth (P625) of an entity: preferred, else the first normal one. */
+export function coordinate(
+  entity: Entity,
+): { lat: number; lon: number } | undefined {
+  const claims = (entity.claims?.P625 ?? []).filter((c) => {
+    const v = c.mainsnak.datavalue?.value as { globe?: string } | undefined;
+    return (
+      c.rank !== "deprecated" &&
+      v !== undefined &&
+      (!v.globe || v.globe === "http://www.wikidata.org/entity/Q2")
+    );
+  });
+  const claim = claims.find((c) => c.rank === "preferred") ?? claims[0];
+  const value = claim?.mainsnak.datavalue?.value as
+    | { latitude: number; longitude: number }
+    | undefined;
+  return value && { lat: value.latitude, lon: value.longitude };
+}
+
+export interface NearbyItem {
+  id: string;
+  /** distance in meters */
+  distance: number;
+  label?: string;
+  description?: string;
+}
+
+/**
+ * Items with coordinates near a location, nearest first (GeoData of
+ * Wikidata, at most 10 km), with labels and descriptions; cached for an hour.
+ */
+export async function getNearbyItems(
+  location: { lat: number; lon: number },
+  language: string,
+  radius = 10000,
+  limit = 100,
+): Promise<NearbyItem[]> {
+  const json = await api<{
+    query?: { geosearch: { ns: number; title: string; dist: number }[] };
+  }>(
+    {
+      action: "query",
+      list: "geosearch",
+      gscoord: `${location.lat}|${location.lon}`,
+      gsradius: String(radius),
+      gslimit: String(limit),
+      gsnamespace: "0",
+    },
+    { maxAge: 60 * 60 * 1000 },
+  );
+  const results = json.query?.geosearch ?? [];
+  // an item with several coordinates is listed once, at the nearest
+  const seen = new Set<string>();
+  const items = results.filter((r) => !seen.has(r.title) && seen.add(r.title));
+  const entities = items.length
+    ? await getEntities(
+        items.map((r) => r.title),
+        "labels|descriptions",
+        fallbackLanguages(language),
+      )
+    : {};
+  return items.map(({ title, dist }) => ({
+    id: title,
+    distance: dist,
+    label: label(entities[title], language),
+    description: description(entities[title], language),
+  }));
+}
+
 /** Error reported by the Action API, e.g. `editconflict` or `permissiondenied`. */
 export class ApiError extends Error {
   constructor(

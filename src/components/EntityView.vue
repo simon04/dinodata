@@ -278,6 +278,16 @@
           :language="language"
         />
       </cdx-tab>
+      <cdx-tab v-if="itemLocation" name="nearby" :label="t('tab-nearby')">
+        <!-- loaded when shown -->
+        <NearbyItems
+          v-if="tab === 'nearby'"
+          :key="`${entity.id}:${language}:${itemLocation.lat},${itemLocation.lon}`"
+          :id="entity.id"
+          :location="itemLocation"
+          :language="language"
+        />
+      </cdx-tab>
     </cdx-tabs>
 
     <QuickStatementsPanel
@@ -311,6 +321,7 @@ import {
 import {
   cdxIconAdd,
   cdxIconArticleRedirect,
+  cdxIconMap,
   cdxIconDiffs,
   cdxIconHistory,
   cdxIconImageGallery,
@@ -329,6 +340,7 @@ import {
 } from "@wikimedia/codex-icons";
 import {
   ApiError,
+  coordinate,
   description,
   editEntity,
   getEntities,
@@ -371,6 +383,7 @@ import EntityId from "./EntityId.vue";
 import EntitySkeleton from "./EntitySkeleton.vue";
 import SitelinksTable from "./SitelinksTable.vue";
 import WhatLinksHere from "./WhatLinksHere.vue";
+import NearbyItems from "./NearbyItems.vue";
 import CompareView from "./CompareView.vue";
 import CommonsGallery from "./CommonsGallery.vue";
 import HistoryView from "./HistoryView.vue";
@@ -965,6 +978,7 @@ const tabIcons = computed(() => {
     cdxIconDiffs, // compare
     cdxIconHistory, // history
     cdxIconArticleRedirect, // what links here
+    ...(itemLocation.value ? [cdxIconMap] : []), // nearby
   ];
   return Object.fromEntries(
     icons.map((icon, i) => [`--dd-tab-icon-${i + 1}`, iconImage(icon)]),
@@ -980,6 +994,11 @@ const uploadWizard = computed(() => {
   if (category) params.set("categories", category);
   return `https://commons.wikimedia.org/wiki/Special:UploadWizard?${params}`;
 });
+
+/** coordinates (P625) of an item, for the Nearby tab */
+const itemLocation = computed(() =>
+  entity.value && !mediaInfo.value ? coordinate(entity.value) : undefined,
+);
 
 /** structured data of a Commons file (MediaInfo) */
 const mediaInfo = computed(() => isMediaInfo(props.id));

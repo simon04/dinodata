@@ -8,8 +8,10 @@ import {
 } from "vite-plus/test";
 import { fakeCaches } from "./testing/fake-caches";
 import {
+  coordinate,
   description,
   getBacklinks,
+  getNearbyItems,
   getEntities,
   fallbackLanguages,
   getLabels,
@@ -41,6 +43,17 @@ const fetch = vi.fn(async (input: string | URL) => {
             continue: { gblcontinue: "0|2", continue: "gblcontinue||" },
           },
     );
+  if (params.get("list") === "geosearch")
+    return Response.json({
+      query: {
+        geosearch: [
+          { ns: 0, title: "Q1", dist: 0 },
+          { ns: 0, title: "Q2", dist: 12.5 },
+          // second coordinate of Q1, farther away
+          { ns: 0, title: "Q1", dist: 40 },
+        ],
+      },
+    });
   if (params.get("action") === "wbsearchentities")
     return Response.json({
       search:
@@ -358,5 +371,63 @@ describe("getBacklinks", () => {
       .map(([url]) => new URL(url).searchParams.get("gbltitle"))
       .filter(Boolean);
     expect(titles).toEqual(["Property:P31", "Lexeme:L7"]);
+  });
+});
+
+describe("coordinate", () => {
+  const claim = (
+    rank: "preferred" | "normal" | "deprecated",
+    latitude: number,
+    globe = "http://www.wikidata.org/entity/Q2",
+  ) => ({
+    id: String(latitude),
+    rank,
+    mainsnak: {
+      snaktype: "value" as const,
+      property: "P625",
+      datavalue: {
+        type: "globecoordinate",
+        value: { latitude, longitude: 11, globe },
+      },
+    },
+  });
+  const entity = (claims: ReturnType<typeof claim>[]) => ({
+    id: "Q1",
+    labels: {},
+    descriptions: {},
+    aliases: {},
+    claims: { P625: claims },
+  });
+
+  it("prefers the preferred rank, skips deprecated and other globes", () => {
+    expect(
+      coordinate(entity([claim("normal", 1), claim("preferred", 2)])),
+    ).toEqual({ lat: 2, lon: 11 });
+    expect(
+      coordinate(
+        entity([
+          claim("deprecated", 1),
+          claim("normal", 2, "http://www.wikidata.org/entity/Q405"),
+          claim("normal", 3),
+        ]),
+      ),
+    ).toEqual({ lat: 3, lon: 11 });
+    expect(coordinate(entity([]))).toBeUndefined();
+  });
+});
+
+describe("getNearbyItems", () => {
+  it("lists each item once at its nearest coordinate, with terms", async () => {
+    const items = await getNearbyItems({ lat: 47, lon: 11 }, "en");
+    expect(items).toEqual([
+      { id: "Q1", distance: 0, label: "label of Q1", description: undefined },
+      {
+        id: "Q2",
+        distance: 12.5,
+        label: "label of Q2",
+        description: "description of Q2",
+      },
+    ]);
+    expect(params(0).get("gscoord")).toBe("47|11");
   });
 });
