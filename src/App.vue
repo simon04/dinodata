@@ -66,7 +66,12 @@
         :osm-ref="route.ref"
         :language="language"
       />
-      <OsmHome v-else :language="language" :search="route.search" />
+      <OsmHome
+        v-else
+        :language="language"
+        :search="route.search"
+        :map="route.map"
+      />
     </template>
     <EntityView
       v-else-if="route.id"

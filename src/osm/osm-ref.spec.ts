@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vite-plus/test";
-import { osmHash, parseLatLon, parseOsmRef, shortRef } from "./osm-ref";
+import {
+  mapHash,
+  osmHash,
+  parseLatLon,
+  parseMapView,
+  parseOsmRef,
+  shortRef,
+} from "./osm-ref";
 import { parseRoute } from "../route";
 
 describe("parseOsmRef", () => {
@@ -43,6 +50,38 @@ describe("parseLatLon", () => {
   it("rejects text and out of range values", () => {
     expect(parseLatLon("Innsbruck")).toBeUndefined();
     expect(parseLatLon("95, 11")).toBeUndefined();
+  });
+});
+
+describe("parseMapView", () => {
+  it("keeps the zoom of map URLs", () => {
+    expect(
+      parseMapView("https://www.openstreetmap.org/#map=17/47.2692/11.4041"),
+    ).toEqual({ lat: 47.2692, lon: 11.4041, zoom: 17 });
+    expect(parseMapView("map=16/47/11")).toEqual({
+      lat: 47,
+      lon: 11,
+      zoom: 16,
+    });
+  });
+
+  it("uses the default zoom for coordinates", () => {
+    expect(parseMapView("47.26, 11.39")).toEqual({
+      lat: 47.26,
+      lon: 11.39,
+      zoom: 18,
+    });
+    expect(parseMapView("47.26, 11.39", 16)?.zoom).toBe(16);
+    expect(parseMapView("Innsbruck")).toBeUndefined();
+  });
+
+  it("round-trips via mapHash", () => {
+    const hash = mapHash({ lat: 47.2444, lon: 11.280931, zoom: 18 });
+    expect(hash).toBe("#osm/map=18/47.24440/11.28093");
+    expect(parseRoute(hash)).toEqual({
+      mode: "osm",
+      map: { lat: 47.2444, lon: 11.28093, zoom: 18 },
+    });
   });
 });
 

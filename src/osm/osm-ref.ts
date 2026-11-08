@@ -15,6 +15,11 @@ export interface LatLon {
   lon: number;
 }
 
+/** Map location with zoom level, as in `#map=zoom/lat/lon` of osm.org. */
+export interface MapView extends LatLon {
+  zoom: number;
+}
+
 const TYPES: Record<string, OsmType> = {
   n: "node",
   node: "node",
@@ -73,7 +78,7 @@ function ref(type: string, id: string): OsmRef | undefined {
 /** Parse `47.26, 11.39`, `geo:47.26,11.39` or a `#map=zoom/lat/lon` URL. */
 export function parseLatLon(input: string): LatLon | undefined {
   const text = input.trim();
-  const map = text.match(/[#&]map=\d+(?:\.\d+)?\/(-?[\d.]+)\/(-?[\d.]+)/);
+  const map = text.match(/(?:^|[#&])map=\d+(?:\.\d+)?\/(-?[\d.]+)\/(-?[\d.]+)/);
   const plain = text.match(
     /^(?:geo:)?\s*(-?\d{1,2}(?:\.\d+)?)\s*[, ]\s*(-?\d{1,3}(?:\.\d+)?)(?:[;?].*)?$/,
   );
@@ -82,6 +87,23 @@ export function parseLatLon(input: string): LatLon | undefined {
   const lat = Number(m[1]);
   const lon = Number(m[2]);
   return Math.abs(lat) <= 90 && Math.abs(lon) <= 180 ? { lat, lon } : undefined;
+}
+
+/**
+ * Map view of the query features route: `#map=zoom/lat/lon` keeps its zoom,
+ * plain coordinates get `zoom`.
+ */
+export function parseMapView(input: string, zoom = 18): MapView | undefined {
+  const latLon = parseLatLon(input);
+  if (!latLon) return undefined;
+  const z = Number(input.match(/(?:^|[#&])map=(\d+(?:\.\d+)?)\//)?.[1] ?? zoom);
+  return { ...latLon, zoom: Math.round(Math.min(Math.max(z, 0), 19)) };
+}
+
+/** Hash route of the query features map, e.g. `#osm/map=18/47.26900/11.39300`. */
+export function mapHash({ lat, lon, zoom }: MapView): string {
+  // 5 decimals: about 1 m
+  return `#osm/map=${zoom}/${lat.toFixed(5)}/${lon.toFixed(5)}`;
 }
 
 /** Short form used in UI chips, e.g. `w123`. */

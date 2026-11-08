@@ -21,13 +21,7 @@
     <cdx-message v-if="error" type="error">{{ error }}</cdx-message>
 
     <template v-if="results">
-      <h2>
-        {{
-          results.kind === "nearby"
-            ? t("osm-nearby-results")
-            : t("osm-search-results", results.query ?? "")
-        }}
-      </h2>
+      <h2>{{ t("osm-search-results", results.query) }}</h2>
       <p v-if="!results.items.length" class="dd-osm-subtle">
         {{ t("search-no-results") }}
       </p>
@@ -49,6 +43,53 @@
           </a>
         </li>
       </ul>
+    </template>
+
+    <h2>{{ t("osm-query") }}</h2>
+    <p class="dd-osm-subtle">{{ t("osm-query-hint") }}</p>
+    <QueryMap
+      :query="map"
+      :highlight="highlighted?.highlight"
+      @query="queryAt"
+    />
+    <template v-if="features">
+      <template
+        v-for="[heading, items] in [
+          [t('osm-nearby-results'), features.nearby],
+          [t('osm-enclosing-results'), features.enclosing],
+        ] as const"
+        :key="heading"
+      >
+        <h3>{{ heading }}</h3>
+        <p v-if="!items.length" class="dd-osm-subtle">
+          {{ t("search-no-results") }}
+        </p>
+        <ul class="dd-osm-list">
+          <li
+            v-for="item in items"
+            :key="`${item.type}${item.id}`"
+            @mouseenter="highlighted = item"
+            @mouseleave="highlighted = undefined"
+            @focusin="highlighted = item"
+            @focusout="highlighted = undefined"
+          >
+            <a :href="osmHash(item)">
+              <PresetIcon :icon="item.icon" />
+              <span class="dd-osm-list-text">
+                <span class="dd-osm-list-name">
+                  {{ item.name }}
+                  <code class="dd-id-chip">{{ shortRef(item) }}</code>
+                </span>
+                <span class="dd-osm-subtle">
+                  {{
+                    [item.preset, item.description].filter(Boolean).join(" · ")
+                  }}
+                </span>
+              </span>
+            </a>
+          </li>
+        </ul>
+      </template>
     </template>
 
     <template v-if="recent.length">
@@ -84,7 +125,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, watch } from "vue";
+import { defineAsyncComponent, ref, shallowRef, watch } from "vue";
 import {
   CdxButton,
   CdxIcon,
@@ -96,15 +137,19 @@ import { cdxIconMapPin } from "@wikimedia/codex-icons";
 import { t } from "../../i18n";
 import { formatNumber } from "../../format";
 import { searchPlaces } from "../../osm/geocoding";
+import type { Bounds } from "../../osm/geocoding";
+import type { OsmElement } from "../../osm/osm";
 import {
+  mapHash,
   osmHash,
-  parseLatLon,
+  parseMapView,
   parseOsmRef,
   shortRef,
   type LatLon,
+  type MapView,
   type OsmRef,
 } from "../../osm/osm-ref";
-import { getNearby } from "../../osm/overpass";
+import { queryFeatures } from "../../osm/overpass";
 import {
   geometries,
   matchPreset,
@@ -114,7 +159,15 @@ import {
 import { useRecent } from "../../osm/recent";
 import PresetIcon from "./PresetIcon.vue";
 
-const props = defineProps<{ language: string; search?: string }>();
+// Maplair only when the map is shown
+const QueryMap = defineAsyncComponent(() => import("./QueryMap.vue"));
+
+const props = defineProps<{
+  language: string;
+  search?: string;
+  /** query features at this location (`#osm/map=zoom/lat/lon`) */
+  map?: MapView;
+}>();
 
 const EXAMPLES = [
   ["#osm/way/377700239", "Goldenes Dachl, Innsbruck"],
@@ -132,14 +185,14 @@ interface Item extends OsmRef {
   icon?: string;
   preset?: string;
   description?: string;
+  /** geometry shown on the map while hovered */
+  highlight?: LatLon[][] | Bounds;
 }
 
 const query = ref(props.search ?? "");
-const results = shallowRef<{
-  kind: "search" | "nearby";
-  query?: string;
-  items: Item[];
-}>();
+const results = shallowRef<{ query: string; items: Item[] }>();
+const features = shallowRef<{ nearby: Item[]; enclosing: Item[] }>();
+const highlighted = shallowRef<Item>();
 const busy = ref(false);
 const locating = ref(false);
 const error = ref<string>();
@@ -150,7 +203,9 @@ function submit() {
   const q = query.value.trim();
   if (!q) return;
   const osmRef = parseOsmRef(q);
+  const view = parseMapView(q);
   if (osmRef) location.hash = osmHash(osmRef);
+  else if (view) location.hash = mapHash(view);
   else location.hash = `#osm/search/${encodeURIComponent(q)}`;
 }
 
@@ -167,12 +222,12 @@ async function run(task: () => Promise<void>) {
 }
 
 async function search(q: string) {
-  const latLon = parseLatLon(q);
-  if (latLon) return showNearby(latLon);
+  // coordinates and osm.org map URLs: query features there
+  const view = parseMapView(q);
+  if (view) return location.replace(mapHash(view));
   await run(async () => {
     const places = await searchPlaces(q, props.language);
     results.value = {
-      kind: "search",
       query: q,
       items: places.map((p) => {
         const preset =
@@ -192,30 +247,54 @@ const meters = (m: number) =>
     unitDisplay: "short",
   });
 
-async function showNearby(location: LatLon) {
+function queryAt(view: MapView) {
+  location.hash = mapHash(view);
+}
+
+function toItem(
+  e: OsmElement,
+  description?: string,
+  highlight?: Item["highlight"],
+  geometry = geometries(e),
+): Item {
+  const tags = e.tags ?? {};
+  const preset = schema.value
+    ? matchPreset(schema.value, tags, geometry)
+    : undefined;
+  return {
+    type: e.type,
+    id: e.id,
+    name:
+      tags[`name:${props.language}`] ??
+      tags.name ??
+      tags.ref ??
+      preset?.name ??
+      `${e.type} ${e.id}`,
+    icon: preset?.icon,
+    preset: preset?.name,
+    description,
+    highlight,
+  };
+}
+
+async function showFeatures(view: MapView) {
+  features.value = undefined;
+  highlighted.value = undefined;
   await run(async () => {
-    const elements = await getNearby(location);
-    results.value = {
-      kind: "nearby",
-      items: elements.map((e) => {
-        const tags = e.tags ?? {};
-        const preset = schema.value
-          ? matchPreset(schema.value, tags, geometries(e))
-          : undefined;
-        return {
-          type: e.type,
-          id: e.id,
-          name:
-            tags[`name:${props.language}`] ??
-            tags.name ??
-            tags.ref ??
-            preset?.name ??
-            `${e.type} ${e.id}`,
-          icon: preset?.icon,
-          preset: preset?.name,
-          description: meters(e.distance),
-        };
-      }),
+    const { nearby, enclosing } = await queryFeatures(view, view.zoom);
+    // ignore responses for an outdated location
+    if (props.map !== view) return;
+    features.value = {
+      nearby: nearby.map((e) => toItem(e, meters(e.distance), e.geometry)),
+      // enclosing ways are areas, their nodes are not loaded
+      enclosing: enclosing.map((e) =>
+        toItem(
+          e,
+          undefined,
+          e.bounds,
+          e.type === "way" ? ["area", "line"] : undefined,
+        ),
+      ),
     };
   });
 }
@@ -226,9 +305,10 @@ function nearMe() {
   navigator.geolocation.getCurrentPosition(
     (position) => {
       locating.value = false;
-      showNearby({
+      location.hash = mapHash({
         lat: position.coords.latitude,
         lon: position.coords.longitude,
+        zoom: 17,
       });
     },
     (e) => {
@@ -249,11 +329,24 @@ watch(
   },
   { immediate: true },
 );
+
+watch(
+  () => props.map,
+  (view) => {
+    if (view) showFeatures(view);
+    else features.value = undefined;
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped>
 .dd-osm-home {
   max-width: 48rem;
+}
+.dd-osm-home h3 {
+  font-size: 1em;
+  margin: 1rem 0 0.5rem;
 }
 .dd-osm-home h2 {
   display: flex;
