@@ -1,4 +1,9 @@
-import { osmTypeFromLetter, type OsmRef, type OsmType } from "./osm-ref";
+import {
+  osmTypeFromLetter,
+  type MapView,
+  type OsmRef,
+  type OsmType,
+} from "./osm-ref";
 
 /**
  * Place search with Nominatim (on submit only: its usage policy forbids
@@ -42,10 +47,10 @@ interface NominatimResult {
   boundingbox: [string, string, string, string];
 }
 
-async function nominatim(
+async function nominatim<T = NominatimResult[]>(
   path: string,
   params: Record<string, string>,
-): Promise<NominatimResult[]> {
+): Promise<T> {
   const url = new URL(`${NOMINATIM}/${path}`);
   url.search = new URLSearchParams({ format: "jsonv2", ...params }).toString();
   const res = await fetch(url);
@@ -80,6 +85,26 @@ export async function searchPlaces(
     "accept-language": language,
   });
   return results.filter((r) => r.osm_type && r.osm_id).map(toPlace);
+}
+
+/**
+ * The object at a location via Nominatim reverse geocoding, like the search
+ * at a point on osm.org: the more zoomed out, the larger the object (address,
+ * street, town…). `undefined` where it finds nothing, e.g. at sea.
+ */
+export async function reversePlace(
+  view: MapView,
+  language: string,
+): Promise<(Place & { bounds: Bounds }) | undefined> {
+  const r = await nominatim<NominatimResult | { error: string }>("reverse", {
+    lat: String(view.lat),
+    lon: String(view.lon),
+    zoom: String(Math.min(view.zoom, 18)),
+    "accept-language": language,
+  });
+  if ("error" in r || !r.osm_type || !r.osm_id) return undefined;
+  const [minlat, maxlat, minlon, maxlon] = r.boundingbox.map(Number);
+  return { ...toPlace(r), bounds: { minlat, minlon, maxlat, maxlon } };
 }
 
 /** Bounding box of an element via Nominatim (only for indexed objects). */

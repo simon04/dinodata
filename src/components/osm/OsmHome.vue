@@ -52,6 +52,49 @@
       :highlight="highlighted?.highlight"
       @query="queryAt"
     />
+    <p v-if="map" class="dd-osm-reverse">
+      <cdx-button :disabled="reversing" @click="reverse(map)">
+        <cdx-icon :icon="cdxIconSearch" />
+        {{ t("osm-reverse") }}
+      </cdx-button>
+      <cdx-progress-indicator v-if="reversing">
+        {{ t("loading") }}
+      </cdx-progress-indicator>
+    </p>
+    <cdx-message v-if="reverseError" type="error">
+      {{ reverseError }}
+    </cdx-message>
+    <template v-if="reversed">
+      <h3>{{ t("osm-reverse-results") }}</h3>
+      <p v-if="!reversed.length" class="dd-osm-subtle">
+        {{ t("search-no-results") }}
+      </p>
+      <ul class="dd-osm-list">
+        <li
+          v-for="item in reversed"
+          :key="`${item.type}${item.id}`"
+          @mouseenter="highlighted = item"
+          @mouseleave="highlighted = undefined"
+          @focusin="highlighted = item"
+          @focusout="highlighted = undefined"
+        >
+          <a :href="osmHash(item)">
+            <PresetIcon :icon="item.icon" />
+            <span class="dd-osm-list-text">
+              <span class="dd-osm-list-name">
+                {{ item.name }}
+                <code class="dd-id-chip">{{ shortRef(item) }}</code>
+              </span>
+              <span class="dd-osm-subtle">
+                {{
+                  [item.preset, item.description].filter(Boolean).join(" · ")
+                }}
+              </span>
+            </span>
+          </a>
+        </li>
+      </ul>
+    </template>
     <template v-if="features">
       <template
         v-for="[heading, items] in [
@@ -131,12 +174,13 @@ import {
   CdxIcon,
   CdxMessage,
   CdxProgressBar,
+  CdxProgressIndicator,
   CdxSearchInput,
 } from "@wikimedia/codex";
-import { cdxIconMapPin } from "@wikimedia/codex-icons";
+import { cdxIconMapPin, cdxIconSearch } from "@wikimedia/codex-icons";
 import { t } from "../../i18n";
 import { formatNumber } from "../../format";
-import { searchPlaces } from "../../osm/geocoding";
+import { reversePlace, searchPlaces } from "../../osm/geocoding";
 import type { Bounds } from "../../osm/geocoding";
 import type { OsmElement } from "../../osm/osm";
 import {
@@ -193,6 +237,10 @@ const query = ref(props.search ?? "");
 const results = shallowRef<{ query: string; items: Item[] }>();
 const features = shallowRef<{ nearby: Item[]; enclosing: Item[] }>();
 const highlighted = shallowRef<Item>();
+/** Nominatim reverse geocoding at the queried location, on request */
+const reversed = shallowRef<Item[]>();
+const reversing = ref(false);
+const reverseError = ref<string>();
 const busy = ref(false);
 const locating = ref(false);
 const error = ref<string>();
@@ -280,9 +328,44 @@ function toItem(
   };
 }
 
+/** The object at the location, by Nominatim; independent of Overpass. */
+async function reverse(view: MapView) {
+  reversing.value = true;
+  reverseError.value = undefined;
+  try {
+    const place = await reversePlace(view, props.language);
+    // ignore responses for an outdated location
+    if (props.map !== view) return;
+    const preset =
+      place && schema.value && place.key && place.value
+        ? matchPreset(
+            schema.value,
+            { [place.key]: place.value },
+            ALL_GEOMETRIES,
+          )
+        : undefined;
+    reversed.value = place
+      ? [
+          {
+            ...place,
+            icon: preset?.icon,
+            preset: preset?.name,
+            highlight: place.bounds,
+          },
+        ]
+      : [];
+  } catch (e) {
+    reverseError.value = String(e);
+  } finally {
+    reversing.value = false;
+  }
+}
+
 async function showFeatures(view: MapView) {
   features.value = undefined;
   highlighted.value = undefined;
+  reversed.value = undefined;
+  reverseError.value = undefined;
   await run(async () => {
     const { nearby, enclosing } = await queryFeatures(view, view.zoom);
     // ignore responses for an outdated location
@@ -346,6 +429,12 @@ watch(
 <style scoped>
 .dd-osm-home {
   max-width: 48rem;
+}
+.dd-osm-reverse {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0;
 }
 .dd-osm-home h3 {
   font-size: 1em;

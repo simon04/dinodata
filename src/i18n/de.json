@@ -156,6 +156,8 @@
   "osm-query-map": "Karte: klicken, um Objekte abzufragen",
   "osm-nearby-failed": "Standort nicht verfügbar: $1",
   "osm-overpass-unavailable": "Die Overpass-Server sind gerade ausgelastet. Versuche es in einer Minute erneut.",
+  "osm-reverse": "Was ist hier? (Nominatim)",
+  "osm-reverse-results": "Nominatim",
   "osm-recent": "Zuletzt geöffnet",
   "osm-recent-clear": "Leeren",
   "osm-map-open": "Karte auf OpenStreetMap öffnen",
