@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import {
   OVERPASS_URLS,
+  OverpassUnavailableError,
   geometryDistance,
   queryFeatures,
   queryRadius,
@@ -141,5 +142,17 @@ describe("queryFeatures", () => {
       "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
       "https://overpass.private.coffee/api/interpreter",
     ]);
+  });
+
+  it("reports all instances failing as unavailable", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("busy", { status: 502 })),
+    );
+    const error = await queryFeatures(p, 18).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(OverpassUnavailableError);
+    expect((error as OverpassUnavailableError).errors).toHaveLength(
+      OVERPASS_URLS.length,
+    );
   });
 });

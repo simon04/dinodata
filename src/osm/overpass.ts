@@ -72,8 +72,16 @@ interface GeomElement extends Omit<OsmElement, "members"> {
   }[];
 }
 
+/** No Overpass instance answered: all busy, timed out or unreachable. */
+export class OverpassUnavailableError extends Error {
+  constructor(readonly errors: unknown[]) {
+    super(`Overpass API unavailable: ${errors.map(String).join("; ")}`);
+    this.name = "OverpassUnavailableError";
+  }
+}
+
 async function overpass<T = OsmElement>(query: string): Promise<T[]> {
-  let lastError: unknown;
+  const errors: unknown[] = [];
   // the working instance first, then the others in their order
   const start = working;
   for (let i = 0; i < OVERPASS_URLS.length; i++) {
@@ -89,10 +97,10 @@ async function overpass<T = OsmElement>(query: string): Promise<T[]> {
       working = index;
       return elements;
     } catch (e) {
-      lastError = e;
+      errors.push(e);
     }
   }
-  throw lastError;
+  throw new OverpassUnavailableError(errors);
 }
 
 /** Distance in meters (equirectangular approximation, fine for short ones). */

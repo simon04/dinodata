@@ -160,6 +160,7 @@
   "osm-query-hint": "Click or tap on the map to list the objects at that point.",
   "osm-query-map": "Map: click to query features",
   "osm-nearby-failed": "Location unavailable: $1",
+  "osm-overpass-unavailable": "The Overpass servers are busy right now. Try again in a minute.",
   "osm-recent": "Recently opened",
   "osm-recent-clear": "Clear",
   "osm-map-open": "Open the map on OpenStreetMap",

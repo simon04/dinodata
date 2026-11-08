@@ -149,7 +149,7 @@ import {
   type MapView,
   type OsmRef,
 } from "../../osm/osm-ref";
-import { queryFeatures } from "../../osm/overpass";
+import { OverpassUnavailableError, queryFeatures } from "../../osm/overpass";
 import {
   geometries,
   matchPreset,
@@ -215,7 +215,10 @@ async function run(task: () => Promise<void>) {
   try {
     await task();
   } catch (e) {
-    error.value = String(e);
+    if (e instanceof OverpassUnavailableError) {
+      console.warn(e);
+      error.value = t("osm-overpass-unavailable");
+    } else error.value = String(e);
   } finally {
     busy.value = false;
   }

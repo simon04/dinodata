@@ -155,6 +155,7 @@
   "osm-query-hint": "Klicke oder tippe auf die Karte, um die Objekte an dieser Stelle aufzulisten.",
   "osm-query-map": "Karte: klicken, um Objekte abzufragen",
   "osm-nearby-failed": "Standort nicht verfügbar: $1",
+  "osm-overpass-unavailable": "Die Overpass-Server sind gerade ausgelastet. Versuche es in einer Minute erneut.",
   "osm-recent": "Zuletzt geöffnet",
   "osm-recent-clear": "Leeren",
   "osm-map-open": "Karte auf OpenStreetMap öffnen",

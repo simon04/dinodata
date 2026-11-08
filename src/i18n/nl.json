@@ -160,6 +160,7 @@
   "osm-query-hint": "Klik of tik op de kaart om de objecten op die plek te tonen.",
   "osm-query-map": "Kaart: klik om objecten op te vragen",
   "osm-nearby-failed": "Locatie niet beschikbaar: $1",
+  "osm-overpass-unavailable": "De Overpass-servers zijn op dit moment overbelast. Probeer het over een minuut opnieuw.",
   "osm-recent": "Recent geopend",
   "osm-recent-clear": "Wissen",
   "osm-map-open": "Kaart openen op OpenStreetMap",
