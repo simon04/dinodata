@@ -34,18 +34,20 @@
                 {{ row.version.user }}
               </a>
             </td>
-            <td class="dd-diff">
-              <div
-                v-for="(line, j) in row.lines"
-                :key="j"
-                :class="line.type === '+' ? 'dd-diff-add' : 'dd-diff-del'"
-              >
-                <span class="dd-diff-marker" aria-hidden="true">
-                  {{ line.type }}
-                </span>
-                <component :is="line.type === '+' ? 'ins' : 'del'">
-                  <code>{{ line.key }}={{ line.value }}</code>
-                </component>
+            <td class="dd-history-diff">
+              <div class="dd-diff">
+                <div
+                  v-for="(line, j) in row.lines"
+                  :key="j"
+                  :class="line.type === '+' ? 'dd-diff-add' : 'dd-diff-del'"
+                >
+                  <span class="dd-diff-marker" aria-hidden="true">
+                    {{ line.type }}
+                  </span>
+                  <component :is="line.type === '+' ? 'ins' : 'del'">
+                    <code>{{ line.key }}={{ line.value }}</code>
+                  </component>
+                </div>
               </div>
               <span v-if="row.note" class="dd-history-comment">
                 {{ row.note }}
@@ -184,3 +186,5 @@ load();
 </script>
 
 <style scoped src="../history.css"></style>
+
+<style scoped src="../diff.css"></style>
