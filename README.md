@@ -13,6 +13,7 @@ A prototype of [Wikidata](https://www.wikidata.org/) with a nicer UX, built with
 ### Viewing
 
 - Open any item via search or URL hash, e.g. `#Q40` (Austria) or `#Q1735` (Innsbruck); the home page lists examples with their label and description in the selected language
+- Open an item by a statement value, e.g. `#P954=8100002` (IBNR → Salzburg Hbf) or `#P1671=101%2001` (route number); one match opens the item, several are listed (for links from other tools that know an identifier, not the Q-id)
 - Search results show the ID as a code chip next to the label
 - Header with label, description, aliases, image (P18) and buttons to Wikidata, Wikipedia and Wikimedia Commons (Commons category P373, or the Commons sitelink)
 - Tabs for statements, identifiers, languages (labels, descriptions, aliases), sitelinks and “What links here” (items, properties and other pages linking to the item, sorted by label)

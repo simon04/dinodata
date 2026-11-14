@@ -7,11 +7,18 @@ import {
 
 /**
  * Hash routes: Wikidata mode (`#Q40`, compared with another item
- * `#Q40?compare=Q41`) and OpenStreetMap mode (`#osm`, `#osm/way/123`,
- * `#osm/search/…`, query features at `#osm/map=zoom/lat/lon`).
+ * `#Q40?compare=Q41`, or looked up by a statement value `#P954=8100002`)
+ * and OpenStreetMap mode (`#osm`, `#osm/way/123`, `#osm/search/…`, query
+ * features at `#osm/map=zoom/lat/lon`).
  */
 export type Route =
-  | { mode: "wikidata"; id?: string; compare?: string }
+  | {
+      mode: "wikidata";
+      id?: string;
+      compare?: string;
+      /** item(s) with a statement `property = value`, e.g. P954 (IBNR) = 8100002 */
+      lookup?: { property: string; value: string };
+    }
   | { mode: "osm"; ref?: OsmRef; search?: string; map?: MapView };
 
 export function parseRoute(hash: string): Route {
@@ -25,6 +32,12 @@ export function parseRoute(hash: string): Route {
     }
     return { mode: "osm", ref: parseOsmRef(path) };
   }
+  const lookup = path.match(/^(P\d+)=(.+)$/);
+  if (lookup)
+    return {
+      mode: "wikidata",
+      lookup: { property: lookup[1], value: decodeURIComponent(lookup[2]) },
+    };
   const [entity, query = ""] = path.split("?", 2);
   const compare = new URLSearchParams(query)
     .get("compare")
@@ -39,4 +52,9 @@ export function parseRoute(hash: string): Route {
 /** Hash of an entity, optionally compared with another one. */
 export function entityHash(id: string, compare?: string): string {
   return compare ? `#${id}?compare=${compare}` : `#${id}`;
+}
+
+/** Hash of a lookup by statement value, e.g. `#P1671=101%2001`. */
+export function lookupHash(property: string, value: string): string {
+  return `#${property}=${encodeURIComponent(value)}`;
 }

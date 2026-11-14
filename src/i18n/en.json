@@ -241,5 +241,7 @@
   "osm-issue-type-node": "$1 is not meant for nodes (points).",
   "osm-issue-type-way": "$1 is not meant for ways.",
   "osm-issue-type-relation": "$1 is not meant for relations.",
-  "osm-issue-incompatible": "$1 should not be combined with $2."
+  "osm-issue-incompatible": "$1 should not be combined with $2.",
+  "lookup-none": "No item with $1 = $2.",
+  "lookup-several": "$1 items with this value:"
 }

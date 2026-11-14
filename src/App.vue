@@ -73,6 +73,12 @@
         :map="route.map"
       />
     </template>
+    <StatementLookup
+      v-else-if="route.lookup"
+      :property="route.lookup.property"
+      :value="route.lookup.value"
+      :language="language"
+    />
     <EntityView
       v-else-if="route.id"
       :id="route.id"
@@ -189,6 +195,7 @@ import EntityView from "./components/EntityView.vue";
 import MediaDialog from "./components/MediaDialog.vue";
 import EntityPreview from "./components/EntityPreview.vue";
 import dragons from "./assets/dragons.svg";
+import StatementLookup from "./components/StatementLookup.vue";
 import { parseRoute } from "./route";
 import { useSchema } from "./osm/presets";
 

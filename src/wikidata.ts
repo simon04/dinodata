@@ -525,6 +525,44 @@ export async function getNearbyItems(
   }));
 }
 
+export interface FoundItem {
+  id: string;
+  label?: string;
+  description?: string;
+}
+
+/**
+ * Items with a statement `property = value` (CirrusSearch `haswbstatement`;
+ * quoted, so values with spaces like P1671 `101 01` work), with labels.
+ */
+export async function findByStatement(
+  property: string,
+  value: string,
+  language: string,
+  limit = 50,
+): Promise<FoundItem[]> {
+  const json = await api<{ query?: { search: { title: string }[] } }>(
+    {
+      action: "query",
+      list: "search",
+      srsearch: `haswbstatement:"${property}=${value.replace(/"/g, "")}"`,
+      srnamespace: "0",
+      srlimit: String(limit),
+      srprop: "",
+    },
+    { maxAge: 60 * 60 * 1000 },
+  );
+  const ids = (json.query?.search ?? []).map((r) => r.title);
+  const entities = ids.length
+    ? await getEntities(ids, "labels|descriptions", fallbackLanguages(language))
+    : {};
+  return ids.map((id) => ({
+    id,
+    label: label(entities[id], language),
+    description: description(entities[id], language),
+  }));
+}
+
 /** Error reported by the Action API, e.g. `editconflict` or `permissiondenied`. */
 export class ApiError extends Error {
   constructor(

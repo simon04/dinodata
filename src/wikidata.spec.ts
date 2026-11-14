@@ -12,6 +12,7 @@ import {
   description,
   getBacklinks,
   getNearbyItems,
+  findByStatement,
   getEntities,
   fallbackLanguages,
   getLabels,
@@ -43,6 +44,14 @@ const fetch = vi.fn(async (input: string | URL) => {
             continue: { gblcontinue: "0|2", continue: "gblcontinue||" },
           },
     );
+  if (params.get("srsearch")?.startsWith("haswbstatement:"))
+    return Response.json({
+      query: {
+        search: params.get("srsearch")?.includes("8100002")
+          ? [{ title: "Q2" }]
+          : [],
+      },
+    });
   if (params.get("list") === "geosearch")
     return Response.json({
       query: {
@@ -429,5 +438,19 @@ describe("getNearbyItems", () => {
       },
     ]);
     expect(params(0).get("gscoord")).toBe("47|11");
+  });
+});
+
+describe("findByStatement", () => {
+  it("finds items by a statement value (quoted haswbstatement), with terms", async () => {
+    expect(await findByStatement("P954", "8100002", "en")).toEqual([
+      { id: "Q2", label: "label of Q2", description: "description of Q2" },
+    ]);
+    expect(params(0).get("srsearch")).toBe('haswbstatement:"P954=8100002"');
+  });
+
+  it("returns nothing for unknown values", async () => {
+    expect(await findByStatement("P1671", "101 01", "en")).toEqual([]);
+    expect(params(0).get("srsearch")).toBe('haswbstatement:"P1671=101 01"');
   });
 });
