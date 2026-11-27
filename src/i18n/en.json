@@ -34,6 +34,7 @@
   "history-tag": "Tag",
   "history-change": "Change",
   "history-wikidata": "History on Wikidata",
+  "history-wrap": "Wrap long lines",
   "contributions-title": "Contributions of $1",
   "contributions-item": "Item",
   "contributions-none": "No edits to items, properties or lexemes.",

@@ -28,6 +28,7 @@
   "history-tag": "Markierung",
   "history-change": "Änderung",
   "history-wikidata": "Versionsgeschichte auf Wikidata",
+  "history-wrap": "Lange Zeilen umbrechen",
   "contributions-title": "Beiträge von $1",
   "contributions-item": "Datenobjekt",
   "contributions-none": "Keine Bearbeitungen von Datenobjekten, Eigenschaften oder Lexemen.",

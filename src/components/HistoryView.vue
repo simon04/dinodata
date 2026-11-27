@@ -1,8 +1,12 @@
 <template>
   <div class="dd-history">
     <cdx-message v-if="error" type="error">{{ error }}</cdx-message>
-    <!-- scrolls horizontally: no line breaks in the table -->
-    <div v-if="revisions.length" class="dd-history-scroll">
+    <HistoryWrapToggle v-if="revisions.length" />
+    <!-- scrolls horizontally, unless long lines are wrapped -->
+    <div
+      v-if="revisions.length"
+      :class="['dd-history-scroll', { 'dd-history-wrap': historyWrap }]"
+    >
       <table class="dd-history-table">
         <thead>
           <tr>
@@ -89,6 +93,8 @@ import {
 import { getLabels, type Entity } from "../wikidata";
 import { contributionsHash } from "../route";
 import DiffLines from "./DiffLines.vue";
+import HistoryWrapToggle from "./HistoryWrapToggle.vue";
+import { historyWrap } from "./history-wrap";
 
 const props = defineProps<{ id: string; language: string }>();
 

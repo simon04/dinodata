@@ -13,8 +13,12 @@
     <p v-else-if="!loading && !contributions.length">
       {{ t("contributions-none") }}
     </p>
-    <!-- scrolls horizontally: no line breaks in the table -->
-    <div v-if="contributions.length" class="dd-history-scroll">
+    <HistoryWrapToggle v-if="contributions.length" />
+    <!-- scrolls horizontally, unless long lines are wrapped -->
+    <div
+      v-if="contributions.length"
+      :class="['dd-history-scroll', { 'dd-history-wrap': historyWrap }]"
+    >
       <table class="dd-history-table">
         <thead>
           <tr>
@@ -91,6 +95,8 @@ import {
 } from "../history";
 import { getLabels, type Entity } from "../wikidata";
 import DiffLines from "./DiffLines.vue";
+import HistoryWrapToggle from "./HistoryWrapToggle.vue";
+import { historyWrap } from "./history-wrap";
 
 /**
  * `#contributions/Name`: the edits of a user to items, properties and

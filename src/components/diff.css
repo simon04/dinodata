@@ -34,3 +34,17 @@
   background: none;
   white-space: pre;
 }
+/* in a wrapped history table, long lines break (also within values) */
+.dd-history-wrap .dd-diff-add,
+.dd-history-wrap .dd-diff-del {
+  width: auto;
+}
+.dd-history-wrap .dd-diff-add ins,
+.dd-history-wrap .dd-diff-del del {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.dd-history-wrap .dd-diff code:not(.dd-id-chip) {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

@@ -1,8 +1,12 @@
 <template>
   <div class="dd-history">
     <cdx-message v-if="error" type="error">{{ error }}</cdx-message>
-    <!-- scrolls horizontally: no line breaks in the table -->
-    <div v-if="shown.length" class="dd-history-scroll">
+    <HistoryWrapToggle v-if="shown.length" />
+    <!-- scrolls horizontally, unless long lines are wrapped -->
+    <div
+      v-if="shown.length"
+      :class="['dd-history-scroll', { 'dd-history-wrap': historyWrap }]"
+    >
       <table class="dd-history-table">
         <thead>
           <tr>
@@ -107,6 +111,8 @@ import {
 } from "../../osm/osm";
 import type { OsmRef } from "../../osm/osm-ref";
 import { tagDiffLines } from "../../osm/tags";
+import HistoryWrapToggle from "../HistoryWrapToggle.vue";
+import { historyWrap } from "../history-wrap";
 
 /** Versions of an element with their tag changes, like the Wikidata history. */
 const props = defineProps<{ osmRef: OsmRef; language: string }>();

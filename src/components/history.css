@@ -30,3 +30,10 @@
   gap: 1rem;
   margin-top: 1rem;
 }
+.dd-history-date {
+  white-space: nowrap;
+}
+/* wrapped: long lines break instead of scrolling sideways */
+.dd-history-wrap .dd-history-table {
+  white-space: normal;
+}
