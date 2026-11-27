@@ -708,7 +708,7 @@ function pointInTime(claim: Claim): [number, string] | undefined {
 
 /** Preferred first, deprecated last; within a rank, newest P585/P577 first. */
 const sortedClaims = computed(() =>
-  [...props.claims].sort((a, b) => {
+  props.claims.toSorted((a, b) => {
     const byRank = RANK_ORDER[a.rank] - RANK_ORDER[b.rank];
     if (byRank) return byRank;
     const ta = pointInTime(a);

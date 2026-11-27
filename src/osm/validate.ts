@@ -158,7 +158,7 @@ export function validate(
   // keep each message once, e.g. incompatible tags reported from both sides
   const seen = new Set<string>();
   return issues.filter((i) => {
-    const id = `${i.message}|${[...i.params].sort().join("|")}`;
+    const id = `${i.message}|${i.params.toSorted().join("|")}`;
     if (seen.has(id)) return false;
     seen.add(id);
     return true;

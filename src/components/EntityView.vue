@@ -921,7 +921,7 @@ const orderedProperties = computed(() => {
     alphabetical: (a, b) =>
       collator.value.compare(allLabels.value[a], allLabels.value[b]),
   };
-  return [...properties.value].sort(compare[sort.value] ?? wikidata);
+  return properties.value.toSorted(compare[sort.value] ?? wikidata);
 });
 const statements = computed(() =>
   orderedProperties.value.filter((p) => !isIdentifier(p)),

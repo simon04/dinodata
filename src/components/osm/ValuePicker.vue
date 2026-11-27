@@ -138,7 +138,7 @@ const items = computed(() => {
       if (!all.some((i) => i.value === s.value) && !s.value.includes(";"))
         all.push({ ...s, label: s.value });
   // current values first, also when not among the suggestions
-  for (const v of [...selectedValues.value].reverse()) {
+  for (const v of selectedValues.value.toReversed()) {
     const i = all.findIndex((item) => item.value === v);
     all.unshift(i >= 0 ? all.splice(i, 1)[0] : { value: v, label: v });
   }
