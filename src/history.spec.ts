@@ -190,8 +190,8 @@ describe("getRevisionEntities", () => {
       3: null,
     });
     expect(fetch).toHaveBeenCalledTimes(2);
-    expect(new URL(fetch.mock.calls[1]![0]).searchParams.get("rvcontinue")).toBe(
-      "2",
-    );
+    expect(
+      new URL(fetch.mock.calls[1]![0]).searchParams.get("rvcontinue"),
+    ).toBe("2");
   });
 });

@@ -49,10 +49,7 @@
                   :labels="labels"
                   :descriptions="descriptions"
                 />
-                <span
-                  v-if="!diffs[c.revid]!.length"
-                  class="dd-history-comment"
-                >
+                <span v-if="!diffs[c.revid]!.length" class="dd-history-comment">
                   {{ c.comment }}
                 </span>
               </template>
