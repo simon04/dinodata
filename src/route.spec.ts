@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { lookupHash, parseRoute } from "./route";
+import { contributionsHash, lookupHash, parseRoute } from "./route";
 
 describe("parseRoute", () => {
   it("parses items and comparisons", () => {
@@ -21,5 +21,17 @@ describe("parseRoute", () => {
       lookup: { property: "P1671", value: "101 01" },
     });
     expect(lookupHash("P1671", "101 01")).toBe("#P1671=101%2001");
+  });
+
+  it("parses contributions of a user", () => {
+    expect(parseRoute("#contributions/Simon04")).toEqual({
+      mode: "wikidata",
+      contributions: "Simon04",
+    });
+    expect(contributionsHash("Some User")).toBe("#contributions/Some_User");
+    expect(parseRoute(contributionsHash("Some User/ä"))).toEqual({
+      mode: "wikidata",
+      contributions: "Some User/ä",
+    });
   });
 });

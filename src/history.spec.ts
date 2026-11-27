@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
-import { entityDiff, getTagNames, tokenize } from "./history";
+import {
+  entityDiff,
+  getContributions,
+  getRevisionEntities,
+  getTagNames,
+  tokenize,
+} from "./history";
 import type { Claim, Entity } from "./wikidata";
 import { fakeCaches } from "./testing/fake-caches";
 
@@ -117,5 +123,75 @@ describe("getTagNames", () => {
     ).toEqual({ "OAuth CID: 19784": "DinoData (dev) [0.1]" });
     expect(await getTagNames([], "en")).toEqual({});
     expect(fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("getContributions", () => {
+  it("lists edits to entity pages with their entity ID", async () => {
+    const fetch = vi.fn(async (_url: string) =>
+      Response.json({
+        query: {
+          usercontribs: [
+            {
+              revid: 2,
+              parentid: 1,
+              user: "Simon04",
+              title: "Property:P31",
+              timestamp: "2026-11-01T00:00:00Z",
+              comment: "x",
+            },
+          ],
+        },
+        continue: { uccontinue: "abc", continue: "-||" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    expect(await getContributions("Simon04")).toEqual({
+      contributions: [
+        {
+          revid: 2,
+          parentid: 1,
+          user: "Simon04",
+          title: "Property:P31",
+          id: "P31",
+          timestamp: "2026-11-01T00:00:00Z",
+          comment: "x",
+          tags: [],
+        },
+      ],
+      next: { uccontinue: "abc", continue: "-||" },
+    });
+    const params = new URL(fetch.mock.calls[0]![0]).searchParams;
+    expect(params.get("ucuser")).toBe("Simon04");
+    expect(params.get("ucnamespace")).toBe("0|120|146");
+  });
+});
+
+describe("getRevisionEntities", () => {
+  it("follows continuations and returns null for missing revisions", async () => {
+    const page = (revid: number) => ({
+      revisions: [
+        { revid, slots: { main: { content: JSON.stringify({ id: "Q1" }) } } },
+      ],
+    });
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          query: { pages: [page(1)] },
+          continue: { rvcontinue: "2", continue: "||" },
+        }),
+      )
+      .mockResolvedValueOnce(Response.json({ query: { pages: [page(2)] } }));
+    vi.stubGlobal("fetch", fetch);
+    expect(await getRevisionEntities([1, 2, 3])).toEqual({
+      1: { id: "Q1" },
+      2: { id: "Q1" },
+      3: null,
+    });
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(new URL(fetch.mock.calls[1]![0]).searchParams.get("rvcontinue")).toBe(
+      "2",
+    );
   });
 });

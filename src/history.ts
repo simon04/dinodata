@@ -102,6 +102,90 @@ export async function getRevisionEntity(
   return rev && toRevision({ ...rev, tags: [] }).entity;
 }
 
+/** An edit of a user to an entity page, with the entity before and after. */
+export interface Contribution extends Revision {
+  /** page title, e.g. `Q42`, `Property:P31` */
+  title: string;
+  /** the entity ID of the page, e.g. `P31` */
+  id: string;
+}
+
+/** Namespaces of entity pages: items, properties, lexemes. */
+const ENTITY_NAMESPACES = "0|120|146";
+
+/** Edits of a user (or IP) to entity pages, newest first, 20 per request. */
+export async function getContributions(
+  user: string,
+  from?: Record<string, string>,
+): Promise<{
+  contributions: Omit<Contribution, "entity">[];
+  next?: Record<string, string>;
+}> {
+  const json = await get<{
+    query?: {
+      usercontribs: (Omit<Contribution, "id" | "entity" | "anon"> & {
+        // hidden user: the contribution is listed without the user
+        userhidden?: boolean;
+      })[];
+    };
+    continue?: Record<string, string>;
+  }>({
+    action: "query",
+    list: "usercontribs",
+    ucuser: user,
+    ucnamespace: ENTITY_NAMESPACES,
+    ucprop: "ids|title|timestamp|comment|tags",
+    uclimit: "20",
+    ...from,
+  });
+  return {
+    contributions: (json.query?.usercontribs ?? []).map((c) => ({
+      revid: c.revid,
+      parentid: c.parentid,
+      user: c.user,
+      timestamp: c.timestamp,
+      comment: c.comment,
+      tags: c.tags ?? [],
+      title: c.title,
+      id: c.title.replace(/^[^:]*:/, ""),
+    })),
+    next: json.continue,
+  };
+}
+
+/**
+ * Entities of revisions, 50 per request (following continuations when
+ * the content exceeds the result size); hidden or missing ones as null.
+ */
+export async function getRevisionEntities(
+  revids: number[],
+): Promise<Record<number, Entity | null>> {
+  const result: Record<number, Entity | null> = {};
+  for (let i = 0; i < revids.length; i += 50) {
+    const batch = revids.slice(i, i + 50);
+    let from: Record<string, string> | undefined;
+    do {
+      const json: {
+        query?: { pages?: RevisionPage[]; badrevids?: Record<string, unknown> };
+        continue?: Record<string, string>;
+      } = await get({
+        action: "query",
+        prop: "revisions",
+        revids: batch.join("|"),
+        rvprop: "ids|content",
+        rvslots: "main",
+        ...from,
+      });
+      for (const page of json.query?.pages ?? [])
+        for (const rev of page.revisions ?? [])
+          result[rev.revid] = toRevision({ ...rev, tags: [] }).entity ?? null;
+      from = json.continue;
+    } while (from);
+    for (const revid of batch) if (!(revid in result)) result[revid] = null;
+  }
+  return result;
+}
+
 /** A line of a diff: QuickStatements added (+) or removed (-). */
 export interface DiffLine {
   type: "+" | "-";

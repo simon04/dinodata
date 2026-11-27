@@ -24,12 +24,8 @@
               </a>
             </td>
             <td>
-              <a
-                v-if="rev.user"
-                :href="userUrl(rev)"
-                target="_blank"
-                rel="external noopener"
-              >
+              <!-- the user's edits as QuickStatements, like this history -->
+              <a v-if="rev.user" :href="contributionsHash(rev.user)">
                 {{ rev.user }}
               </a>
             </td>
@@ -91,6 +87,7 @@ import {
   type Revision,
 } from "../history";
 import { getLabels, type Entity } from "../wikidata";
+import { contributionsHash } from "../route";
 import DiffLines from "./DiffLines.vue";
 
 const props = defineProps<{ id: string; language: string }>();
@@ -155,11 +152,6 @@ const dateFormat = new Intl.DateTimeFormat(locale(props.language), {
 });
 const formatDate = (timestamp: string) =>
   dateFormat.format(new Date(timestamp));
-
-const userUrl = (rev: Revision) =>
-  rev.anon
-    ? `https://www.wikidata.org/wiki/Special:Contributions/${encodeURIComponent(rev.user!)}`
-    : `https://www.wikidata.org/wiki/User:${encodeURIComponent(rev.user!.replace(/ /g, "_"))}`;
 
 async function load() {
   loading.value = true;

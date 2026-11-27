@@ -73,6 +73,12 @@
         :map="route.map"
       />
     </template>
+    <UserContributions
+      v-else-if="route.contributions"
+      :key="`${route.contributions}:${language}`"
+      :user="route.contributions"
+      :language="language"
+    />
     <StatementLookup
       v-else-if="route.lookup"
       :property="route.lookup.property"
@@ -196,6 +202,7 @@ import MediaDialog from "./components/MediaDialog.vue";
 import EntityPreview from "./components/EntityPreview.vue";
 import dragons from "./assets/dragons.svg";
 import StatementLookup from "./components/StatementLookup.vue";
+import UserContributions from "./components/UserContributions.vue";
 import { parseRoute } from "./route";
 import { useSchema } from "./osm/presets";
 
