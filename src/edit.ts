@@ -1,4 +1,9 @@
-import { snakKey, type Edit, type StatementEdit } from "./quickstatements";
+import {
+  referenceKey,
+  snakKey,
+  type Edit,
+  type StatementEdit,
+} from "./quickstatements";
 import type { Claim, Entity, Snak } from "./wikidata";
 
 /**
@@ -31,6 +36,21 @@ function byProperty(snaks: Snak[] = []): Record<string, Snak[]> {
   return result;
 }
 
+/** The new references, unchanged ones as they are (with their hash). */
+function changedReferences(
+  existing: NonNullable<Claim["references"]>,
+  references: Snak[][],
+): NonNullable<Claim["references"]> {
+  const rest = [...existing];
+  return references.map((snaks) => {
+    const key = referenceKey(snaks);
+    const i = rest.findIndex(
+      (r) => referenceKey(Object.values(r.snaks).flat()) === key,
+    );
+    return i >= 0 ? rest.splice(i, 1)[0]! : { snaks: byProperty(snaks) };
+  });
+}
+
 function statementData(entity: Entity, edit: StatementEdit): ClaimData[] {
   const existing = entity.claims[edit.snak.property] ?? [];
   if (edit.remove) {
@@ -48,14 +68,18 @@ function statementData(entity: Entity, edit: StatementEdit): ClaimData[] {
   if (edit.original) {
     const claim = existing.find((c) => c.id === edit.claimId);
     if (!claim) throw new Error(`Statement ${edit.claimId} not found`);
-    // the whole statement is replaced: keep its references
-    const { qualifiers: _, ...rest } = claim;
+    // the whole statement is replaced: keep its references, unless changed
+    const { qualifiers: _, references: existingReferences, ...rest } = claim;
+    const references = edit.original.references
+      ? changedReferences(existingReferences ?? [], edit.references ?? [])
+      : existingReferences;
     return [
       {
         ...rest,
         type: "statement",
         mainsnak: edit.snak,
         ...(qualifiers && { qualifiers }),
+        ...(references?.length && { references }),
       },
     ];
   }

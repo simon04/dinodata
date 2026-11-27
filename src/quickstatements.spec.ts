@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
-import { snakValue, toQuickStatements, type Edit } from "./quickstatements";
+import {
+  hasUnexportableEdits,
+  snakValue,
+  toQuickStatements,
+  type Edit,
+  type StatementEdit,
+} from "./quickstatements";
 import type { Snak } from "./wikidata";
 
 const snak = (property: string, type: string, value: unknown): Snak => ({
@@ -115,7 +121,7 @@ describe("toQuickStatements", () => {
         item("P459", "Q52679562"),
       ],
     };
-    const change = (s: Snak, qualifiers: Snak[]): Edit => ({
+    const change = (s: Snak, qualifiers: Snak[]): StatementEdit => ({
       type: "statement",
       claimId: "Q1726$X",
       snak: s,
@@ -159,6 +165,30 @@ describe("toQuickStatements", () => {
           ]),
         ]),
       ).toBe("REMOVE_QUAL|Q1726|P1082|+1505005|P459|Q52679562");
+    });
+
+    it("adds new references, but cannot remove references", () => {
+      const withReferences = (references: Snak[][]): Edit => ({
+        ...change(original.snak, original.qualifiers),
+        references,
+        original: { ...original, references: [[item("P248", "Q1")]] },
+      });
+      const added = withReferences([
+        [item("P248", "Q1")],
+        [item("P143", "Q328"), item("P813", "Q2")],
+      ]);
+      expect(toQuickStatements(Q, [added])).toBe(
+        "Q1726|P1082|+1505005|S143|Q328|S813|Q2",
+      );
+      expect(hasUnexportableEdits([added])).toBe(false);
+      // a changed reference: the new one is added, the old one stays
+      const changed = withReferences([[item("P248", "Q3")]]);
+      expect(toQuickStatements(Q, [changed])).toBe(
+        "Q1726|P1082|+1505005|S248|Q3",
+      );
+      expect(hasUnexportableEdits([changed])).toBe(true);
+      // without the original references, they are not changed
+      expect(hasUnexportableEdits([change(original.snak, [])])).toBe(false);
     });
 
     it("addresses qualifiers by the new value after a switch", () => {

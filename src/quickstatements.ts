@@ -11,11 +11,12 @@ export type Edit =
       type: "statement";
       remove?: boolean;
       /**
-       * change of an existing statement (main value and/or qualifiers):
-       * exported as SWITCH_VALUE, REMOVE_QUAL and qualifiers added to the
-       * matching statement, keeping its ID, rank and references
+       * change of an existing statement (main value, qualifiers and/or
+       * references): exported as SWITCH_VALUE, REMOVE_QUAL and qualifiers
+       * and references added to the matching statement, keeping its ID and
+       * rank; references are only changed if the original ones are given
        */
-      original?: { snak: Snak; qualifiers: Snak[] };
+      original?: { snak: Snak; qualifiers: Snak[]; references?: Snak[][] };
       rank?: "preferred" | "normal" | "deprecated";
       /** existing claim (removals) or generated ID (additions), for the UI */
       claimId: string;
@@ -66,6 +67,33 @@ function without(a: Snak[], b: Snak[]): Snak[] {
   });
 }
 
+/** A reference as text, to compare references regardless of their hash. */
+export const referenceKey = (snaks: Snak[]) => snaks.map(snakKey).join("|");
+
+/** References of `a` not in `b` (as multisets). */
+function referencesWithout(a: Snak[][], b: Snak[][]): Snak[][] {
+  const rest = b.map(referenceKey);
+  return a.filter((snaks) => {
+    const i = rest.indexOf(referenceKey(snaks));
+    if (i < 0) return true;
+    rest.splice(i, 1);
+    return false;
+  });
+}
+
+/** References removed (or changed) by an edit of an existing statement. */
+const removedReferences = (edit: StatementEdit): Snak[][] =>
+  edit.original?.references
+    ? referencesWithout(edit.original.references, edit.references ?? [])
+    : [];
+
+/**
+ * Whether the QuickStatements export misses some edits: it can add
+ * references to a statement, but not remove them.
+ */
+export const hasUnexportableEdits = (edits: Edit[]) =>
+  edits.some((e) => e.type === "statement" && removedReferences(e).length > 0);
+
 /**
  * Change an existing statement in place: statements are matched by
  * property and value, an existing match gets the qualifiers added.
@@ -88,6 +116,18 @@ function changeStatement(id: string, edit: StatementEdit): string {
     ...(added.length
       ? [[id, property, value, ...added.map(snakKey)].join("|")]
       : []),
+    // one line per added reference, merged into the matching statement
+    ...(original!.references
+      ? referencesWithout(edit.references ?? [], original!.references)
+      : []
+    ).map((reference) =>
+      [
+        id,
+        property,
+        value,
+        ...reference.map((r) => snakKey(r).replace(/^P/, "S")),
+      ].join("|"),
+    ),
   ].join("\n");
 }
 

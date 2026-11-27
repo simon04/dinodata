@@ -157,6 +157,7 @@
             @copy="copy"
             @change="changeStatement"
             @qualifiers="changeQualifiers"
+            @references="changeReferences"
           />
         </div>
       </cdx-tab>
@@ -216,6 +217,7 @@
             @copy="copy"
             @change="changeStatement"
             @qualifiers="changeQualifiers"
+            @references="changeReferences"
           />
         </div>
       </cdx-tab>
@@ -521,6 +523,12 @@ function claimsOf(property: string): Claim[] {
             qualifiers: edit.qualifiers?.length
               ? groupSnaks(edit.qualifiers)
               : undefined,
+            // changed references, else the existing ones (with their hash)
+            ...(edit.original?.references && {
+              references: edit.references?.length
+                ? edit.references.map((r) => ({ snaks: groupSnaks(r) }))
+                : undefined,
+            }),
           }
         : claim;
     }),
@@ -723,6 +731,23 @@ function changeQualifiers(
   });
 }
 
+/** Change the references (each a group of snaks); the rest is kept. */
+function changeReferences(
+  claim: Claim,
+  references: Snak[][],
+  snak?: Snak,
+  valueLabel?: string,
+) {
+  rememberLabel(snak, valueLabel);
+  const kept = references.filter((r) => r.length);
+  updateStatement({
+    ...claim,
+    references: kept.length
+      ? kept.map((r) => ({ snaks: groupSnaks(r) }))
+      : undefined,
+  });
+}
+
 /**
  * Pending statements are changed in place; for existing ones the original is
  * kept to export only the difference, unless the change was reverted.
@@ -734,6 +759,9 @@ function updateStatement(updated: Claim) {
   if (pendingEdit) {
     pendingEdit.snak = updated.mainsnak;
     pendingEdit.qualifiers = Object.values(updated.qualifiers ?? {}).flat();
+    pendingEdit.references = updated.references?.map((r) =>
+      Object.values(r.snaks).flat(),
+    );
     return;
   }
   const original = entity.value?.claims[updated.mainsnak.property]?.find(
@@ -748,6 +776,7 @@ function updateStatement(updated: Claim) {
       ...original,
       mainsnak: updated.mainsnak,
       qualifiers: updated.qualifiers,
+      references: updated.references,
     },
     updated.id,
   );
@@ -760,6 +789,9 @@ function updateStatement(updated: Claim) {
       original: {
         snak: original.mainsnak,
         qualifiers: Object.values(original.qualifiers ?? {}).flat(),
+        references: (original.references ?? []).map((r) =>
+          Object.values(r.snaks).flat(),
+        ),
       },
     });
 }
@@ -811,9 +843,11 @@ const allLabels = computed(() => {
     ...properties.value,
     ...typeProperties.value,
     ...commonProperties.value,
-    // qualifiers added in the editor
+    // qualifiers and references added in the editor
     ...statementEdits.value.flatMap((e) =>
-      (e.qualifiers ?? []).map((q) => q.property),
+      [...(e.qualifiers ?? []), ...(e.references ?? []).flat()].map(
+        (q) => q.property,
+      ),
     ),
   ]) {
     result[property] ??=

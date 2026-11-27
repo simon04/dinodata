@@ -36,6 +36,7 @@ Edits are collected locally, then saved to Wikidata directly (after logging in) 
 - **Add statements** (property + value) with a keyboard-friendly flow: Enter adds and focuses the next property; add values to existing properties with `+`
 - **Change values** of existing statements (pencil or double-click), e.g. a number or a photo, exported as `SWITCH_VALUE`, which keeps the statement with its ID, qualifiers, references and rank
 - **Edit qualifiers**: add, change (pencil or double-click) and remove qualifiers of a statement; only the difference is exported: added qualifiers on a line matching the existing statement (QuickStatements merges them), removed ones as `REMOVE_QUAL`
+- **Edit references**: add a reference (further values go into the same reference), add, change and remove values of a reference, remove a whole reference; unchanged references are saved as they are; QuickStatements can only add references (the panel warns that removed and changed ones are only saved directly to Wikidata)
 - **Remove statements** (`-STATEMENT|<id>`) and undo any change
 - Value inputs per datatype with validation and a hint for the expected format: items/properties (search), strings, external IDs, URLs, Commons files, dates (`1955`, `1955-05`, `1955-05-15`), quantities (unit picked from chips of the property's allowed units or searched; bounds kept when editing), coordinates (globe and precision kept when editing), monolingual text
 - Ranks (`R+`/`R-`) and Julian calendar dates (`/J`) preserved in the export

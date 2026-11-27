@@ -105,6 +105,44 @@ describe("toEntityData", () => {
     ]);
   });
 
+  it("changes references, keeping unchanged ones as they are", () => {
+    const hashed = { ...reference, hash: "abc" };
+    const withHash: Entity = {
+      ...entity,
+      claims: {
+        ...entity.claims,
+        P31: [{ ...entity.claims.P31![0]!, references: [hashed] }],
+      },
+    };
+    const change = (references: Snak[][]) =>
+      toEntityData(withHash, [
+        {
+          type: "statement",
+          claimId: "Q42$a",
+          snak: item("P31", "Q5"),
+          qualifiers: [item("P642", "Q1")],
+          references,
+          original: {
+            snak: item("P31", "Q5"),
+            qualifiers: [item("P642", "Q1")],
+            references: [[item("P143", "Q328")]],
+          },
+        },
+      ]).claims![0];
+    expect(
+      change([
+        [item("P143", "Q328")],
+        [item("P248", "Q1"), item("P248", "Q2")],
+      ]),
+    ).toMatchObject({
+      references: [
+        hashed,
+        { snaks: { P248: [item("P248", "Q1"), item("P248", "Q2")] } },
+      ],
+    });
+    expect(change([])).not.toHaveProperty("references");
+  });
+
   it("removes statements by ID, pasted ones by value", () => {
     expect(
       toEntityData(entity, [

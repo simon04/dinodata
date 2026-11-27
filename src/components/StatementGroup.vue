@@ -69,7 +69,9 @@
           {
             'dd-value-wide':
               addingQualifier === claim.id ||
-              editingQualifier?.claimId === claim.id,
+              editingQualifier?.claimId === claim.id ||
+              addingReference?.claimId === claim.id ||
+              editingReference?.claimId === claim.id,
             'dd-pending': pending.has(claim.id),
             'dd-changed': changed.has(claim.id),
             'dd-removed': removed.has(claim.id),
@@ -139,7 +141,12 @@
             :formatter-example="formatterExample"
             @dblclick="startEdit(claim)"
           />
-          <details v-if="claim.references?.length" class="dd-references">
+          <details
+            v-if="claim.references?.length"
+            class="dd-references"
+            :open="openReferences.has(claim.id)"
+            @toggle="toggleReferences(claim.id, $event)"
+          >
             <summary :title="t('references', claim.references.length)">
               <cdx-icon :icon="cdxIconReference" size="x-small" />
               {{ claim.references.length }}
@@ -163,14 +170,118 @@
                 </a>
                 <template v-for="(snak, i) in snaks" :key="i">
                   <span v-if="i">,</span>
-                  <SnakValue
-                    :snak="snak"
-                    :labels="labels"
-                    :descriptions="descriptions"
-                    :formatter-urls="formatterUrls"
-                  />
+                  <span
+                    v-if="
+                      editingReference?.claimId === claim.id &&
+                      editingReference.index === r &&
+                      editingReference.property === refProperty &&
+                      editingReference.i === i
+                    "
+                    class="dd-edit"
+                  >
+                    <ValueInput
+                      :property="String(refProperty)"
+                      :datatype="
+                        snak.datatype ?? byId[refProperty]?.datatype ?? 'string'
+                      "
+                      :language="language"
+                      :original="snak"
+                      :label="labels[refProperty] ?? String(refProperty)"
+                      @submit="
+                        (value, label) => {
+                          setReference(
+                            claim,
+                            r,
+                            String(refProperty),
+                            i,
+                            value,
+                            label,
+                          );
+                          editingReference = undefined;
+                        }
+                      "
+                      @cancel="editingReference = undefined"
+                    />
+                    <cdx-button
+                      weight="quiet"
+                      size="small"
+                      :aria-label="t('cancel')"
+                      @click="editingReference = undefined"
+                    >
+                      <cdx-icon :icon="cdxIconClose" size="small" />
+                    </cdx-button>
+                  </span>
+                  <span v-else class="dd-qualifier-value">
+                    <SnakValue
+                      :snak="snak"
+                      :labels="labels"
+                      :descriptions="descriptions"
+                      :formatter-urls="formatterUrls"
+                      @dblclick="
+                        startEditReference(claim, r, String(refProperty), i)
+                      "
+                    />
+                    <cdx-button
+                      v-if="!removed.has(claim.id) && snak.snaktype === 'value'"
+                      class="dd-hover dd-qualifier-action"
+                      weight="quiet"
+                      size="small"
+                      :aria-label="t('edit-reference-value')"
+                      v-tooltip="t('edit-reference-value')"
+                      @click="
+                        startEditReference(claim, r, String(refProperty), i)
+                      "
+                    >
+                      <cdx-icon :icon="cdxIconEdit" size="small" />
+                    </cdx-button>
+                    <cdx-button
+                      v-if="!removed.has(claim.id)"
+                      class="dd-hover dd-qualifier-action"
+                      weight="quiet"
+                      action="destructive"
+                      size="small"
+                      :aria-label="t('remove-reference-value')"
+                      v-tooltip="t('remove-reference-value')"
+                      @click="setReference(claim, r, String(refProperty), i)"
+                    >
+                      <cdx-icon :icon="cdxIconTrash" size="small" />
+                    </cdx-button>
+                  </span>
                 </template>
               </span>
+              <span v-if="!removed.has(claim.id)" class="dd-reference-actions">
+                <cdx-button
+                  class="dd-hover dd-qualifier-action"
+                  weight="quiet"
+                  size="small"
+                  :aria-label="t('add-reference-value')"
+                  v-tooltip="t('add-reference-value')"
+                  @click="addingReference = { claimId: claim.id, index: r }"
+                >
+                  <cdx-icon :icon="cdxIconAdd" size="small" />
+                </cdx-button>
+                <cdx-button
+                  class="dd-hover dd-qualifier-action"
+                  weight="quiet"
+                  action="destructive"
+                  size="small"
+                  :aria-label="t('remove-reference')"
+                  v-tooltip="t('remove-reference')"
+                  @click="removeReference(claim, r)"
+                >
+                  <cdx-icon :icon="cdxIconTrash" size="small" />
+                </cdx-button>
+              </span>
+              <AddStatement
+                v-if="
+                  addingReference?.claimId === claim.id &&
+                  addingReference.index === r
+                "
+                class="dd-add-reference"
+                :language="language"
+                @add="(snak, label) => addReferenceSnak(claim, r, snak, label)"
+                @close="addingReference = undefined"
+              />
             </div>
           </details>
           <span v-if="editing !== claim.id" class="dd-actions">
@@ -195,6 +306,22 @@
               @click="addingQualifier = claim.id"
             >
               <cdx-icon :icon="cdxIconAdd" size="small" />
+            </cdx-button>
+            <cdx-button
+              v-if="!removed.has(claim.id)"
+              class="dd-hover"
+              weight="quiet"
+              size="small"
+              :aria-label="t('add-reference')"
+              v-tooltip="t('add-reference')"
+              @click="
+                addingReference = {
+                  claimId: claim.id,
+                  index: claim.references?.length ?? 0,
+                }
+              "
+            >
+              <cdx-icon :icon="cdxIconReference" size="small" />
             </cdx-button>
             <cdx-button
               class="dd-hover"
@@ -333,6 +460,24 @@
           "
           @close="addingQualifier = undefined"
         />
+        <AddStatement
+          v-if="
+            addingReference?.claimId === claim.id &&
+            addingReference.index === (claim.references?.length ?? 0)
+          "
+          class="dd-add-qualifier"
+          :language="language"
+          @add="
+            (snak, label) =>
+              addReferenceSnak(
+                claim,
+                claim.references?.length ?? 0,
+                snak,
+                label,
+              )
+          "
+          @close="addingReference = undefined"
+        />
       </div>
       <AddStatement
         v-if="adding && propertyInfo"
@@ -397,6 +542,8 @@ const emit = defineEmits<{
     snak?: Snak,
     label?: string,
   ];
+  /** all references of the statement, each a group of snaks */
+  references: [claim: Claim, references: Snak[][], snak?: Snak, label?: string];
 }>();
 
 const { byId } = useProperties();
@@ -438,6 +585,89 @@ function setQualifier(
   if (snaks.length) qualifiers[property] = snaks;
   else delete qualifiers[property];
   emit("qualifiers", claim, qualifiers, snak, label);
+}
+
+/** Statements with their references shown (opened or being edited). */
+const openReferences = ref(new Set<string>());
+function toggleReferences(claimId: string, event: Event) {
+  const open = (event.target as HTMLDetailsElement).open;
+  if (open === openReferences.value.has(claimId)) return;
+  const ids = new Set(openReferences.value);
+  if (open) ids.add(claimId);
+  else ids.delete(claimId);
+  openReferences.value = ids;
+}
+
+/** Reference `index` of a statement, a new one at the end. */
+const addingReference = ref<{ claimId: string; index: number }>();
+const editingReference = ref<{
+  claimId: string;
+  index: number;
+  property: string;
+  i: number;
+}>();
+
+function startEditReference(
+  claim: Claim,
+  index: number,
+  property: string,
+  i: number,
+) {
+  const snak = claim.references?.[index]?.snaks[property]?.[i];
+  if (props.removed.has(claim.id) || snak?.snaktype !== "value") return;
+  editingReference.value = { claimId: claim.id, index, property, i };
+}
+
+/**
+ * Replace (or add at the end) value `i` of `property` in reference `index`
+ * (a new reference if past the end); without `snak`, remove it.
+ */
+function setReference(
+  claim: Claim,
+  index: number,
+  property: string,
+  i: number,
+  snak?: Snak,
+  label?: string,
+) {
+  const references = (claim.references ?? []).map((r) => ({ ...r.snaks }));
+  const snaks = references[index] ?? {};
+  const values = [...(snaks[property] ?? [])];
+  if (snak) values.splice(i, 1, snak);
+  else values.splice(i, 1);
+  if (values.length) snaks[property] = values;
+  else delete snaks[property];
+  references[index] = snaks;
+  emit(
+    "references",
+    claim,
+    references.map((r) => Object.values(r).flat()),
+    snak,
+    label,
+  );
+}
+
+function addReferenceSnak(
+  claim: Claim,
+  index: number,
+  snak: Snak,
+  label?: string,
+) {
+  const existing = claim.references?.[index]?.snaks[snak.property];
+  setReference(claim, index, snak.property, existing?.length ?? 0, snak, label);
+  // show the added value; further values go into the same reference
+  openReferences.value = new Set(openReferences.value).add(claim.id);
+  addingReference.value = { claimId: claim.id, index };
+}
+
+function removeReference(claim: Claim, index: number) {
+  emit(
+    "references",
+    claim,
+    (claim.references ?? [])
+      .filter((_, r) => r !== index)
+      .map((r) => Object.values(r.snaks).flat()),
+  );
 }
 
 /** From the cache, or derived from existing statements while it loads. */
@@ -638,6 +868,18 @@ function thumb(file: string) {
   border-inline-start: 2px solid var(--border-color-subtle);
   padding-inline-start: 0.5rem;
   margin: 0.25rem 0;
+}
+.dd-reference-actions {
+  display: inline-flex;
+}
+.dd-add-reference {
+  flex-basis: 100%;
+  margin: 0.25rem 0 0;
+  font-size: var(--font-size-medium);
+}
+.dd-references .dd-edit {
+  flex-basis: 100%;
+  font-size: var(--font-size-medium);
 }
 .dd-pending {
   background: var(--background-color-success-subtle);

@@ -37,6 +37,9 @@
           :descriptions="allDescriptions"
         />
       </div>
+      <cdx-message v-if="hasUnexportableEdits(edits)" type="warning">
+        {{ t("qs-references-unsupported") }}
+      </cdx-message>
       <div class="dd-qs-actions">
         <template v-if="username">
           <cdx-text-input
@@ -93,7 +96,11 @@ import { loginAvailable, useAuth } from "../auth";
 import { useSharedClipboard } from "../clipboard";
 import { applyEdits } from "../edit";
 import { entityDiff, tokenize } from "../history";
-import { toQuickStatements, type Edit } from "../quickstatements";
+import {
+  hasUnexportableEdits,
+  toQuickStatements,
+  type Edit,
+} from "../quickstatements";
 import { getLabels, type Entity } from "../wikidata";
 import DiffLines from "./DiffLines.vue";
 
