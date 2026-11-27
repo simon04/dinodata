@@ -53,6 +53,7 @@ export function formatTime(
   const n = (v: number) => formatNumber(v, language, { useGrouping: false });
   const ordinal = (v: number) => {
     if (locale(language).startsWith("nl")) return `${n(v)}e`;
+    if (locale(language).startsWith("it")) return `${n(v)}º`;
     if (!locale(language).startsWith("en")) return `${n(v)}.`;
     const rule = new Intl.PluralRules("en", { type: "ordinal" }).select(v);
     return `${v}${{ one: "st", two: "nd", few: "rd" }[rule as string] ?? "th"}`;
