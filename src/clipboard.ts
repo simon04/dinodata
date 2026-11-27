@@ -190,11 +190,8 @@ export function parseStatements(
       fail(error);
       continue;
     }
-    const group = (snaks: Snak[]) => {
-      const record: Record<string, Snak[]> = {};
-      for (const s of snaks) (record[s.property] ??= []).push(s);
-      return record;
-    };
+    const group = (snaks: Snak[]) =>
+      Object.groupBy(snaks, (s) => s.property) as Record<string, Snak[]>;
     // same statement on several lines: one line per reference
     const key = toQuickStatements("", [
       claimToEdit(

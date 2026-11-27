@@ -31,9 +31,10 @@ export interface EntityData {
 
 /** Snaks grouped by property, as in claims. */
 function byProperty(snaks: Snak[] = []): Record<string, Snak[]> {
-  const result: Record<string, Snak[]> = {};
-  for (const snak of snaks) (result[snak.property] ??= []).push(snak);
-  return result;
+  return Object.groupBy(snaks, (snak) => snak.property) as Record<
+    string,
+    Snak[]
+  >;
 }
 
 /** The new references, unchanged ones as they are (with their hash). */

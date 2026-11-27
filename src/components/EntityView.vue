@@ -546,9 +546,10 @@ function claimsOf(property: string): Claim[] {
 
 let counter = 0;
 function groupSnaks(snaks: Snak[]): Record<string, Snak[]> {
-  const result: Record<string, Snak[]> = {};
-  for (const snak of snaks) (result[snak.property] ??= []).push(snak);
-  return result;
+  return Object.groupBy(snaks, (snak) => snak.property) as Record<
+    string,
+    Snak[]
+  >;
 }
 
 const toast = useToast();
