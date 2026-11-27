@@ -76,13 +76,9 @@ function onBackdrop(event: MouseEvent) {
 .dd-sheet[open] {
   animation: dd-sheet-up var(--transition-duration-medium, 250ms) ease-out;
 }
+/* the Codex token is dark in dark mode (theme-wikimedia-ui-mode-dark) */
 .dd-sheet::backdrop {
   background: var(--background-color-backdrop-light, rgb(255 255 255 / 65%));
-}
-@media (prefers-color-scheme: dark) {
-  .dd-sheet::backdrop {
-    background: rgb(0 0 0 / 60%);
-  }
 }
 @keyframes dd-sheet-up {
   from {
